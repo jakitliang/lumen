@@ -1,0 +1,90 @@
+.TH LUMENC 1 "2025-05-15" "Lumen 1.0.0" "Lumen Manual"
+.SH NAME
+lumenc \- Lua compiler
+
+.SH SYNOPSIS
+.B lumenc
+[\fIoptions\fR] [\fIfilenames\fR]
+
+.SH DESCRIPTION
+.B lumenc
+is the Lua bytecode compiler. It translates Lua source files into binary precompiled files (bytecode) that can later be loaded and executed by the Lua interpreter.
+
+Precompiling chunks provides:
+
+.IP \[bu] 2
+Faster loading time  
+.IP \[bu]
+Protection of source code from modification  
+.IP \[bu]
+Off-line syntax checking  
+
+Note that precompiling does not improve runtime performance: Lua always compiles source into bytecode before execution. The main benefit is reducing startup time.
+
+Precompiled chunks are architecture-dependent: they are portable only between systems with the same word size and byte order.
+
+By default, all input files are compiled into a single output file:
+.B lumenc.out
+You can specify a different output with the
+.B \-o
+option.
+
+You can mix Lua source files and binary files on the command line. This allows bundling multiple chunks into a single file.
+
+.SH OPTIONS
+Options must be passed separately (e.g. "\-p \-l", not "\-pl").
+
+.TP
+.B \-l
+List the compiled bytecode (disassembly) for Lua's virtual machine. This is helpful for learning or debugging.  
+If no files are provided,
+.B lumenc
+loads
+.B lumenc.out
+and lists its contents.
+
+.TP
+.BI \-o " file"
+Set output filename to
+.IR file .
+Default is
+.B lumenc.out .
+Use
+.B \-
+to output to stdout (not recommended on platforms where stdout is opened in text mode).
+
+.TP
+.B \-p
+Parse input files and load them, but do not produce output. Used for syntax checking or integrity testing.  
+If no files are given,
+.B lumenc
+will load
+.B lumenc.out
+and validate it. No output is printed if the file is valid.
+
+.TP
+.B \-s
+Strip debug information (line numbers, local variable names, etc.) before writing output. This reduces file size, but makes debugging harder.
+
+.TP
+.B \-v
+Show version information.
+
+.SH FILES
+.TP
+.B lumenc.out
+Default output file for compiled bytecode.
+
+.SH SEE ALSO
+.BR lumen (1)
+.br
+https://github.com/jakitliang/lumen
+
+.SH DIAGNOSTICS
+Error messages are self-explanatory. Syntax errors or invalid bytecode will cause informative failures.
+
+.SH AUTHORS
+Jakit Liang
+
+.SH COPYRIGHT
+Lumen is released under the BSD-2 Clause License.

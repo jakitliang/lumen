@@ -1,0 +1,496 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+
+<head>
+	<title>Lua 5.1 参考手册 - 目录</title>
+	<link rel="stylesheet" type="text/css" href="lua.css">
+	<meta http-equiv="content-type" content="text/html; charset=utf-8">
+	<style type="text/css">
+		ul {
+			list-style-type: none;
+		}
+	</style>
+</head>
+
+<body>
+
+	<hr />
+	<h1>
+		<a href="http://www.lua.org/"><img src="logo.gif" alt="" border=0></a>
+		Lua 5.1 参考手册
+	</h1>
+
+	<p>
+		本参考手册是 Lua 语言的官方定义。
+		如需完整的 Lua 编程入门，请参阅
+		<a href="http://www.lua.org/docs.html#pil">《Programming in Lua》</a>一书。
+
+	<p>
+		本手册也以图书形式出版：
+	<blockquote>
+		<a href="http://www.amazon.com/exec/obidos/ASIN/8590379833/lua-indexmanual-20">
+			<img src="cover.png" alt="" title="亚马逊购买" border=1 align="left" hspace=12>
+		</a>
+		<b>Lua 5.1 参考手册</b>
+		<br>作者：R. Ierusalimschy, L. H. de Figueiredo, W. Celes
+		<br>Lua.org，2006年8月
+		<br>ISBN 85-903798-3-3
+		<br clear="all">
+	</blockquote>
+
+	<p>
+		<a href="http://www.amazon.com/exec/obidos/ASIN/8590379833/lua-indexmanual-20">购买本书</a>
+		并<a href="http://www.lua.org/donations.html">支持 Lua 项目</a>。
+
+	<p>
+		<a href="manual_zh.html">开始阅读</a>
+		&middot;
+		<a href="#contents">目录</a>
+		&middot;
+		<a href="#index">索引</a>
+		&middot;
+		<a href="http://www.lua.org/manual/">其他版本</a>
+		<hr />
+		<small>
+			版权所有 &copy; 2006&ndash;2012 Lua.org, PUC-Rio。
+			根据 <a href="http://www.lua.org/license.html">Lua 许可证</a> 条款自由发布。
+		</small>
+
+	<h2><a name="contents">目录</a></h2>
+	<ul style="padding: 0">
+		<li><a href="manual_zh.html">1 &ndash; 简介</a>
+			<p>
+		<li><a href="manual_zh.html#2">2 &ndash; 语言</a>
+			<ul>
+				<li><a href="manual_zh.html#2.1">2.1 &ndash; 词法约定</a>
+				<li><a href="manual_zh.html#2.2">2.2 &ndash; 值与类型</a>
+					<ul>
+						<li><a href="manual_zh.html#2.2.1">2.2.1 &ndash; 类型转换</a>
+					</ul>
+				<li><a href="manual_zh.html#2.3">2.3 &ndash; 变量</a>
+				<li><a href="manual_zh.html#2.4">2.4 &ndash; 语句</a>
+					<ul>
+						<li><a href="manual_zh.html#2.4.1">2.4.1 &ndash; 代码块</a>
+						<li><a href="manual_zh.html#2.4.2">2.4.2 &ndash; 代码段</a>
+						<li><a href="manual_zh.html#2.4.3">2.4.3 &ndash; 赋值</a>
+						<li><a href="manual_zh.html#2.4.4">2.4.4 &ndash; 控制结构</a>
+						<li><a href="manual_zh.html#2.4.5">2.4.5 &ndash; for 语句</a>
+						<li><a href="manual_zh.html#2.4.6">2.4.6 &ndash; 函数调用作为语句</a>
+						<li><a href="manual_zh.html#2.4.7">2.4.7 &ndash; 局部声明</a>
+					</ul>
+				<li><a href="manual_zh.html#2.5">2.5 &ndash; 表达式</a>
+					<ul>
+						<li><a href="manual_zh.html#2.5.1">2.5.1 &ndash; 算术运算符</a>
+						<li><a href="manual_zh.html#2.5.2">2.5.2 &ndash; 关系运算符</a>
+						<li><a href="manual_zh.html#2.5.3">2.5.3 &ndash; 逻辑运算符</a>
+						<li><a href="manual_zh.html#2.5.4">2.5.4 &ndash; 连接运算符</a>
+						<li><a href="manual_zh.html#2.5.5">2.5.5 &ndash; 长度运算符</a>
+						<li><a href="manual_zh.html#2.5.6">2.5.6 &ndash; 优先级</a>
+						<li><a href="manual_zh.html#2.5.7">2.5.7 &ndash; 表构造器</a>
+						<li><a href="manual_zh.html#2.5.8">2.5.8 &ndash; 函数调用</a>
+						<li><a href="manual_zh.html#2.5.9">2.5.9 &ndash; 函数定义</a>
+					</ul>
+				<li><a href="manual_zh.html#2.6">2.6 &ndash; 可见性规则</a>
+				<li><a href="manual_zh.html#2.7">2.7 &ndash; 错误处理</a>
+				<li><a href="manual_zh.html#2.8">2.8 &ndash; 元表</a>
+				<li><a href="manual_zh.html#2.9">2.9 &ndash; 环境</a>
+				<li><a href="manual_zh.html#2.10">2.10 &ndash; 垃圾回收</a>
+					<ul>
+						<li><a href="manual_zh.html#2.10.1">2.10.1 &ndash; 垃圾回收元方法</a>
+						<li><a href="manual_zh.html#2.10.2">2.10.2 &ndash; 弱表</a>
+					</ul>
+				<li><a href="manual_zh.html#2.11">2.11 &ndash; 协程</a>
+			</ul>
+			<p>
+		<li><a href="manual_zh.html#3">3 &ndash; 应用程序接口</a>
+			<ul>
+				<li><a href="manual_zh.html#3.1">3.1 &ndash; 栈</a>
+				<li><a href="manual_zh.html#3.2">3.2 &ndash; 栈大小</a>
+				<li><a href="manual_zh.html#3.3">3.3 &ndash; 伪索引</a>
+				<li><a href="manual_zh.html#3.4">3.4 &ndash; C 闭包</a>
+				<li><a href="manual_zh.html#3.5">3.5 &ndash; 注册表</a>
+				<li><a href="manual_zh.html#3.6">3.6 &ndash; C 语言中的错误处理</a>
+				<li><a href="manual_zh.html#3.7">3.7 &ndash; 函数与类型</a>
+				<li><a href="manual_zh.html#3.8">3.8 &ndash; 调试接口</a>
+			</ul>
+			<p>
+		<li><a href="manual_zh.html#4">4 &ndash; 辅助库</a>
+			<ul>
+				<li><a href="manual_zh.html#4.1">4.1 &ndash; 函数与类型</a>
+			</ul>
+			<p>
+		<li><a href="manual_zh.html#5">5 &ndash; 标准库</a>
+			<ul>
+				<li><a href="manual_zh.html#5.1">5.1 &ndash; 基本函数</a>
+				<li><a href="manual_zh.html#5.2">5.2 &ndash; 协程操作</a>
+				<li><a href="manual_zh.html#5.3">5.3 &ndash; 模块</a>
+				<li><a href="manual_zh.html#5.4">5.4 &ndash; 字符串操作</a>
+					<ul>
+						<li><a href="manual_zh.html#5.4.1">5.4.1 &ndash; 模式匹配</a>
+					</ul>
+				<li><a href="manual_zh.html#5.5">5.5 &ndash; 表操作</a>
+				<li><a href="manual_zh.html#5.6">5.6 &ndash; 数学函数</a>
+				<li><a href="manual_zh.html#5.7">5.7 &ndash; 输入输出功能</a>
+				<li><a href="manual_zh.html#5.8">5.8 &ndash; 操作系统功能</a>
+				<li><a href="manual_zh.html#5.9">5.9 &ndash; 调试库</a>
+			</ul>
+			<p>
+		<li><a href="manual_zh.html#6">6 &ndash; Lua 独立运行</a>
+			<p>
+		<li><a href="manual_zh.html#7">7 &ndash; 与前一版本的不兼容</a>
+			<ul>
+				<li><a href="manual_zh.html#7.1">7.1 &ndash; 语言变化</a>
+				<li><a href="manual_zh.html#7.2">7.2 &ndash; 库变化</a>
+				<li><a href="manual_zh.html#7.3">7.3 &ndash; API 变化</a>
+			</ul>
+			<p>
+		<li><a href="manual_zh.html#8">8 &ndash; Lua 完整语法</a>
+	</ul>
+
+	<h2><a name="index">索引</a></h2>
+	<table width="100%">
+		<tr valign="top">
+			<td>
+				<h3><a name="functions">Lua 函数</a></h3>
+				<a href="manual_zh.html#pdf-_G">_G</a><br>
+				<a href="manual_zh.html#pdf-_VERSION">_VERSION</a><br>
+				<p>
+
+					<a href="manual_zh.html#pdf-assert">assert</a><br>
+					<a href="manual_zh.html#pdf-collectgarbage">collectgarbage</a><br>
+					<a href="manual_zh.html#pdf-dofile">dofile</a><br>
+					<a href="manual_zh.html#pdf-error">error</a><br>
+					<a href="manual_zh.html#pdf-getfenv">getfenv</a><br>
+					<a href="manual_zh.html#pdf-getmetatable">getmetatable</a><br>
+					<a href="manual_zh.html#pdf-ipairs">ipairs</a><br>
+					<a href="manual_zh.html#pdf-load">load</a><br>
+					<a href="manual_zh.html#pdf-loadfile">loadfile</a><br>
+					<a href="manual_zh.html#pdf-loadstring">loadstring</a><br>
+					<a href="manual_zh.html#pdf-module">module</a><br>
+					<a href="manual_zh.html#pdf-next">next</a><br>
+					<a href="manual_zh.html#pdf-pairs">pairs</a><br>
+					<a href="manual_zh.html#pdf-pcall">pcall</a><br>
+					<a href="manual_zh.html#pdf-print">print</a><br>
+					<a href="manual_zh.html#pdf-rawequal">rawequal</a><br>
+					<a href="manual_zh.html#pdf-rawget">rawget</a><br>
+					<a href="manual_zh.html#pdf-rawset">rawset</a><br>
+					<a href="manual_zh.html#pdf-require">require</a><br>
+					<a href="manual_zh.html#pdf-select">select</a><br>
+					<a href="manual_zh.html#pdf-setfenv">setfenv</a><br>
+					<a href="manual_zh.html#pdf-setmetatable">setmetatable</a><br>
+					<a href="manual_zh.html#pdf-tonumber">tonumber</a><br>
+					<a href="manual_zh.html#pdf-tostring">tostring</a><br>
+					<a href="manual_zh.html#pdf-type">type</a><br>
+					<a href="manual_zh.html#pdf-unpack">unpack</a><br>
+					<a href="manual_zh.html#pdf-xpcall">xpcall</a><br>
+				<p>
+
+					<a href="manual_zh.html#pdf-coroutine.create">coroutine.create</a><br>
+					<a href="manual_zh.html#pdf-coroutine.resume">coroutine.resume</a><br>
+					<a href="manual_zh.html#pdf-coroutine.running">coroutine.running</a><br>
+					<a href="manual_zh.html#pdf-coroutine.status">coroutine.status</a><br>
+					<a href="manual_zh.html#pdf-coroutine.wrap">coroutine.wrap</a><br>
+					<a href="manual_zh.html#pdf-coroutine.yield">coroutine.yield</a><br>
+				<p>
+
+					<a href="manual_zh.html#pdf-debug.debug">debug.debug</a><br>
+					<a href="manual_zh.html#pdf-debug.getfenv">debug.getfenv</a><br>
+					<a href="manual_zh.html#pdf-debug.gethook">debug.gethook</a><br>
+					<a href="manual_zh.html#pdf-debug.getinfo">debug.getinfo</a><br>
+					<a href="manual_zh.html#pdf-debug.getlocal">debug.getlocal</a><br>
+					<a href="manual_zh.html#pdf-debug.getmetatable">debug.getmetatable</a><br>
+					<a href="manual_zh.html#pdf-debug.getregistry">debug.getregistry</a><br>
+					<a href="manual_zh.html#pdf-debug.getupvalue">debug.getupvalue</a><br>
+					<a href="manual_zh.html#pdf-debug.setfenv">debug.setfenv</a><br>
+					<a href="manual_zh.html#pdf-debug.sethook">debug.sethook</a><br>
+					<a href="manual_zh.html#pdf-debug.setlocal">debug.setlocal</a><br>
+					<a href="manual_zh.html#pdf-debug.setmetatable">debug.setmetatable</a><br>
+					<a href="manual_zh.html#pdf-debug.setupvalue">debug.setupvalue</a><br>
+					<a href="manual_zh.html#pdf-debug.traceback">debug.traceback</a><br>
+
+			</td>
+			<td>
+				<h3>&nbsp;</h3>
+				<a href="manual_zh.html#pdf-file:close">file:close</a><br>
+				<a href="manual_zh.html#pdf-file:flush">file:flush</a><br>
+				<a href="manual_zh.html#pdf-file:lines">file:lines</a><br>
+				<a href="manual_zh.html#pdf-file:read">file:read</a><br>
+				<a href="manual_zh.html#pdf-file:seek">file:seek</a><br>
+				<a href="manual_zh.html#pdf-file:setvbuf">file:setvbuf</a><br>
+				<a href="manual_zh.html#pdf-file:write">file:write</a><br>
+				<p>
+
+					<a href="manual_zh.html#pdf-io.close">io.close</a><br>
+					<a href="manual_zh.html#pdf-io.flush">io.flush</a><br>
+					<a href="manual_zh.html#pdf-io.input">io.input</a><br>
+					<a href="manual_zh.html#pdf-io.lines">io.lines</a><br>
+					<a href="manual_zh.html#pdf-io.open">io.open</a><br>
+					<a href="manual_zh.html#pdf-io.output">io.output</a><br>
+					<a href="manual_zh.html#pdf-io.popen">io.popen</a><br>
+					<a href="manual_zh.html#pdf-io.read">io.read</a><br>
+					<a href="manual_zh.html#pdf-io.stderr">io.stderr</a><br>
+					<a href="manual_zh.html#pdf-io.stdin">io.stdin</a><br>
+					<a href="manual_zh.html#pdf-io.stdout">io.stdout</a><br>
+					<a href="manual_zh.html#pdf-io.tmpfile">io.tmpfile</a><br>
+					<a href="manual_zh.html#pdf-io.type">io.type</a><br>
+					<a href="manual_zh.html#pdf-io.write">io.write</a><br>
+				<p>
+
+					<a href="manual_zh.html#pdf-math.abs">math.abs</a><br>
+					<a href="manual_zh.html#pdf-math.acos">math.acos</a><br>
+					<a href="manual_zh.html#pdf-math.asin">math.asin</a><br>
+					<a href="manual_zh.html#pdf-math.atan">math.atan</a><br>
+					<a href="manual_zh.html#pdf-math.atan2">math.atan2</a><br>
+					<a href="manual_zh.html#pdf-math.ceil">math.ceil</a><br>
+					<a href="manual_zh.html#pdf-math.cos">math.cos</a><br>
+					<a href="manual_zh.html#pdf-math.cosh">math.cosh</a><br>
+					<a href="manual_zh.html#pdf-math.deg">math.deg</a><br>
+					<a href="manual_zh.html#pdf-math.exp">math.exp</a><br>
+					<a href="manual_zh.html#pdf-math.floor">math.floor</a><br>
+					<a href="manual_zh.html#pdf-math.fmod">math.fmod</a><br>
+					<a href="manual_zh.html#pdf-math.frexp">math.frexp</a><br>
+					<a href="manual_zh.html#pdf-math.huge">math.huge</a><br>
+					<a href="manual_zh.html#pdf-math.ldexp">math.ldexp</a><br>
+					<a href="manual_zh.html#pdf-math.log">math.log</a><br>
+					<a href="manual_zh.html#pdf-math.log10">math.log10</a><br>
+					<a href="manual_zh.html#pdf-math.max">math.max</a><br>
+					<a href="manual_zh.html#pdf-math.min">math.min</a><br>
+					<a href="manual_zh.html#pdf-math.modf">math.modf</a><br>
+					<a href="manual_zh.html#pdf-math.pi">math.pi</a><br>
+					<a href="manual_zh.html#pdf-math.pow">math.pow</a><br>
+					<a href="manual_zh.html#pdf-math.rad">math.rad</a><br>
+					<a href="manual_zh.html#pdf-math.random">math.random</a><br>
+					<a href="manual_zh.html#pdf-math.randomseed">math.randomseed</a><br>
+					<a href="manual_zh.html#pdf-math.sin">math.sin</a><br>
+					<a href="manual_zh.html#pdf-math.sinh">math.sinh</a><br>
+					<a href="manual_zh.html#pdf-math.sqrt">math.sqrt</a><br>
+					<a href="manual_zh.html#pdf-math.tan">math.tan</a><br>
+					<a href="manual_zh.html#pdf-math.tanh">math.tanh</a><br>
+				<p>
+
+					<a href="manual_zh.html#pdf-os.clock">os.clock</a><br>
+					<a href="manual_zh.html#pdf-os.date">os.date</a><br>
+					<a href="manual_zh.html#pdf-os.difftime">os.difftime</a><br>
+					<a href="manual_zh.html#pdf-os.execute">os.execute</a><br>
+					<a href="manual_zh.html#pdf-os.exit">os.exit</a><br>
+					<a href="manual_zh.html#pdf-os.getenv">os.getenv</a><br>
+					<a href="manual_zh.html#pdf-os.remove">os.remove</a><br>
+					<a href="manual_zh.html#pdf-os.rename">os.rename</a><br>
+					<a href="manual_zh.html#pdf-os.setlocale">os.setlocale</a><br>
+					<a href="manual_zh.html#pdf-os.time">os.time</a><br>
+					<a href="manual_zh.html#pdf-os.tmpname">os.tmpname</a><br>
+				<p>
+
+					<a href="manual_zh.html#pdf-package.cpath">package.cpath</a><br>
+					<a href="manual_zh.html#pdf-package.loaded">package.loaded</a><br>
+					<a href="manual_zh.html#pdf-package.loaders">package.loaders</a><br>
+					<a href="manual_zh.html#pdf-package.loadlib">package.loadlib</a><br>
+					<a href="manual_zh.html#pdf-package.path">package.path</a><br>
+					<a href="manual_zh.html#pdf-package.preload">package.preload</a><br>
+					<a href="manual_zh.html#pdf-package.seeall">package.seeall</a><br>
+				<p>
+
+					<a href="manual_zh.html#pdf-string.byte">string.byte</a><br>
+					<a href="manual_zh.html#pdf-string.char">string.char</a><br>
+					<a href="manual_zh.html#pdf-string.dump">string.dump</a><br>
+					<a href="manual_zh.html#pdf-string.find">string.find</a><br>
+					<a href="manual_zh.html#pdf-string.format">string.format</a><br>
+					<a href="manual_zh.html#pdf-string.gmatch">string.gmatch</a><br>
+					<a href="manual_zh.html#pdf-string.gsub">string.gsub</a><br>
+					<a href="manual_zh.html#pdf-string.len">string.len</a><br>
+					<a href="manual_zh.html#pdf-string.lower">string.lower</a><br>
+					<a href="manual_zh.html#pdf-string.match">string.match</a><br>
+					<a href="manual_zh.html#pdf-string.rep">string.rep</a><br>
+					<a href="manual_zh.html#pdf-string.reverse">string.reverse</a><br>
+					<a href="manual_zh.html#pdf-string.sub">string.sub</a><br>
+					<a href="manual_zh.html#pdf-string.upper">string.upper</a><br>
+				<p>
+
+					<a href="manual_zh.html#pdf-table.concat">table.concat</a><br>
+					<a href="manual_zh.html#pdf-table.insert">table.insert</a><br>
+					<a href="manual_zh.html#pdf-table.maxn">table.maxn</a><br>
+					<a href="manual_zh.html#pdf-table.remove">table.remove</a><br>
+					<a href="manual_zh.html#pdf-table.sort">table.sort</a><br>
+
+			</td>
+			<td>
+				<h3>C API</h3>
+				<a href="manual_zh.html#lua_Alloc">lua_Alloc</a><br>
+				<a href="manual_zh.html#lua_CFunction">lua_CFunction</a><br>
+				<a href="manual_zh.html#lua_Debug">lua_Debug</a><br>
+				<a href="manual_zh.html#lua_Hook">lua_Hook</a><br>
+				<a href="manual_zh.html#lua_Integer">lua_Integer</a><br>
+				<a href="manual_zh.html#lua_Number">lua_Number</a><br>
+				<a href="manual_zh.html#lua_Reader">lua_Reader</a><br>
+				<a href="manual_zh.html#lua_State">lua_State</a><br>
+				<a href="manual_zh.html#lua_Writer">lua_Writer</a><br>
+				<p>
+
+					<a href="manual_zh.html#lua_atpanic">lua_atpanic</a><br>
+					<a href="manual_zh.html#lua_call">lua_call</a><br>
+					<a href="manual_zh.html#lua_checkstack">lua_checkstack</a><br>
+					<a href="manual_zh.html#lua_close">lua_close</a><br>
+					<a href="manual_zh.html#lua_concat">lua_concat</a><br>
+					<a href="manual_zh.html#lua_cpcall">lua_cpcall</a><br>
+					<a href="manual_zh.html#lua_createtable">lua_createtable</a><br>
+					<a href="manual_zh.html#lua_dump">lua_dump</a><br>
+					<a href="manual_zh.html#lua_equal">lua_equal</a><br>
+					<a href="manual_zh.html#lua_error">lua_error</a><br>
+					<a href="manual_zh.html#lua_gc">lua_gc</a><br>
+					<a href="manual_zh.html#lua_getallocf">lua_getallocf</a><br>
+					<a href="manual_zh.html#lua_getfenv">lua_getfenv</a><br>
+					<a href="manual_zh.html#lua_getfield">lua_getfield</a><br>
+					<a href="manual_zh.html#lua_getglobal">lua_getglobal</a><br>
+					<a href="manual_zh.html#lua_gethook">lua_gethook</a><br>
+					<a href="manual_zh.html#lua_gethookcount">lua_gethookcount</a><br>
+					<a href="manual_zh.html#lua_gethookmask">lua_gethookmask</a><br>
+					<a href="manual_zh.html#lua_getinfo">lua_getinfo</a><br>
+					<a href="manual_zh.html#lua_getlocal">lua_getlocal</a><br>
+					<a href="manual_zh.html#lua_getmetatable">lua_getmetatable</a><br>
+					<a href="manual_zh.html#lua_getstack">lua_getstack</a><br>
+					<a href="manual_zh.html#lua_gettable">lua_gettable</a><br>
+					<a href="manual_zh.html#lua_gettop">lua_gettop</a><br>
+					<a href="manual_zh.html#lua_getupvalue">lua_getupvalue</a><br>
+					<a href="manual_zh.html#lua_insert">lua_insert</a><br>
+					<a href="manual_zh.html#lua_isboolean">lua_isboolean</a><br>
+					<a href="manual_zh.html#lua_iscfunction">lua_iscfunction</a><br>
+					<a href="manual_zh.html#lua_isfunction">lua_isfunction</a><br>
+					<a href="manual_zh.html#lua_islightuserdata">lua_islightuserdata</a><br>
+					<a href="manual_zh.html#lua_isnil">lua_isnil</a><br>
+					<a href="manual_zh.html#lua_isnone">lua_isnone</a><br>
+					<a href="manual_zh.html#lua_isnoneornil">lua_isnoneornil</a><br>
+					<a href="manual_zh.html#lua_isnumber">lua_isnumber</a><br>
+					<a href="manual_zh.html#lua_isstring">lua_isstring</a><br>
+					<a href="manual_zh.html#lua_istable">lua_istable</a><br>
+					<a href="manual_zh.html#lua_isthread">lua_isthread</a><br>
+					<a href="manual_zh.html#lua_isuserdata">lua_isuserdata</a><br>
+					<a href="manual_zh.html#lua_lessthan">lua_lessthan</a><br>
+					<a href="manual_zh.html#lua_load">lua_load</a><br>
+					<a href="manual_zh.html#lua_newstate">lua_newstate</a><br>
+					<a href="manual_zh.html#lua_newtable">lua_newtable</a><br>
+					<a href="manual_zh.html#lua_newthread">lua_newthread</a><br>
+					<a href="manual_zh.html#lua_newuserdata">lua_newuserdata</a><br>
+					<a href="manual_zh.html#lua_next">lua_next</a><br>
+					<a href="manual_zh.html#lua_objlen">lua_objlen</a><br>
+					<a href="manual_zh.html#lua_pcall">lua_pcall</a><br>
+					<a href="manual_zh.html#lua_pop">lua_pop</a><br>
+					<a href="manual_zh.html#lua_pushboolean">lua_pushboolean</a><br>
+					<a href="manual_zh.html#lua_pushcclosure">lua_pushcclosure</a><br>
+					<a href="manual_zh.html#lua_pushcfunction">lua_pushcfunction</a><br>
+					<a href="manual_zh.html#lua_pushfstring">lua_pushfstring</a><br>
+					<a href="manual_zh.html#lua_pushinteger">lua_pushinteger</a><br>
+					<a href="manual_zh.html#lua_pushlightuserdata">lua_pushlightuserdata</a><br>
+					<a href="manual_zh.html#lua_pushliteral">lua_pushliteral</a><br>
+					<a href="manual_zh.html#lua_pushlstring">lua_pushlstring</a><br>
+					<a href="manual_zh.html#lua_pushnil">lua_pushnil</a><br>
+					<a href="manual_zh.html#lua_pushnumber">lua_pushnumber</a><br>
+					<a href="manual_zh.html#lua_pushstring">lua_pushstring</a><br>
+					<a href="manual_zh.html#lua_pushthread">lua_pushthread</a><br>
+					<a href="manual_zh.html#lua_pushvalue">lua_pushvalue</a><br>
+					<a href="manual_zh.html#lua_pushvfstring">lua_pushvfstring</a><br>
+					<a href="manual_zh.html#lua_rawequal">lua_rawequal</a><br>
+					<a href="manual_zh.html#lua_rawget">lua_rawget</a><br>
+					<a href="manual_zh.html#lua_rawgeti">lua_rawgeti</a><br>
+					<a href="manual_zh.html#lua_rawset">lua_rawset</a><br>
+					<a href="manual_zh.html#lua_rawseti">lua_rawseti</a><br>
+					<a href="manual_zh.html#lua_register">lua_register</a><br>
+					<a href="manual_zh.html#lua_remove">lua_remove</a><br>
+					<a href="manual_zh.html#lua_replace">lua_replace</a><br>
+					<a href="manual_zh.html#lua_resume">lua_resume</a><br>
+					<a href="manual_zh.html#lua_setallocf">lua_setallocf</a><br>
+					<a href="manual_zh.html#lua_setfenv">lua_setfenv</a><br>
+					<a href="manual_zh.html#lua_setfield">lua_setfield</a><br>
+					<a href="manual_zh.html#lua_setglobal">lua_setglobal</a><br>
+					<a href="manual_zh.html#lua_sethook">lua_sethook</a><br>
+					<a href="manual_zh.html#lua_setlocal">lua_setlocal</a><br>
+					<a href="manual_zh.html#lua_setmetatable">lua_setmetatable</a><br>
+					<a href="manual_zh.html#lua_settable">lua_settable</a><br>
+					<a href="manual_zh.html#lua_settop">lua_settop</a><br>
+					<a href="manual_zh.html#lua_setupvalue">lua_setupvalue</a><br>
+					<a href="manual_zh.html#lua_status">lua_status</a><br>
+					<a href="manual_zh.html#lua_toboolean">lua_toboolean</a><br>
+					<a href="manual_zh.html#lua_tocfunction">lua_tocfunction</a><br>
+					<a href="manual_zh.html#lua_tointeger">lua_tointeger</a><br>
+					<a href="manual_zh.html#lua_tolstring">lua_tolstring</a><br>
+					<a href="manual_zh.html#lua_tonumber">lua_tonumber</a><br>
+					<a href="manual_zh.html#lua_topointer">lua_topointer</a><br>
+					<a href="manual_zh.html#lua_tostring">lua_tostring</a><br>
+					<a href="manual_zh.html#lua_tothread">lua_tothread</a><br>
+					<a href="manual_zh.html#lua_touserdata">lua_touserdata</a><br>
+					<a href="manual_zh.html#lua_type">lua_type</a><br>
+					<a href="manual_zh.html#lua_typename">lua_typename</a><br>
+					<a href="manual_zh.html#lua_upvalueindex">lua_upvalueindex</a><br>
+					<a href="manual_zh.html#lua_xmove">lua_xmove</a><br>
+					<a href="manual_zh.html#lua_yield">lua_yield</a><br>
+
+			</td>
+			<td>
+				<h3>辅助库</h3>
+				<a href="manual_zh.html#luaL_Buffer">luaL_Buffer</a><br>
+				<a href="manual_zh.html#luaL_Reg">luaL_Reg</a><br>
+				<p>
+
+					<a href="manual_zh.html#luaL_addchar">luaL_addchar</a><br>
+					<a href="manual_zh.html#luaL_addlstring">luaL_addlstring</a><br>
+					<a href="manual_zh.html#luaL_addsize">luaL_addsize</a><br>
+					<a href="manual_zh.html#luaL_addstring">luaL_addstring</a><br>
+					<a href="manual_zh.html#luaL_addvalue">luaL_addvalue</a><br>
+					<a href="manual_zh.html#luaL_argcheck">luaL_argcheck</a><br>
+					<a href="manual_zh.html#luaL_argerror">luaL_argerror</a><br>
+					<a href="manual_zh.html#luaL_buffinit">luaL_buffinit</a><br>
+					<a href="manual_zh.html#luaL_callmeta">luaL_callmeta</a><br>
+					<a href="manual_zh.html#luaL_checkany">luaL_checkany</a><br>
+					<a href="manual_zh.html#luaL_checkint">luaL_checkint</a><br>
+					<a href="manual_zh.html#luaL_checkinteger">luaL_checkinteger</a><br>
+					<a href="manual_zh.html#luaL_checklong">luaL_checklong</a><br>
+					<a href="manual_zh.html#luaL_checklstring">luaL_checklstring</a><br>
+					<a href="manual_zh.html#luaL_checknumber">luaL_checknumber</a><br>
+					<a href="manual_zh.html#luaL_checkoption">luaL_checkoption</a><br>
+					<a href="manual_zh.html#luaL_checkstack">luaL_checkstack</a><br>
+					<a href="manual_zh.html#luaL_checkstring">luaL_checkstring</a><br>
+					<a href="manual_zh.html#luaL_checktype">luaL_checktype</a><br>
+					<a href="manual_zh.html#luaL_checkudata">luaL_checkudata</a><br>
+					<a href="manual_zh.html#luaL_dofile">luaL_dofile</a><br>
+					<a href="manual_zh.html#luaL_dostring">luaL_dostring</a><br>
+					<a href="manual_zh.html#luaL_error">luaL_error</a><br>
+					<a href="manual_zh.html#luaL_getmetafield">luaL_getmetafield</a><br>
+					<a href="manual_zh.html#luaL_getmetatable">luaL_getmetatable</a><br>
+					<a href="manual_zh.html#luaL_gsub">luaL_gsub</a><br>
+					<a href="manual_zh.html#luaL_loadbuffer">luaL_loadbuffer</a><br>
+					<a href="manual_zh.html#luaL_loadfile">luaL_loadfile</a><br>
+					<a href="manual_zh.html#luaL_loadstring">luaL_loadstring</a><br>
+					<a href="manual_zh.html#luaL_newmetatable">luaL_newmetatable</a><br>
+					<a href="manual_zh.html#luaL_newstate">luaL_newstate</a><br>
+					<a href="manual_zh.html#luaL_openlibs">luaL_openlibs</a><br>
+					<a href="manual_zh.html#luaL_optint">luaL_optint</a><br>
+					<a href="manual_zh.html#luaL_optinteger">luaL_optinteger</a><br>
+					<a href="manual_zh.html#luaL_optlong">luaL_optlong</a><br>
+					<a href="manual_zh.html#luaL_optlstring">luaL_optlstring</a><br>
+					<a href="manual_zh.html#luaL_optnumber">luaL_optnumber</a><br>
+					<a href="manual_zh.html#luaL_optstring">luaL_optstring</a><br>
+					<a href="manual_zh.html#luaL_prepbuffer">luaL_prepbuffer</a><br>
+					<a href="manual_zh.html#luaL_pushresult">luaL_pushresult</a><br>
+					<a href="manual_zh.html#luaL_ref">luaL_ref</a><br>
+					<a href="manual_zh.html#luaL_register">luaL_register</a><br>
+					<a href="manual_zh.html#luaL_typename">luaL_typename</a><br>
+					<a href="manual_zh.html#luaL_typerror">luaL_typerror</a><br>
+					<a href="manual_zh.html#luaL_unref">luaL_unref</a><br>
+					<a href="manual_zh.html#luaL_where">luaL_where</a><br>
+
+			</td>
+		</tr>
+	</table>
+	<p></p>
+
+	<hr />
+	<small class="footer">
+		最后更新：
+		2025年5月14日 星期三 18:53:32 CST
+	</small>
+	<!--
+	最后更改：修订至 Lua 5.1.5
+	-->
+
+</body>
+
+</html>

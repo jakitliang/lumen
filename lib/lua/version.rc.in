@@ -1,0 +1,32 @@
+// version.rc.in
+#define VER_FILEVERSION             @LUA_PRODUCT_NUMBER@,@LUA_PRODUCT_VERSION@,@LUA_PRODUCT_PATCH@,0
+#define VER_FILEVERSION_STR         "@LUA_PRODUCT_NUMBER@.@LUA_PRODUCT_VERSION@.@LUA_PRODUCT_PATCH@.0\0"
+
+#define VER_PRODUCTVERSION          @LUA_PRODUCT_NUMBER@,@LUA_PRODUCT_VERSION@,@LUA_PRODUCT_PATCH@,0
+#define VER_PRODUCTVERSION_STR      "@LUA_PRODUCT_NUMBER@.@LUA_PRODUCT_VERSION@.@LUA_PRODUCT_PATCH@\0"
+//
+
+1 VERSIONINFO
+FILEVERSION VER_FILEVERSION
+PRODUCTVERSION VER_PRODUCTVERSION
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904E4"
+    BEGIN
+      VALUE "FileDescription", "Lumen Runtime Library"
+      VALUE "InternalName", "Lumen"
+      VALUE "ProductName", "Lumen - Light the way of Lua."
+      VALUE "LegalCopyright", "Copyright (C) 2025 Jakit Liang."
+      VALUE "FileVersion", VER_FILEVERSION_STR
+      VALUE "ProductVersion", VER_PRODUCTVERSION_STR
+    END
+  END
+  /* For some reason the ProductVersion would not appear unless I add the following section: VarFileInfo */
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1252
+  END
+END
+
+IDI_ICON1 ICON DISCARDABLE "@LUA_PRODUCT_ICON@"

@@ -1,0 +1,188 @@
+/*!
+ * @brief Lua compiler (saves bytecodes to files; also list bytecodes)
+ * @author Lua.org, PUC-Rio, Jakit (https://github.com/jakitliang/lumen)
+ * @date 2025/5/13
+ * @copyright
+ * Copyright (c) 2025 Lua.org, PUC-Rio, Jakit. All rights reserved.
+ * Licensed under the BSD 2-Clause License.
+ */
+
+
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+#define lumenc_c
+#define LUA_CORE
+
+#include "lua.h"
+#include "lauxlib.h"
+
+#include "lua/do.h"
+#include "lua/mem.h"
+#include "lua/object.h"
+#include "lua/opcodes.h"
+#include "lua/string.h"
+#include "lua/undump.h"
+
+#define PROGRAM_NAME    "lumenc"        /* default program name */
+#define OUTPUT      PROGRAM_NAME ".out"    /* default output file */
+
+static int listing = 0;            /* list bytecodes? */
+static int dumping = 1;            /* dump bytecodes? */
+static int stripping = 0;            /* strip debug information? */
+static char Output[] = {OUTPUT};    /* default output file name */
+static const char *output = Output;    /* actual output file name */
+static const char *programName = PROGRAM_NAME;    /* actual program name */
+
+static void fatal(const char *message) {
+    fprintf(stderr, "%s: %s\n", programName, message);
+    exit(EXIT_FAILURE);
+}
+
+static void cannot(const char *what) {
+    fprintf(stderr, "%s: cannot %s %s: %s\n", programName, what, output, strerror(errno));
+    exit(EXIT_FAILURE);
+}
+
+static void usage(const char *message) {
+    if (*message == '-')
+        fprintf(stderr, "%s: unrecognized option " LUA_QS "\n", programName, message);
+    else
+        fprintf(stderr, "%s: %s\n", programName, message);
+    fprintf(stderr,
+            "usage: %s [options] [filenames].\n"
+            "Available options are:\n"
+            "  -        process stdin\n"
+            "  -l       list\n"
+            "  -o name  output to file " LUA_QL("name") " (default is \"%s\")\n"
+            "  -p       parse only\n"
+            "  -s       strip debug information\n"
+            "  -v       show version information\n"
+            "  --       stop handling options\n",
+            programName, Output);
+    exit(EXIT_FAILURE);
+}
+
+#define    IS(s)    (strcmp(argv[i],s)==0)
+
+static int doargs(int argc, char *argv[]) {
+    int i;
+    int version = 0;
+    if (argv[0] != nullptr && *argv[0] != 0) programName = argv[0];
+    for (i = 1; i < argc; i++) {
+        if (*argv[i] != '-')            /* end of options; keep it */
+            break;
+        else if (IS("--"))            /* end of options; skip it */
+        {
+            ++i;
+            if (version) ++version;
+            break;
+        } else if (IS("-"))            /* end of options; use stdin */
+            break;
+        else if (IS("-l"))            /* list */
+            ++listing;
+        else if (IS("-o"))            /* output file */
+        {
+            output = argv[++i];
+            if (output == nullptr || *output == 0) usage(LUA_QL("-o") " needs argument");
+            if (IS("-")) output = nullptr;
+        } else if (IS("-p"))            /* parse only */
+            dumping = 0;
+        else if (IS("-s"))            /* strip debug information */
+            stripping = 1;
+        else if (IS("-v"))            /* show version */
+            ++version;
+        else                    /* unknown option */
+            usage(argv[i]);
+    }
+    if (i == argc && (listing || !dumping)) {
+        dumping = 0;
+        argv[--i] = Output;
+    }
+    if (version) {
+        printf("%s  %s\n", LUMEN_RELEASE, LUMEN_COPYRIGHT);
+        if (version == argc - 1) exit(EXIT_SUCCESS);
+    }
+    return i;
+}
+
+#define toProto(L, i) (LuaClosureValue(L->Top+(i))->AsLua.Func)
+
+static const Lua::Proto *combine(lua_State *L, int n) {
+    if (n == 1)
+        return toProto(L, -1);
+    else {
+        int i, pc;
+        Lua::Proto *f = Lua::Proto::New(L);
+        LuaSetProtoValue2S(L, L->Top, f);
+        LuaIncrTop(L);
+        f->Source = LuaStringNewLiteral(L, "=(" PROGRAM_NAME ")");
+        f->MaxStackSize = 1;
+        pc = 2 * n + 1;
+        f->Code = LuaMemoryNewVector(L, pc, Lua::Instruction);
+        f->CodeCount = pc;
+        f->SubProto = LuaMemoryNewVector(L, n, Lua::Proto*);
+        f->SubProtoCount = n;
+        pc = 0;
+        for (i = 0; i < n; i++) {
+            f->SubProto[i] = toProto(L, i - n - 1);
+            f->Code[pc++] = LuaOpCodeCreateABx(Lua::OpCodeClosure, 0, i);
+            f->Code[pc++] = LuaOpCodeCreateABC(Lua::OpCodeCall, 0, 1, 1);
+        }
+        f->Code[pc++] = LuaOpCodeCreateABC(Lua::OpCodeReturn, 0, 1, 0);
+        return f;
+    }
+}
+
+static int writer(lua_State *L, const void *p, size_t size, void *u) {
+    UNUSED(L);
+    return (fwrite(p, size, 1, (FILE *) u) != 1) && (size != 0);
+}
+
+struct MainArgs {
+    int argc;
+    char **argv;
+};
+
+static int pMain(lua_State *L) {
+    MainArgs *s = (struct MainArgs *) lua_touserdata(L, 1);
+    int argc = s->argc;
+    char **argv = s->argv;
+    const Lua::Proto *f;
+    int i;
+    if (!lua_checkstack(L, argc)) fatal("too many input files");
+    for (i = 0; i < argc; i++) {
+        const char *filename = IS("-") ? nullptr : argv[i];
+        if (luaL_loadfile(L, filename) != 0) fatal(lua_tostring(L, -1));
+    }
+    f = combine(L, argc);
+    if (listing) Lua::Dumper::Print(f, listing > 1);
+    if (dumping) {
+        FILE *D = (output == nullptr) ? stdout : fopen(output, "wb");
+        if (D == nullptr) cannot("open");
+        LuaLock(L);
+        Lua::Dumper::Dump(L, f, writer, D, stripping);
+        LuaUnlock(L);
+        if (ferror(D)) cannot("write");
+        if (fclose(D)) cannot("close");
+    }
+    return 0;
+}
+
+int main(int argc, char *argv[]) {
+    lua_State *L;
+    MainArgs s;
+    int i = doargs(argc, argv);
+    argc -= i;
+    argv += i;
+    if (argc <= 0) usage("no input files given");
+    L = lua_open();
+    if (L == nullptr) fatal("not enough memory for state");
+    s.argc = argc;
+    s.argv = argv;
+    if (lua_cpcall(L, pMain, &s) != 0) fatal(lua_tostring(L, -1));
+    lua_close(L);
+    return EXIT_SUCCESS;
+}

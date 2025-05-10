@@ -1,0 +1,106 @@
+.TH LUMEN 1 "2025-05-15" "Lumen 1.0.0" "Lumen Manual"
+.SH NAME
+lumen \- Lua interpreter
+
+.SH SYNOPSIS
+.B lumen
+[\fIoptions\fR] [\fIscript\fR [\fIargs\fR]]
+
+.SH DESCRIPTION
+.B lumen
+is the stand-alone Lua interpreter under the name "lumen". It loads and executes Lua programs, either in textual source form or in precompiled binary form (compiled with
+.BR lumenc (1)).
+
+The given
+.I options
+are handled first. Then the Lua program in the file
+.I script
+is loaded and executed. Additional
+.I args
+are available to the script as strings in the global table
+.BR arg .
+
+If no
+.I script
+is provided, the interpreter enters interactive mode.
+
+.SH ARGUMENTS
+The
+.B arg
+table is populated as follows:
+
+.TP
+\fBarg[0]\fR
+The script name.
+
+.TP
+\fBarg[1] ... arg[n]\fR
+Arguments passed after the script name.
+
+.TP
+\fBarg[-1], arg[-2], ...\fR
+Arguments passed before the script (e.g. options), including the interpreter name.
+
+.SH OPTIONS
+.TP
+.B \-
+Read and execute from standard input (stdin), even if stdin is a terminal.
+
+.TP
+.BI \-e " stat"
+Execute the Lua statement
+.I stat
+before processing the script. Useful for one-liners.
+
+.TP
+.B \-i
+Enter interactive mode after executing the script or statements.
+
+.TP
+.BI \-l " name"
+Load the library
+.I name
+using
+.B require
+before executing the script.
+
+.TP
+.B \-v
+Show interpreter version information.
+
+.TP
+.B \--
+Stop handling options. All following arguments are passed to the script.
+
+.SH INTERACTIVE MODE
+If no arguments are provided and stdin is a terminal,
+.B lumen
+enters interactive mode. It prompts for input using the values of the global variables
+.B _PROMPT
+and
+.B _PROMPT2
+(if they exist and are strings). The default prompts are
+.B "> "
+and
+.B ">> "
+respectively.
+
+If a line starts with
+.B =
+the rest of the line is treated as an expression and its results are printed.
+
+.SH ENVIRONMENT
+.TP
+.B LUA_INIT
+If defined, this string is executed before anything else. If the value starts with '@', the rest is treated as a filename and executed as a Lua script.
+
+.SH SEE ALSO
+.BR lumenc (1)
+.br
+https://github.com/jakitliang/lumen
+
+.SH AUTHORS
+Jakit Liang
+
+.SH COPYRIGHT
+Lumen is released under the BSD-2 Clause License.
