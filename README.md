@@ -19,6 +19,11 @@ Designed for developers who love Lua, Lumen offers a modern, maintainable, and s
 - **Lightweight**: A compact and efficient core that stays true to Lua’s lightweight philosophy.
 - **Modernization**: Modernized internal architecture to better suit today's systems and development needs.
 
+## Extensions
+
+- Some of Lua 5.2, 5.3 APIs and Aux APIs are added
+- Bitwise library is included by default.
+
 ## License
 
 Copyright (c) 2025 Jakit Liang

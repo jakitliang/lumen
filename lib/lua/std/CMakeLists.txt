@@ -1,16 +1,17 @@
 
 add_library(
     lua51-std OBJECT
-    lauxlib.c
-    lbaselib.c
-    ldblib.c
-    linit.c
-    liolib.c
-    lmathlib.c
+    auxlib.c
+    baselib.c
+    dblib.c
+    init.c
+    iolib.c
+    mathlib.c
     loadlib.c
-    loslib.c
-    lstrlib.c
-    ltablib.c
+    oslib.c
+    strlib.c
+    tablib.c
+    bitlib.c
 )
 if (LUA_BUILD_TYPE MATCHES "SHARED")
     if (CMAKE_SYSTEM_NAME MATCHES "Windows")

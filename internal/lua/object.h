@@ -221,7 +221,7 @@ namespace Lua {
 
     LUAI_DATA const Lua::Value NilValue;
 
-    inline constexpr const Lua::Value *NilObject = &NilValue;
+    inline const Lua::Value *NilObject = &NilValue;
 }
 
 

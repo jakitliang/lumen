@@ -10,7 +10,6 @@
 
 #include <cstring>
 
-#define ltm_c
 #define LUA_CORE
 
 #include "lua.h"
@@ -20,7 +19,6 @@
 #include "lua/string.h"
 #include "lua/table.h"
 #include "lua/tm.h"
-
 
 
 const char *const Lua::TM::TypeNames[] = {

@@ -12,7 +12,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#define lvm_c
 #define LUA_CORE
 
 #include "lua.h"

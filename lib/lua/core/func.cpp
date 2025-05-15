@@ -10,7 +10,6 @@
 
 #include <cstddef>
 
-#define lfunc_c
 #define LUA_CORE
 
 #include "lua.h"

@@ -432,6 +432,26 @@ LUA_API int lua_gethookmask(lua_State *L);
 
 LUA_API int lua_gethookcount(lua_State *L);
 
+/* From Lua 5.2. */
+LUA_API int lua_absindex(lua_State *L, int i);
+
+LUA_API void *lua_upvalueid(lua_State *L, int idx, int n);
+
+LUA_API void lua_upvaluejoin(lua_State *L, int idx1, int n1, int idx2, int n2);
+
+LUA_API int lua_loadx(lua_State *L, lua_Reader reader, void *dt,
+                      const char *chunkName, const char *mode);
+
+LUA_API const lua_Number *lua_version(lua_State *L);
+
+LUA_API void lua_copy(lua_State *L, int fromIdx, int toIdx);
+
+LUA_API lua_Number lua_tonumberx(lua_State *L, int idx, int *isNum);
+
+LUA_API lua_Integer lua_tointegerx(lua_State *L, int idx, int *isNum);
+
+/* From Lua 5.3. */
+LUA_API int lua_isyieldable(lua_State *L);
 
 struct lua_Debug {
     int event;

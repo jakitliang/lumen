@@ -1,26 +1,29 @@
 
+if (LUA_USE_CORE_DEBUG)
+    list(APPEND LUA_COMPILE_DEF LUA_CORE_DEBUG)
+endif ()
 
 add_library(
     lua51-core OBJECT
-    lapi.cpp
-    lcode.cpp
-    ldebug.cpp
-    ldo.cpp
-    ldump.cpp
-    lfunc.cpp
-    lgc.cpp
-    llex.cpp
-    lmem.cpp
-    lobject.cpp
-    lopcodes.cpp
-    lparser.cpp
-    lstate.cpp
-    lstring.cpp
-    ltable.cpp
-    ltm.cpp
-    lundump.cpp
-    lvm.cpp
-    lzio.cpp
+    api.cpp
+    code.cpp
+    debug.cpp
+    do.cpp
+    dump.cpp
+    func.cpp
+    gc.cpp
+    lex.cpp
+    mem.cpp
+    object.cpp
+    opcodes.cpp
+    parser.cpp
+    state.cpp
+    string.cpp
+    table.cpp
+    tm.cpp
+    undump.cpp
+    vm.cpp
+    zio.cpp
 )
 if (LUA_BUILD_TYPE MATCHES "SHARED")
     if (CMAKE_SYSTEM_NAME MATCHES "Windows")

@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 option(LUA_BUILD_STATIC "Build shared library of Lua" OFF)
 option(LUA_SKIP_INSTALL "Build shared library of Lua" OFF)
+option(LUA_USE_API_CHECK "Build with develop mode" OFF)
+option(LUA_USE_CORE_DEBUG "Build with develop mode" OFF)
 
 set(LUA_PRODUCT_NUMBER 1)
 set(LUA_PRODUCT_VERSION 0)
@@ -47,6 +49,10 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
     list(APPEND LUA_COMPILE_DEF _CRT_SECURE_NO_DEPRECATE)
     list(APPEND LUA_COMPILE_OPT "")
     list(APPEND LUA_LINK_LIBS "")
+endif ()
+
+if (LUA_USE_API_CHECK)
+    list(APPEND LUA_COMPILE_DEF LUA_USE_APICHECK)
 endif ()
 
 include_directories(

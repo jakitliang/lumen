@@ -13,7 +13,6 @@
 #include <cstdarg>
 #include <cstring>
 
-#define lapi_c
 #define LUA_CORE
 
 #include "lua.h"
@@ -152,7 +151,6 @@ LUA_API Lua::State *lua_newthread(lua_State *L) {
     luai_userstatethread(L, L1);
     return L1;
 }
-
 
 
 /*
@@ -1095,3 +1093,81 @@ LUA_API const char *lua_setupvalue(lua_State *L, int funcindex, int n) {
     return name;
 }
 
+LUA_API void *lua_upvalueid(lua_State *L, int idx, int n) {
+    Lua::StkId func = index2addr(L, idx);
+    if (!LuaTypeIsFunction(func)) return nullptr;
+
+    auto cl = LuaClosureValue(func);
+    if (LuaIsCFunction(func)) {
+        if (n <= 0 || n > cl->AsC.NUpValues)
+            return nullptr;
+        return &cl->AsC.UpValues[n - 1];
+    } else {
+        if (n <= 0 || n > cl->AsLua.NUpValues)
+            return nullptr;
+        return cl->AsLua.UpValues[n - 1];
+    }
+}
+
+LUA_API void lua_upvaluejoin(lua_State *L, int idx1, int n1, int idx2, int n2) {
+    auto o1 = index2addr(L, idx1);
+    auto o2 = index2addr(L, idx2);
+    lua_assert(LuaTypeIsFunction(o1) && LuaTypeIsFunction(o2));
+    auto cl1 = LuaClosureValue(o1);
+    auto cl2 = LuaClosureValue(o2);
+    lua_assert(cl1->AsC.NUpValues >= n1 && cl2->AsC.NUpValues >= n2);
+    if (LuaIsCFunction(o1) && LuaIsCFunction(o2)) {
+        cl1->AsC.UpValues[n1 - 1] = cl2->AsC.UpValues[n2 - 1];
+    } else if (LuaIsLFunction(o1) && LuaIsLFunction(o2)) {
+        cl1->AsLua.UpValues[n1 - 1] = cl2->AsLua.UpValues[n2 - 1];
+    } else {
+        lua_assert(0 && "mismatched function types in lua_upvaluejoin");
+    }
+}
+
+LUA_API int lua_loadx(lua_State *L, lua_Reader reader, void *data,
+                      const char *chunkName, const char *mode) {
+    (void) mode;  /* Lua 5.1 Can't specify mode */
+    return lua_load(L, reader, data, chunkName);
+}
+
+static const lua_Number lua_version_number = 5.1;
+
+LUA_API const lua_Number *lua_version(lua_State *L) {
+    (void) L;
+    return &lua_version_number;
+}
+
+LUA_API int lua_absindex(lua_State *L, int i) {
+    if (i < 0 && i > LUA_REGISTRYINDEX)
+        i += lua_gettop(L) + 1;
+    return i;
+}
+
+#define checkStack(L, i, ...) do { \
+    if (!lua_checkstack(L, i))     \
+        Lua::Debug::RunError(L, __VA_ARGS__); \
+} while (0)
+
+LUA_API void lua_copy(lua_State *L, int fromIdx, int toIdx) {
+    int absTo = lua_absindex(L, toIdx);
+    checkStack(L, 1, "stack overflow (%s)", "not enough stack slots");
+    lua_pushvalue(L, fromIdx);
+    lua_replace(L, absTo);
+}
+
+LUA_API lua_Number lua_tonumberx(lua_State *L, int idx, int *isNum) {
+    lua_Number n = lua_tonumber(L, idx);
+    if (isNum) *isNum = (n != 0 || lua_isnumber(L, idx));
+    return n;
+}
+
+LUA_API lua_Integer lua_tointegerx(lua_State *L, int idx, int *isNum) {
+    lua_Integer n = lua_tointeger(L, idx);
+    if (isNum) *isNum = (n != 0 || lua_isnumber(L, idx));
+    return n;
+}
+
+LUA_API int lua_isyieldable(lua_State *L) {
+    return (L->NCCalls == 0);
+}

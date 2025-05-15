@@ -112,7 +112,28 @@ LUALIB_API const char *(luaL_gsub)(lua_State *L, const char *s, const char *p,
 LUALIB_API const char *(luaL_findtable)(lua_State *L, int idx,
                                         const char *fname, int szhint);
 
+/* From Lua 5.2. */
+LUALIB_API int luaL_fileresult(lua_State *L, int stat, const char *fileName);
 
+LUALIB_API int luaL_execresult(lua_State *L, int stat);
+
+LUALIB_API int luaL_loadfilex(lua_State *L, const char *fileName,
+                              const char *mode);
+
+LUALIB_API int luaL_loadbufferx(lua_State *L, const char *buff, size_t sz,
+                                const char *name, const char *mode);
+
+LUALIB_API void luaL_traceback(lua_State *L, lua_State *L1, const char *msg,
+                               int level);
+
+LUALIB_API void luaL_setfuncs(lua_State *L, const luaL_Reg *l, int nup);
+
+LUALIB_API void luaL_pushmodule(lua_State *L, const char *modName,
+                                int sizeHint);
+
+LUALIB_API void *luaL_testudata(lua_State *L, int ud, const char *tName);
+
+LUALIB_API void luaL_setmetatable(lua_State *L, const char *tName);
 
 /*
 ** ===============================================================

@@ -10,7 +10,6 @@
 
 #include <cstring>
 
-#define lparser_c
 #define LUA_CORE
 
 #include "lua.h"

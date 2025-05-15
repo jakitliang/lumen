@@ -10,7 +10,6 @@
 
 #include <cstring>
 
-#define lgc_c
 #define LUA_CORE
 
 #include "lua.h"

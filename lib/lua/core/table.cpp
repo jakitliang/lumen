@@ -16,15 +16,14 @@
 ** least half the slots between 0 and n are in use.
 ** Hash uses a mix of chained scatter table with Brent's variation.
 ** A main invariant of these tables is that, if an element is not
-** in its main position (i.e. the `original' position that its hash gives
+** in its main position (i.e. the `original` position that its hash gives
 ** to it), then the colliding element is in its own main position.
-** Hence even when the load factor reaches 100%, performance remains good.
+** Even when the load factor reaches 100%, performance remains good.
 */
 
 #include <cmath>
 #include <cstring>
 
-#define ltable_c
 #define LUA_CORE
 
 #include "lua.h"

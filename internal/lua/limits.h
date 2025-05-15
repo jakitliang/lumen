@@ -16,7 +16,6 @@
 #include <cstddef>
 #include <limits>
 
-
 #include "lua.h"
 
 namespace Lua {
@@ -115,13 +114,12 @@ namespace Lua {
 /* type to ensure maximum alignment */
 typedef LUAI_USER_ALIGNMENT_T L_Umaxalign;
 
-/**
- * Uncomment the line below if you wanna debug
- */
-// #define lua_assert(exp)      assert(exp)
-
 /* internal assertions for in-house debugging */
 #ifdef lua_assert
+#define LuaCheckExp(c,e)     (lua_assert(c), (e))
+#define LuaApiCheck(l,e)     lua_assert(e)
+#elif defined(LUA_CORE_DEBUG)
+#define lua_assert(exp)      assert(exp)
 #define LuaCheckExp(c,e)     (lua_assert(c), (e))
 #define LuaApiCheck(l,e)     lua_assert(e)
 #else
