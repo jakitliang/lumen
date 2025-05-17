@@ -1,7 +1,7 @@
 
 add_library(
     lua51-std OBJECT
-    auxlib.c
+    auxlib.cpp
     baselib.c
     dblib.c
     init.c

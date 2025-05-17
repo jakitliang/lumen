@@ -402,17 +402,17 @@ static int resumeError(lua_State *L, const char *msg) {
     return LUA_ERRRUN;
 }
 
-LUA_API int lua_resume(lua_State *L, int nargs) {
+LUA_API int lua_resume(lua_State *L, int nArgs) {
     int status;
     LuaLock(L);
     if (L->Status != LUA_YIELD && (L->Status != 0 || L->CallInfo != L->BaseCI))
         return resumeError(L, "cannot resume non-suspended coroutine");
     if (L->NCCalls >= LUAI_MAXCCALLS)
         return resumeError(L, "C stack overflow");
-    luai_userstateresume(L, nargs);
+    luai_userstateresume(L, nArgs);
     lua_assert(L->ErrFunc == 0);
     L->BaseCCalls = ++L->NCCalls;
-    status = Lua::Do::RawRunProtected(L, resume, L->Top - nargs);
+    status = Lua::Do::RawRunProtected(L, resume, L->Top - nArgs);
     if (status != 0) {  /* error? */
         L->Status = cast_byte(status);  /* mark thread as `dead' */
         Lua::Do::SetErrorObject(L, status, L->Top);

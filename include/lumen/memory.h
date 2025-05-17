@@ -14,6 +14,8 @@
 
 namespace Lumen::Memory {
     const char *Find(const char *cStr1, size_t len1, const char *cStr2, size_t len2);
+
+    void *Alloc(void *userData, void *ptr, size_t originSize, size_t newSize);
 }
 
 #endif //LUMEN_MEMORY_H

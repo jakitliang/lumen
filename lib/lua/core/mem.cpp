@@ -23,9 +23,8 @@
 
 
 /*
-** About the realloc function:
-** void * frealloc (void *ud, void *ptr, size_t osize, size_t nsize);
-** (`osize' is the old size, `nsize' is the new size)
+** About the reAlloc function:
+** void * Lua::Memory::ReAlloc(void *ud, void *ptr, size_t oldSize, size_t newSize);
 **
 ** Lua ensures that (ptr == nullptr) iff (osize == 0).
 **
@@ -42,25 +41,25 @@
 
 
 
-#define MINSIZEARRAY    4
+#define MIN_ARRAY_SIZE    4
 
 
 void *Lua::Memory::GrowAux(Lua::State *L, void *block, int *size, size_t size_elems,
-                           int limit, const char *errormsg) {
-    void *newblock;
-    int newsize;
+                           int limit, const char *errorMsg) {
+    void *newBlock;
+    int newSize;
     if (*size >= limit / 2) {  /* cannot double it? */
         if (*size >= limit)  /* cannot grow even a little? */
-            Lua::Debug::RunError(L, errormsg);
-        newsize = limit;  /* still have at least one free place */
+            Lua::Debug::RunError(L, errorMsg);
+        newSize = limit;  /* still have at least one free place */
     } else {
-        newsize = (*size) * 2;
-        if (newsize < MINSIZEARRAY)
-            newsize = MINSIZEARRAY;  /* minimum size */
+        newSize = (*size) * 2;
+        if (newSize < MIN_ARRAY_SIZE)
+            newSize = MIN_ARRAY_SIZE;  /* minimum size */
     }
-    newblock = LuaMemoryReAllocBlock(L, block, *size, newsize, size_elems);
-    *size = newsize;  /* update only when everything else is OK */
-    return newblock;
+    newBlock = LuaMemoryReAllocBlock(L, block, *size, newSize, size_elems);
+    *size = newSize;  /* update only when everything else is OK */
+    return newBlock;
 }
 
 
@@ -73,14 +72,14 @@ void *Lua::Memory::TooBig(Lua::State *L) {
 /*
 ** generic allocation routine.
 */
-void *Lua::Memory::ReAlloc(Lua::State *L, void *block, size_t osize, size_t nsize) {
+void *Lua::Memory::ReAlloc(Lua::State *L, void *block, size_t oldSize, size_t newSize) {
     Lua::GlobalState *g = LuaGlobal(L);
-    lua_assert((osize == 0) == (block == nullptr));
-    block = (*g->ReAllocator)(g->ReAllocatorUData, block, osize, nsize);
-    if (block == nullptr && nsize > 0)
+    lua_assert((oldSize == 0) == (block == nullptr));
+    block = (*g->ReAllocator)(g->ReAllocatorUData, block, oldSize, newSize);
+    if (block == nullptr && newSize > 0)
         Lua::Do::Throw(L, LUA_ERRMEM);
-    lua_assert((nsize == 0) == (block == nullptr));
-    g->TotalBytes = (g->TotalBytes - osize) + nsize;
+    lua_assert((newSize == 0) == (block == nullptr));
+    g->TotalBytes = (g->TotalBytes - oldSize) + newSize;
     return block;
 }
 

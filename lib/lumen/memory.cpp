@@ -9,6 +9,7 @@
 
 #include "lumen/memory.h"
 #include <cstring>
+#include <cstdlib>
 
 const char *Lumen::Memory::Find(const char *cStr1, size_t len1, const char *cStr2, size_t len2) {
     if (len2 == 0) return cStr1;  /* empty strings are everywhere */
@@ -28,4 +29,12 @@ const char *Lumen::Memory::Find(const char *cStr1, size_t len1, const char *cStr
         }
         return nullptr;  /* not found */
     }
+}
+
+void *Lumen::Memory::Alloc(void *userData, void *ptr, size_t originSize, size_t newSize) {
+    if (newSize == 0) {
+        free(ptr);
+        return nullptr;
+    }
+    return realloc(ptr, newSize);
 }

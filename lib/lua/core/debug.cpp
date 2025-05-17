@@ -9,7 +9,6 @@
 
 
 #include <cstdarg>
-#include <cstddef>
 #include <cstring>
 
 
@@ -30,10 +29,10 @@
 #include "lua/vm.h"
 
 
-static const char *getfuncname(Lua::State *L, Lua::CallInfo *ci, const char **name);
+static const char *getFuncName(Lua::State *L, Lua::CallInfo *ci, const char **name);
 
 
-static int currentpc(Lua::State *L, Lua::CallInfo *ci) {
+static int currentPC(Lua::State *L, Lua::CallInfo *ci) {
     if (!LuaFuncIsLua(ci)) return -1;  /* function is not a Lua function? */
     if (ci == L->CallInfo)
         ci->SavedPC = L->SavedPC;
@@ -41,8 +40,8 @@ static int currentpc(Lua::State *L, Lua::CallInfo *ci) {
 }
 
 
-static int currentline(Lua::State *L, Lua::CallInfo *ci) {
-    int pc = currentpc(L, ci);
+static int currentLine(Lua::State *L, Lua::CallInfo *ci) {
+    int pc = currentPC(L, ci);
     if (pc < 0)
         return -1;  /* only active lua functions have current-line information */
     else
@@ -102,15 +101,15 @@ LUA_API int lua_getstack(Lua::State *L, int level, lua_Debug *ar) {
 }
 
 
-static Lua::Proto *getluaproto(Lua::CallInfo *ci) {
+static Lua::Proto *getLuaProto(Lua::CallInfo *ci) {
     return (LuaFuncIsLua(ci) ? LuaCIFunc(ci)->AsLua.Func : nullptr);
 }
 
 
-static const char *findlocal(Lua::State *L, Lua::CallInfo *ci, int n) {
+static const char *findLocal(Lua::State *L, Lua::CallInfo *ci, int n) {
     const char *name;
-    Lua::Proto *fp = getluaproto(ci);
-    if (fp && (name = Lua::Proto::GetLocalName(fp, n, currentpc(L, ci))) != nullptr)
+    Lua::Proto *fp = getLuaProto(ci);
+    if (fp && (name = Lua::Proto::GetLocalName(fp, n, currentPC(L, ci))) != nullptr)
         return name;  /* is a local variable in a Lua function */
     else {
         Lua::StkId limit = (ci == L->CallInfo) ? L->Top : (ci + 1)->Func;
@@ -124,7 +123,7 @@ static const char *findlocal(Lua::State *L, Lua::CallInfo *ci, int n) {
 
 LUA_API const char *lua_getlocal(Lua::State *L, const lua_Debug *ar, int n) {
     Lua::CallInfo *ci = L->BaseCI + ar->i_ci;
-    const char *name = findlocal(L, ci, n);
+    const char *name = findLocal(L, ci, n);
     LuaLock(L);
     if (name)
         Lua::PushObject(L, ci->Base + (n - 1));
@@ -135,17 +134,17 @@ LUA_API const char *lua_getlocal(Lua::State *L, const lua_Debug *ar, int n) {
 
 LUA_API const char *lua_setlocal(Lua::State *L, const lua_Debug *ar, int n) {
     Lua::CallInfo *ci = L->BaseCI + ar->i_ci;
-    const char *name = findlocal(L, ci, n);
+    const char *name = findLocal(L, ci, n);
     LuaLock(L);
     if (name)
-            LuaSetObjectS2S (L, ci->Base + (n - 1), L->Top - 1);
+        LuaSetObjectS2S (L, ci->Base + (n - 1), L->Top - 1);
     L->Top--;  /* pop value */
     LuaUnlock(L);
     return name;
 }
 
 
-static void funcinfo(lua_Debug *ar, Lua::Closure *cl) {
+static void funcInfo(lua_Debug *ar, Lua::Closure *cl) {
     if (cl->AsC.IsC) {
         ar->source = "=[C]";
         ar->linedefined = -1;
@@ -161,7 +160,7 @@ static void funcinfo(lua_Debug *ar, Lua::Closure *cl) {
 }
 
 
-static void info_tailcall(lua_Debug *ar) {
+static void infoTailCall(lua_Debug *ar) {
     ar->name = ar->namewhat = "";
     ar->what = "tail";
     ar->lastlinedefined = ar->linedefined = ar->currentline = -1;
@@ -171,7 +170,7 @@ static void info_tailcall(lua_Debug *ar) {
 }
 
 
-static void collectvalidlines(Lua::State *L, Lua::Closure *f) {
+static void collectValidLines(Lua::State *L, Lua::Closure *f) {
     if (f == nullptr || f->AsC.IsC) {
         LuaSetNilValue(L->Top);
     } else {
@@ -185,21 +184,21 @@ static void collectvalidlines(Lua::State *L, Lua::Closure *f) {
 }
 
 
-static int auxgetinfo(Lua::State *L, const char *what, lua_Debug *ar,
+static int auxGetInfo(Lua::State *L, const char *what, lua_Debug *ar,
                       Lua::Closure *f, Lua::CallInfo *ci) {
     int status = 1;
     if (f == nullptr) {
-        info_tailcall(ar);
+        infoTailCall(ar);
         return status;
     }
     for (; *what; what++) {
         switch (*what) {
             case 'S': {
-                funcinfo(ar, f);
+                funcInfo(ar, f);
                 break;
             }
             case 'l': {
-                ar->currentline = (ci) ? currentline(L, ci) : -1;
+                ar->currentline = (ci) ? currentLine(L, ci) : -1;
                 break;
             }
             case 'u': {
@@ -207,7 +206,7 @@ static int auxgetinfo(Lua::State *L, const char *what, lua_Debug *ar,
                 break;
             }
             case 'n': {
-                ar->namewhat = (ci) ? getfuncname(L, ci, &ar->name) : nullptr;
+                ar->namewhat = (ci) ? getFuncName(L, ci, &ar->name) : nullptr;
                 if (ar->namewhat == nullptr) {
                     ar->namewhat = "";  /* not found */
                     ar->name = nullptr;
@@ -241,14 +240,15 @@ LUA_API int lua_getinfo(Lua::State *L, const char *what, lua_Debug *ar) {
         lua_assert(LuaTypeIsFunction(ci->Func));
         f = LuaClosureValue(ci->Func);
     }
-    status = auxgetinfo(L, what, ar, f, ci);
+    status = auxGetInfo(L, what, ar, f, ci);
     if (strchr(what, 'f')) {
         if (f == nullptr) LuaSetNilValue(L->Top);
-        else LuaSetClosureValue(L, L->Top, f);
+        else
+            LuaSetClosureValue(L, L->Top, f);
         LuaIncrTop(L);
     }
     if (strchr(what, 'L'))
-        collectvalidlines(L, f);
+        collectValidLines(L, f);
     LuaUnlock(L);
     return status;
 }
@@ -260,14 +260,14 @@ LUA_API int lua_getinfo(Lua::State *L, const char *what, lua_Debug *ar) {
 ** =======================================================
 */
 
-#define check(x)        if (!(x)) return 0;
+#define check(x)             do { if (!(x)) return 0; } while (0)
 
-#define checkjump(pt, pc)    check(0 <= pc && pc < pt->CodeCount)
+#define checkJump(pt, pc)    check(0 <= pc && pc < pt->CodeCount)
 
-#define checkreg(pt, reg)    check((reg) < (pt)->MaxStackSize)
+#define checkReg(pt, reg)    check((reg) < (pt)->MaxStackSize)
 
 
-static int precheck(const Lua::Proto *pt) {
+static int preCheck(const Lua::Proto *pt) {
     check(pt->MaxStackSize <= Lua::MaxStack);
     check(pt->NUmParams + (pt->IsVararg & Lua::Proto::VarargHasArg) <= pt->MaxStackSize);
     check(!(pt->IsVararg & Lua::Proto::VarargIsNeedsArg) ||
@@ -279,7 +279,7 @@ static int precheck(const Lua::Proto *pt) {
 }
 
 
-#define checkopenop(pt, pc)    Lua::Debug::CheckOpenOP((pt)->Code[(pc)+1])
+#define checkOpenOP(pt, pc)    Lua::Debug::CheckOpenOP((pt)->Code[(pc)+1])
 
 int Lua::Debug::CheckOpenOP(Lua::Instruction i) {
     switch (LuaOpCodeGet(i)) {
@@ -304,7 +304,7 @@ static int checkArgMode(const Lua::Proto *pt, int r, Lua::OpArg mode) {
         case Lua::OpArgU:
             break;
         case Lua::OpArgR:
-            checkreg(pt, r);
+            checkReg(pt, r);
             break;
         case Lua::OpArgK:
             check(LuaOpCodeIsK(r) ? LuaOpCodeIndexK(r) < pt->KCount : r < pt->MaxStackSize);
@@ -314,19 +314,19 @@ static int checkArgMode(const Lua::Proto *pt, int r, Lua::OpArg mode) {
 }
 
 
-static Lua::Instruction symbexec(const Lua::Proto *pt, int lastpc, int reg) {
+static Lua::Instruction symbolExec(const Lua::Proto *pt, int lastPC, int reg) {
     int pc;
-    int last;  /* stores position of last instruction that changed `reg' */
-    last = pt->CodeCount - 1;  /* points to final return (a `neutral' instruction) */
-    check(precheck(pt));
-    for (pc = 0; pc < lastpc; pc++) {
+    int last;  /* stores position of last instruction that changed `reg` */
+    last = pt->CodeCount - 1;  /* points to final return (a `neutral` instruction) */
+    check(preCheck(pt));
+    for (pc = 0; pc < lastPC; pc++) {
         Lua::Instruction i = pt->Code[pc];
         Lua::OpCode op = LuaOpCodeGet(i);
         int a = LuaOpCodeGetArgA(i);
         int b = 0;
         int c = 0;
         check(op < Lua::OpCodeCount);
-        checkreg(pt, a);
+        checkReg(pt, a);
         switch (LuaGetOpMode(op)) {
             case Lua::OpModeIABC: {
                 b = LuaOpCodeGetArgB(i);
@@ -395,7 +395,7 @@ static Lua::Instruction symbexec(const Lua::Proto *pt, int lastpc, int reg) {
                 break;
             }
             case Lua::OpCodeSelf: {
-                checkreg(pt, a + 1);
+                checkReg(pt, a + 1);
                 if (reg == a + 1) last = pc;
                 break;
             }
@@ -405,41 +405,41 @@ static Lua::Instruction symbexec(const Lua::Proto *pt, int lastpc, int reg) {
             }
             case Lua::OpCodeTForLoop: {
                 check(c >= 1);  /* at least one result (control variable) */
-                checkreg(pt, a + 2 + c);  /* space for results */
+                checkReg(pt, a + 2 + c);  /* space for results */
                 if (reg >= a + 2) last = pc;  /* affect all regs above its base */
                 break;
             }
             case Lua::OpCodeForLoop:
             case Lua::OpCodeForPrep:
-                checkreg(pt, a + 3);
+                checkReg(pt, a + 3);
                 /* go through */
             case Lua::OpCodeJump: {
                 int dest = pc + 1 + b;
-                /* not full check and jump is forward and do not skip `lastpc'? */
-                if (reg != NO_REG && pc < dest && dest <= lastpc)
+                /* not full check and jump is forward and do not skip `lastPC`? */
+                if (reg != NO_REG && pc < dest && dest <= lastPC)
                     pc += b;  /* do the jump */
                 break;
             }
             case Lua::OpCodeCall:
             case Lua::OpCodeTailCall: {
                 if (b != 0) {
-                    checkreg(pt, a + b - 1);
+                    checkReg(pt, a + b - 1);
                 }
                 c--;  /* c = num. returns */
                 if (c == LUA_MULTRET) {
-                    check(checkopenop(pt, pc));
+                    check(checkOpenOP(pt, pc));
                 } else if (c != 0)
-                    checkreg(pt, a + c - 1);
+                    checkReg(pt, a + c - 1);
                 if (reg >= a) last = pc;  /* affect all registers above base */
                 break;
             }
             case Lua::OpCodeReturn: {
                 b--;  /* b = num. returns */
-                if (b > 0) checkreg(pt, a + b - 1);
+                if (b > 0) checkReg(pt, a + b - 1);
                 break;
             }
             case Lua::OpCodeSetList: {
-                if (b > 0) checkreg(pt, a + b);
+                if (b > 0) checkReg(pt, a + b);
                 if (c == 0) {
                     pc++;
                     check(pc < pt->CodeCount - 1);
@@ -463,8 +463,8 @@ static Lua::Instruction symbexec(const Lua::Proto *pt, int lastpc, int reg) {
                 check((pt->IsVararg & Lua::Proto::VarargIsVararg) &&
                       !(pt->IsVararg & Lua::Proto::VarargIsNeedsArg));
                 b--;
-                if (b == LUA_MULTRET) check(checkopenop(pt, pc));
-                checkreg(pt, a + b - 1);
+                if (b == LUA_MULTRET) check(checkOpenOP(pt, pc));
+                checkReg(pt, a + b - 1);
                 break;
             }
             default:
@@ -475,18 +475,18 @@ static Lua::Instruction symbexec(const Lua::Proto *pt, int lastpc, int reg) {
 }
 
 #undef check
-#undef checkjump
-#undef checkreg
+#undef checkJump
+#undef checkReg
 
 /* }====================================================== */
 
 
 int Lua::Debug::CheckCode(const Lua::Proto *pt) {
-    return (symbexec(pt, pt->CodeCount, NO_REG) != 0);
+    return (symbolExec(pt, pt->CodeCount, NO_REG) != 0);
 }
 
 
-static const char *kname(Lua::Proto *p, int c) {
+static const char *kName(Lua::Proto *p, int c) {
     if (LuaOpCodeIsK(c) && LuaTypeIsString(&p->K[LuaOpCodeIndexK(c)]))
         return LuaStringValue2CString(&p->K[LuaOpCodeIndexK(c)]);
     else
@@ -494,16 +494,16 @@ static const char *kname(Lua::Proto *p, int c) {
 }
 
 
-static const char *getobjname(Lua::State *L, Lua::CallInfo *ci, int stackpos,
+static const char *getObjName(Lua::State *L, Lua::CallInfo *ci, int stackPos,
                               const char **name) {
     if (LuaFuncIsLua(ci)) {  /* a Lua function? */
         Lua::Proto *p = LuaCIFunc(ci)->AsLua.Func;
-        int pc = currentpc(L, ci);
+        int pc = currentPC(L, ci);
         Lua::Instruction i;
-        *name = Lua::Proto::GetLocalName(p, stackpos + 1, pc);
+        *name = Lua::Proto::GetLocalName(p, stackPos + 1, pc);
         if (*name)  /* is a local? */
             return "local";
-        i = symbexec(p, pc, stackpos);  /* try symbolic execution */
+        i = symbolExec(p, pc, stackPos);  /* try symbolic execution */
         lua_assert(pc != -1);
         switch (LuaOpCodeGet(i)) {
             case Lua::OpCodeGetGlobal: {
@@ -514,14 +514,14 @@ static const char *getobjname(Lua::State *L, Lua::CallInfo *ci, int stackpos,
             }
             case Lua::OpCodeMove: {
                 int a = LuaOpCodeGetArgA(i);
-                int b = LuaOpCodeGetArgB(i);  /* move from `b' to `a' */
+                int b = LuaOpCodeGetArgB(i);  /* move from `b` to `a` */
                 if (b < a)
-                    return getobjname(L, ci, b, name);  /* get name for `b' */
+                    return getObjName(L, ci, b, name);  /* get name for `b` */
                 break;
             }
             case Lua::OpCodeGetTable: {
                 int k = LuaOpCodeGetArgC(i);  /* key index */
-                *name = kname(p, k);
+                *name = kName(p, k);
                 return "field";
             }
             case Lua::OpCodeGetUpVal: {
@@ -531,7 +531,7 @@ static const char *getobjname(Lua::State *L, Lua::CallInfo *ci, int stackpos,
             }
             case Lua::OpCodeSelf: {
                 int k = LuaOpCodeGetArgC(i);  /* key index */
-                *name = kname(p, k);
+                *name = kName(p, k);
                 return "method";
             }
             default:
@@ -542,22 +542,22 @@ static const char *getobjname(Lua::State *L, Lua::CallInfo *ci, int stackpos,
 }
 
 
-static const char *getfuncname(Lua::State *L, Lua::CallInfo *ci, const char **name) {
+static const char *getFuncName(Lua::State *L, Lua::CallInfo *ci, const char **name) {
     Lua::Instruction i;
     if ((LuaFuncIsLua(ci) && ci->NTailCalls > 0) || !LuaFuncIsLua(ci - 1))
         return nullptr;  /* calling function is not Lua (or is unknown) */
     ci--;  /* calling function */
-    i = LuaCIFunc(ci)->AsLua.Func->Code[currentpc(L, ci)];
+    i = LuaCIFunc(ci)->AsLua.Func->Code[currentPC(L, ci)];
     if (LuaOpCodeGet(i) == Lua::OpCodeCall || LuaOpCodeGet(i) == Lua::OpCodeTailCall ||
         LuaOpCodeGet(i) == Lua::OpCodeTForLoop)
-        return getobjname(L, ci, LuaOpCodeGetArgA(i), name);
+        return getObjName(L, ci, LuaOpCodeGetArgA(i), name);
     else
         return nullptr;  /* no useful name can be found */
 }
 
 
 /* only ANSI way to check whether a pointer points to an array */
-static int isinstack(Lua::CallInfo *ci, const Lua::Value *o) {
+static int isInStack(Lua::CallInfo *ci, const Lua::Value *o) {
     Lua::StkId p;
     for (p = ci->Base; p < ci->Top; p++)
         if (o == p) return 1;
@@ -568,8 +568,8 @@ static int isinstack(Lua::CallInfo *ci, const Lua::Value *o) {
 void Lua::Debug::TypeError(Lua::State *L, const Lua::Value *o, const char *op) {
     const char *name = nullptr;
     const char *t = Lua::TM::TypeNames[LuaTypeOf(o)];
-    const char *kind = (isinstack(L->CallInfo, o)) ?
-                       getobjname(L, L->CallInfo, cast_int(o - L->Base), &name) :
+    const char *kind = (isInStack(L->CallInfo, o)) ?
+                       getObjName(L, L->CallInfo, cast_int(o - L->Base), &name) :
                        nullptr;
     if (kind)
         Lua::Debug::RunError(L, "attempt to %s %s " LUA_QS " (a %s value)",
@@ -587,7 +587,7 @@ void Lua::Debug::ConcatError(Lua::State *L, Lua::StkId p1, Lua::StkId p2) {
 
 
 void Lua::Debug::ArithError(lua_State *L, const Lua::Value *p1, const Lua::Value *p2) {
-    Lua::Value temp;
+    Lua::Value temp; // NOLINT
     if (Lua::VM::ToNumber(p1, &temp) == nullptr)
         p2 = p1;  /* first operand is wrong */
     Lua::Debug::TypeError(L, p2, "perform arithmetic on");
@@ -605,12 +605,12 @@ int Lua::Debug::OrderError(lua_State *L, const Lua::Value *p1, const Lua::Value 
 }
 
 
-static void addinfo(lua_State *L, const char *msg) {
+static void addInfo(lua_State *L, const char *msg) {
     Lua::CallInfo *ci = L->CallInfo;
     if (LuaFuncIsLua(ci)) {  /* is Lua code? */
         char buff[LUA_IDSIZE];  /* add file:line information */
-        int line = currentline(L, ci);
-        Lua::ChunkId(buff, LuaStringCString(getluaproto(ci)->Source), LUA_IDSIZE);
+        int line = currentLine(L, ci);
+        Lua::ChunkId(buff, LuaStringCString(getLuaProto(ci)->Source), LUA_IDSIZE);
         Lua::PushFString(L, "%s:%d: %s", buff, line, msg);
     }
 }
@@ -618,10 +618,10 @@ static void addinfo(lua_State *L, const char *msg) {
 
 void Lua::Debug::ErrorMessage(lua_State *L) {
     if (L->ErrFunc != 0) {  /* is there an error handling function? */
-        Lua::StkId errfunc = LuaRestoreStack(L, L->ErrFunc);
-        if (!LuaTypeIsFunction(errfunc)) Lua::Do::Throw(L, LUA_ERRERR);
+        Lua::StkId errFunc = LuaRestoreStack(L, L->ErrFunc);
+        if (!LuaTypeIsFunction(errFunc)) Lua::Do::Throw(L, LUA_ERRERR);
         LuaSetObjectS2S(L, L->Top, L->Top - 1);  /* move argument */
-        LuaSetObjectS2S(L, L->Top - 1, errfunc);  /* push function */
+        LuaSetObjectS2S(L, L->Top - 1, errFunc);  /* push function */
         LuaIncrTop(L);
         Lua::Do::Call(L, L->Top - 2, 1);  /* call it */
     }
@@ -630,10 +630,10 @@ void Lua::Debug::ErrorMessage(lua_State *L) {
 
 
 void Lua::Debug::RunError(lua_State *L, const char *fmt, ...) {
-    va_list argp;
-    va_start(argp, fmt);
-    addinfo(L, Lua::PushVFString(L, fmt, argp));
-    va_end(argp);
+    va_list argP;
+    va_start(argP, fmt);
+    addInfo(L, Lua::PushVFString(L, fmt, argP));
+    va_end(argP);
     Lua::Debug::ErrorMessage(L);
 }
 

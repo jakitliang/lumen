@@ -172,7 +172,7 @@ LUA_API void lua_settop(lua_State *L, int idx) {
         L->Top = L->Base + idx;
     } else {
         LuaApiCheck(L, -(idx + 1) <= (L->Top - L->Base));
-        L->Top += idx + 1;  /* `subtract' index (index is negative) */
+        L->Top += idx + 1;  /* `subtract` index (index is negative) */
     }
     LuaUnlock(L);
 }
@@ -470,11 +470,11 @@ LUA_API void lua_pushstring(lua_State *L, const char *s) {
 
 
 LUA_API const char *lua_pushvfstring(lua_State *L, const char *fmt,
-                                     va_list argp) {
+                                     va_list argP) {
     const char *ret;
     LuaLock(L);
     LuaGCCheckGC(L);
-    ret = Lua::PushVFString(L, fmt, argp);
+    ret = Lua::PushVFString(L, fmt, argP);
     LuaUnlock(L);
     return ret;
 }
@@ -482,12 +482,12 @@ LUA_API const char *lua_pushvfstring(lua_State *L, const char *fmt,
 
 LUA_API const char *lua_pushfstring(lua_State *L, const char *fmt, ...) {
     const char *ret;
-    va_list argp;
+    va_list argP;
     LuaLock(L);
     LuaGCCheckGC(L);
-            va_start(argp, fmt);
-    ret = Lua::PushVFString(L, fmt, argp);
-            va_end(argp);
+            va_start(argP, fmt);
+    ret = Lua::PushVFString(L, fmt, argP);
+            va_end(argP);
     LuaUnlock(L);
     return ret;
 }
@@ -533,7 +533,6 @@ LUA_API int lua_pushthread(lua_State *L) {
     LuaUnlock(L);
     return (LuaGlobal(L)->MainThread == L);
 }
-
 
 
 /*
@@ -585,21 +584,21 @@ LUA_API void lua_rawgeti(lua_State *L, int idx, int n) {
 }
 
 
-LUA_API void lua_createtable(lua_State *L, int narray, int nrec) {
+LUA_API void lua_createtable(lua_State *L, int nArray, int nRec) {
     LuaLock(L);
     LuaGCCheckGC(L);
-    LuaSetTableValue(L, L->Top, Lua::Table::New(L, narray, nrec));
+    LuaSetTableValue(L, L->Top, Lua::Table::New(L, nArray, nRec));
     apiIncrTop(L);
     LuaUnlock(L);
 }
 
 
-LUA_API int lua_getmetatable(lua_State *L, int objindex) {
+LUA_API int lua_getmetatable(lua_State *L, int objIndex) {
     const Lua::Value *obj;
     Lua::Table *mt = nullptr;
     int res;
     LuaLock(L);
-    obj = index2addr(L, objindex);
+    obj = index2addr(L, objIndex);
     switch (LuaTypeOf(obj)) {
         case LUA_TTABLE:
             mt = LuaTableValue(obj)->Metatable;
@@ -704,12 +703,12 @@ LUA_API void lua_rawseti(lua_State *L, int idx, int n) {
 }
 
 
-LUA_API int lua_setmetatable(lua_State *L, int objindex) {
+LUA_API int lua_setmetatable(lua_State *L, int objIndex) {
     Lua::Value *obj;
     Lua::Table *mt;
     LuaLock(L);
     apiCheckElementCount(L, 1);
-    obj = index2addr(L, objindex);
+    obj = index2addr(L, objIndex);
     apiCheckValidIndex(L, obj);
     if (LuaTypeIsNil(L->Top - 1))
         mt = nullptr;
@@ -798,39 +797,38 @@ LUA_API void lua_call(lua_State *L, int nargs, int nResults) {
 }
 
 
-
 /*
 ** Execute a protected call.
 */
-struct CallS {  /* data to `f_call' */
+struct ProtectedCall {
     Lua::StkId Func;
     int NResults;
+
+    static void Call(lua_State *L, void *ud);
 };
 
-
-static void f_call(lua_State *L, void *ud) {
-    struct CallS *c = cast(struct CallS *, ud);
+void ProtectedCall::Call(lua_State *L, void *ud) {
+    ProtectedCall *c = cast(ProtectedCall *, ud);
     Lua::Do::Call(L, c->Func, c->NResults);
 }
 
-
-LUA_API int lua_pcall(lua_State *L, int nargs, int nResults, int errfunc) {
-    CallS c;
+LUA_API int lua_pcall(lua_State *L, int nargs, int nResults, int errFunc) {
+    ProtectedCall c;
     int status;
     ptrdiff_t func;
     LuaLock(L);
     apiCheckElementCount(L, nargs + 1);
     checkResults(L, nargs, nResults);
-    if (errfunc == 0)
+    if (errFunc == 0)
         func = 0;
     else {
-        Lua::StkId o = index2addr(L, errfunc);
+        Lua::StkId o = index2addr(L, errFunc);
         apiCheckValidIndex(L, o);
         func = LuaSaveStack(L, o);
     }
     c.Func = L->Top - (nargs + 1);  /* function to be called */
     c.NResults = nResults;
-    status = Lua::Do::PCall(L, f_call, &c, LuaSaveStack(L, c.Func), func);
+    status = Lua::Do::PCall(L, &ProtectedCall::Call, &c, LuaSaveStack(L, c.Func), func);
     adjustResults(L, nResults);
     LuaUnlock(L);
     return status;
@@ -840,45 +838,44 @@ LUA_API int lua_pcall(lua_State *L, int nargs, int nResults, int errfunc) {
 /*
 ** Execute a protected C call.
 */
-struct CCallS {  /* data to `f_Ccall' */
+struct ProtectedCCall {
     lua_CFunction func;
     void *ud;
+
+    static void Call(lua_State *L, void *ud) {
+        ProtectedCCall *c = cast(ProtectedCCall *, ud);
+        Lua::Closure *cl;
+        cl = Lua::CClosure::New(L, 0, getCurEnv(L));
+        cl->AsC.Func = c->func;
+        LuaSetClosureValue(L, L->Top, cl);  /* push function */
+        apiIncrTop(L);
+        LuaSetLUDataValue(L->Top, c->ud);  /* push only argument */
+        apiIncrTop(L);
+        Lua::Do::Call(L, L->Top - 2, 0);
+    }
 };
 
 
-static void f_Ccall(lua_State *L, void *ud) {
-    CCallS *c = cast(struct CCallS *, ud);
-    Lua::Closure *cl;
-    cl = Lua::CClosure::New(L, 0, getCurEnv(L));
-    cl->AsC.Func = c->func;
-    LuaSetClosureValue(L, L->Top, cl);  /* push function */
-    apiIncrTop(L);
-    LuaSetLUDataValue(L->Top, c->ud);  /* push only argument */
-    apiIncrTop(L);
-    Lua::Do::Call(L, L->Top - 2, 0);
-}
-
-
 LUA_API int lua_cpcall(lua_State *L, lua_CFunction func, void *ud) {
-    CCallS c;
+    ProtectedCCall c;
     int status;
     LuaLock(L);
     c.func = func;
     c.ud = ud;
-    status = Lua::Do::PCall(L, f_Ccall, &c, LuaSaveStack(L, L->Top), 0);
+    status = Lua::Do::PCall(L, &ProtectedCCall::Call, &c, LuaSaveStack(L, L->Top), 0);
     LuaUnlock(L);
     return status;
 }
 
 
 LUA_API int lua_load(lua_State *L, Lua::Reader reader, void *data,
-                     const char *chunkname) {
+                     const char *chunkName) {
     Lua::ZIO z;
     int status;
     LuaLock(L);
-    if (!chunkname) chunkname = "?";
+    if (!chunkName) chunkName = "?";
     Lua::ZIO::Init(L, &z, reader, data);
-    status = Lua::Do::ProtectedParser(L, &z, chunkname);
+    status = Lua::Do::ProtectedParser(L, &z, chunkName);
     LuaUnlock(L);
     return status;
 }
@@ -1062,11 +1059,11 @@ static const char *aux_upvalue(Lua::StkId fi, int n, Lua::Value **val) {
 }
 
 
-LUA_API const char *lua_getupvalue(lua_State *L, int funcindex, int n) {
+LUA_API const char *lua_getupvalue(lua_State *L, int funcIndex, int n) {
     const char *name;
     Lua::Value *val;
     LuaLock(L);
-    name = aux_upvalue(index2addr(L, funcindex), n, &val);
+    name = aux_upvalue(index2addr(L, funcIndex), n, &val);
     if (name) {
         LuaSetObject2S(L, L->Top, val);
         apiIncrTop(L);
@@ -1076,12 +1073,12 @@ LUA_API const char *lua_getupvalue(lua_State *L, int funcindex, int n) {
 }
 
 
-LUA_API const char *lua_setupvalue(lua_State *L, int funcindex, int n) {
+LUA_API const char *lua_setupvalue(lua_State *L, int funcIndex, int n) {
     const char *name;
     Lua::Value *val;
     Lua::StkId fi;
     LuaLock(L);
-    fi = index2addr(L, funcindex);
+    fi = index2addr(L, funcIndex);
     apiCheckElementCount(L, 1);
     name = aux_upvalue(fi, n, &val);
     if (name) {

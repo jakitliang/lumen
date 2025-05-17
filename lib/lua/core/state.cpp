@@ -25,21 +25,21 @@
 #include "lua/tm.h"
 
 
-#define state_size(x)    (sizeof(x) + LUAI_EXTRASPACE)
-#define fromstate(l)    (cast(Lua::Byte *, (l)) - LUAI_EXTRASPACE)
-#define tostate(l)   (cast(Lua::State *, cast(Lua::Byte *, l) + LUAI_EXTRASPACE))
+#define sizeOfState(x)    (sizeof(x) + LUAI_EXTRASPACE)
+#define fromState(l)    (cast(Lua::Byte *, (l)) - LUAI_EXTRASPACE)
+#define toState(l)   (cast(Lua::State *, cast(Lua::Byte *, l) + LUAI_EXTRASPACE))
 
 
 /*
 ** Main thread combines a thread state and the global state
 */
-typedef struct LG {
+struct LG {
     Lua::State l;
     Lua::GlobalState g;
-} LG;
+};
 
 
-static void stack_init(Lua::State *L1, Lua::State *L) {
+static void stackInit(Lua::State *L1, Lua::State *L) {
     /* initialize Lua::CallInfo array */
     L1->BaseCI = LuaMemoryNewVector(L, Lua::BasicCISize, Lua::CallInfo);
     L1->CallInfo = L1->BaseCI;
@@ -58,7 +58,7 @@ static void stack_init(Lua::State *L1, Lua::State *L) {
 }
 
 
-static void freestack(Lua::State *L, Lua::State *L1) {
+static void stackFree(Lua::State *L, Lua::State *L1) {
     LuaMemoryFreeArray(L, L1->BaseCI, L1->BaseCICount, Lua::CallInfo);
     LuaMemoryFreeArray(L, L1->Stack, L1->StackCount, Lua::Value);
 }
@@ -67,10 +67,10 @@ static void freestack(Lua::State *L, Lua::State *L1) {
 /*
 ** open parts that may cause memory-allocation errors
 */
-static void f_luaopen(Lua::State *L, void *ud) {
+static void LuaStateOpenFile(Lua::State *L, void *ud) {
     Lua::GlobalState *g = LuaGlobal(L);
     UNUSED(ud);
-    stack_init(L, L);  /* init stack */
+    stackInit(L, L);  /* init stack */
     LuaSetTableValue(L, LuaGlobalTable(L), Lua::Table::New(L, 0, 2));  /* table of globals */
     LuaSetTableValue(L, LuaRegistry(L), Lua::Table::New(L, 0, 2));  /* LuaRegistry */
     Lua::String::Resize(L, Lua::MinStringTableSize);  /* initial size of string table */
@@ -81,7 +81,7 @@ static void f_luaopen(Lua::State *L, void *ud) {
 }
 
 
-static void preinit_state(Lua::State *L, Lua::GlobalState *g) {
+static void LuaStatePreInit(Lua::State *L, Lua::GlobalState *g) {
     LuaGlobal(L) = g;
     L->Stack = nullptr;
     L->StackCount = 0;
@@ -102,7 +102,7 @@ static void preinit_state(Lua::State *L, Lua::GlobalState *g) {
 }
 
 
-static void close_state(Lua::State *L) {
+static void LuaStateClose(Lua::State *L) {
     Lua::GlobalState *g = LuaGlobal(L);
     Lua::UpValue::Close(L, L->Stack);  /* close all upvalues for this thread */
     Lua::GC::FreeAll(L);  /* collect all objects */
@@ -110,17 +110,17 @@ static void close_state(Lua::State *L) {
     lua_assert(g->StringMap.Count == 0);
     LuaMemoryFreeArray(L, LuaGlobal(L)->StringMap.HashTable, LuaGlobal(L)->StringMap.Capacity, Lua::String *);
     LuaZBufferFree(L, &g->Buff);
-    freestack(L, L);
+    stackFree(L, L);
     lua_assert(g->TotalBytes == sizeof(LG));
-    (*g->ReAllocator)(g->ReAllocatorUData, fromstate(L), state_size(LG), 0);
+    (*g->ReAllocator)(g->ReAllocatorUData, fromState(L), sizeOfState(LG), 0);
 }
 
 
 Lua::State *Lua::State::NewThread(Lua::State *L) {
-    Lua::State *L1 = tostate(LuaMemoryAlloc(L, state_size(Lua::State)));
+    Lua::State *L1 = toState(LuaMemoryAlloc(L, sizeOfState(Lua::State)));
     Lua::GC::Link(L, LuaObject2GCObject(L1), LUA_TTHREAD);
-    preinit_state(L1, LuaGlobal(L));
-    stack_init(L1, L);  /* init stack */
+    LuaStatePreInit(L1, LuaGlobal(L));
+    stackInit(L1, L);  /* init stack */
     LuaSetObject2N(L, LuaGlobalTable(L1), LuaGlobalTable(L));  /* share table of globals */
     L1->HookMask = L->HookMask;
     L1->BaseHookCount = L->BaseHookCount;
@@ -135,8 +135,8 @@ void Lua::State::FreeThread(Lua::State *L, Lua::State *L1) {
     Lua::UpValue::Close(L1, L1->Stack);  /* close all upvalues for this thread */
     lua_assert(L1->OpenedUpValue == nullptr);
     luai_userstatefree(L1);
-    freestack(L, L1);
-    LuaMemoryFreeMemory(L, fromstate(L1), state_size(Lua::State));
+    stackFree(L, L1);
+    LuaMemoryFreeMemory(L, fromState(L1), sizeOfState(Lua::State));
 }
 
 
@@ -144,16 +144,16 @@ LUA_API Lua::State *lua_newstate(lua_Alloc f, void *ud) {
     int i;
     Lua::State *L;
     Lua::GlobalState *g;
-    void *l = (*f)(ud, nullptr, 0, state_size(LG));
+    void *l = (*f)(ud, nullptr, 0, sizeOfState(LG));
     if (l == nullptr) return nullptr;
-    L = tostate(l);
+    L = toState(l);
     g = &((LG *) L)->g;
     L->GCNext = nullptr;
     L->Type = LUA_TTHREAD;
     g->CurrentWhite = LuaGCBit2Mask(Lua::GC::MarkWhite0Bit, Lua::GC::MarkFixedBit);
     L->Marked = LuaGCWhite(g);
     LuaGCSet2Bits(L->Marked, Lua::GC::MarkFixedBit, Lua::GC::MarkSFixedBit);
-    preinit_state(L, g);
+    LuaStatePreInit(L, g);
     g->ReAllocator = f;
     g->ReAllocatorUData = ud;
     g->MainThread = L;
@@ -179,9 +179,9 @@ LUA_API Lua::State *lua_newstate(lua_Alloc f, void *ud) {
     g->GCStepMul = LUAI_GCMUL;
     g->GCDept = 0;
     for (i = 0; i < LUA_NUM_TAGS; i++) g->Metatable[i] = nullptr;
-    if (Lua::Do::RawRunProtected(L, f_luaopen, nullptr) != 0) {
+    if (Lua::Do::RawRunProtected(L, LuaStateOpenFile, nullptr) != 0) {
         /* memory allocation error: free partial state */
-        close_state(L);
+        LuaStateClose(L);
         L = nullptr;
     } else
         luai_userstateopen(L);
@@ -189,9 +189,9 @@ LUA_API Lua::State *lua_newstate(lua_Alloc f, void *ud) {
 }
 
 
-static void callallgcTM(Lua::State *L, void *ud) {
+static void LuaStateCallAllGcTM(Lua::State *L, void *ud) {
     UNUSED(ud);
-    Lua::GC::CallGCTM(L);  /* call GC metamethods for all udata */
+    Lua::GC::CallGCTM(L);  /* call GC metaMethods for all uData */
 }
 
 
@@ -199,15 +199,15 @@ LUA_API void lua_close(lua_State *L) {
     L = LuaGlobal(L)->MainThread;  /* only the main thread can be closed */
     LuaLock(L);
     Lua::UpValue::Close(L, L->Stack);  /* close all upvalues for this thread */
-    Lua::GC::SeparateUserdata(L, 1);  /* separate udata that have GC metamethods */
-    L->ErrFunc = 0;  /* no error function during GC metamethods */
+    Lua::GC::SeparateUserdata(L, 1);  /* separate uData that have GC metaMethods */
+    L->ErrFunc = 0;  /* no error function during GC metaMethods */
     do {  /* repeat until no more errors */
         L->CallInfo = L->BaseCI;
         L->Base = L->Top = L->CallInfo->Base;
         L->NCCalls = L->BaseCCalls = 0;
-    } while (Lua::Do::RawRunProtected(L, callallgcTM, nullptr) != 0);
+    } while (Lua::Do::RawRunProtected(L, LuaStateCallAllGcTM, nullptr) != 0);
     lua_assert(LuaGlobal(L)->GCTMUData == nullptr);
     luai_userstateclose(L);
-    close_state(L);
+    LuaStateClose(L);
 }
 
