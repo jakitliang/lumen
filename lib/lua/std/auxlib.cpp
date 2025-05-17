@@ -30,10 +30,8 @@
 
 #define FREELIST_REF    0    /* free list of references */
 
-
 /* convert a stack index to positive */
-#define abs_index(L, i)        ((i) > 0 || (i) <= LUA_REGISTRYINDEX ? (i) : \
-                    lua_gettop(L) + (i) + 1)
+#define absIndex(L, i)    ((i) > 0 || (i) <= LUA_REGISTRYINDEX ? (i) : lua_gettop(L) + (i) + 1)
 
 
 /*
@@ -43,33 +41,33 @@
 */
 
 
-int luaL_argerror(lua_State *L, int narg, const char *extramsg) {
+int luaL_argerror(lua_State *L, int nArg, const char *extraMsg) {
     lua_Debug ar;
     if (!lua_getstack(L, 0, &ar))  /* no stack frame? */
-        return luaL_error(L, "bad argument #%d (%s)", narg, extramsg);
+        return luaL_error(L, "bad argument #%d (%s)", nArg, extraMsg);
     lua_getinfo(L, "n", &ar);
     if (strcmp(ar.namewhat, "method") == 0) {
-        narg--;  /* do not count `self' */
-        if (narg == 0)  /* error is in the self argument itself? */
+        nArg--;  /* do not count `self' */
+        if (nArg == 0)  /* error is in the self argument itself? */
             return luaL_error(L, "calling " LUA_QS " on bad self (%s)",
-                              ar.name, extramsg);
+                              ar.name, extraMsg);
     }
     if (ar.name == nullptr)
         ar.name = "?";
     return luaL_error(L, "bad argument #%d to " LUA_QS " (%s)",
-                      narg, ar.name, extramsg);
+                      nArg, ar.name, extraMsg);
 }
 
 
-int luaL_typerror(lua_State *L, int narg, const char *tname) {
+int luaL_typerror(lua_State *L, int nArg, const char *tName) {
     const char *msg = lua_pushfstring(L, "%s expected, got %s",
-                                      tname, luaL_typename(L, narg));
-    return luaL_argerror(L, narg, msg);
+                                      tName, luaL_typename(L, nArg));
+    return luaL_argerror(L, nArg, msg);
 }
 
 
-static void tag_error(lua_State *L, int narg, int tag) {
-    luaL_typerror(L, narg, lua_typename(L, tag));
+static void tag_error(lua_State *L, int nArg, int tag) {
+    luaL_typerror(L, nArg, lua_typename(L, tag));
 }
 
 
@@ -87,11 +85,11 @@ void luaL_where(lua_State *L, int level) {
 
 
 int luaL_error(lua_State *L, const char *fmt, ...) {
-    va_list argp;
-            va_start(argp, fmt);
+    va_list argP;
+            va_start(argP, fmt);
     luaL_where(L, 1);
-    lua_pushvfstring(L, fmt, argp);
-            va_end(argp);
+    lua_pushvfstring(L, fmt, argP);
+            va_end(argP);
     lua_concat(L, 2);
     return lua_error(L);
 }
@@ -218,7 +216,7 @@ int luaL_getmetafield(lua_State *L, int obj, const char *event) {
 
 
 int luaL_callmeta(lua_State *L, int obj, const char *event) {
-    obj = abs_index(L, obj);
+    obj = absIndex(L, obj);
     if (!luaL_getmetafield(L, obj, event))  /* no metafield? */
         return 0;
     lua_pushvalue(L, obj);
@@ -389,14 +387,14 @@ const char *luaL_findtable(lua_State *L, int idx,
 */
 
 
-#define bufflen(B)    ((B)->p - (B)->buffer)
-#define bufffree(B)    ((size_t)(LUAL_BUFFERSIZE - bufflen(B)))
+#define buffLength(B)    ((B)->p - (B)->buffer)
+#define buffFree(B)    ((size_t)(LUAL_BUFFERSIZE - buffLength(B)))
 
 #define LIMIT    (LUA_MINSTACK/2)
 
 
-static int emptybuffer(luaL_Buffer *B) {
-    size_t l = bufflen(B);
+static int buffEmpty(luaL_Buffer *B) {
+    size_t l = buffLength(B);
     if (l == 0) return 0;  /* put nothing on stack */
     else {
         lua_pushlstring(B->L, B->buffer, l);
@@ -407,7 +405,7 @@ static int emptybuffer(luaL_Buffer *B) {
 }
 
 
-static void adjuststack(luaL_Buffer *B) {
+static void adjustStack(luaL_Buffer *B) {
     if (B->lvl > 1) {
         lua_State *L = B->L;
         int toget = 1;  /* number of levels to concat */
@@ -426,8 +424,8 @@ static void adjuststack(luaL_Buffer *B) {
 
 
 char *luaL_prepbuffer(luaL_Buffer *B) {
-    if (emptybuffer(B))
-        adjuststack(B);
+    if (buffEmpty(B))
+        adjustStack(B);
     return B->buffer;
 }
 
@@ -444,7 +442,7 @@ void luaL_addstring(luaL_Buffer *B, const char *s) {
 
 
 void luaL_pushresult(luaL_Buffer *B) {
-    emptybuffer(B);
+    buffEmpty(B);
     lua_concat(B->L, B->lvl);
     B->lvl = 1;
 }
@@ -454,15 +452,15 @@ void luaL_addvalue(luaL_Buffer *B) {
     lua_State *L = B->L;
     size_t vl;
     const char *s = lua_tolstring(L, -1, &vl);
-    if (vl <= bufffree(B)) {  /* fit into buffer? */
+    if (vl <= buffFree(B)) {  /* fit into buffer? */
         memcpy(B->p, s, vl);  /* put it there */
         B->p += vl;
         lua_pop(L, 1);  /* remove from stack */
     } else {
-        if (emptybuffer(B))
+        if (buffEmpty(B))
             lua_insert(L, -2);  /* put buffer before new value */
         B->lvl++;  /* add new value into B stack */
-        adjuststack(B);
+        adjustStack(B);
     }
 }
 
@@ -478,7 +476,7 @@ void luaL_buffinit(lua_State *L, luaL_Buffer *B) {
 
 int luaL_ref(lua_State *L, int t) {
     int ref;
-    t = abs_index(L, t);
+    t = absIndex(L, t);
     if (lua_isnil(L, -1)) {
         lua_pop(L, 1);  /* remove from stack */
         return LUA_REFNIL;  /* `nil' has a unique fixed reference */
@@ -500,7 +498,7 @@ int luaL_ref(lua_State *L, int t) {
 
 void luaL_unref(lua_State *L, int t, int ref) {
     if (ref >= 0) {
-        t = abs_index(L, t);
+        t = absIndex(L, t);
         lua_rawgeti(L, t, FREELIST_REF);
         lua_rawseti(L, t, ref);  /* t[ref] = t[FREELIST_REF] */
         lua_pushinteger(L, ref);
@@ -515,62 +513,62 @@ void luaL_unref(lua_State *L, int t, int ref) {
 ** =======================================================
 */
 
-typedef struct LoadF {
-    int extraline;
+struct LoadFunc {
+    int ExtraLine;
     FILE *f;
-    char buff[LUAL_BUFFERSIZE];
-} LoadF;
+    char Buff[LUAL_BUFFERSIZE];
+};
 
 
 static const char *getF(lua_State *L, void *ud, size_t *size) {
-    LoadF *lf = (LoadF *) ud;
+    auto lf = (LoadFunc *) ud;
     (void) L;
-    if (lf->extraline) {
-        lf->extraline = 0;
+    if (lf->ExtraLine) {
+        lf->ExtraLine = 0;
         *size = 1;
         return "\n";
     }
     if (feof(lf->f)) return nullptr;
-    *size = fread(lf->buff, 1, sizeof(lf->buff), lf->f);
-    return (*size > 0) ? lf->buff : nullptr;
+    *size = fread(lf->Buff, 1, sizeof(lf->Buff), lf->f);
+    return (*size > 0) ? lf->Buff : nullptr;
 }
 
 
-static int errfile(lua_State *L, const char *what, int fileNameIdx) {
-    const char *serr = strerror(errno);
+static int errFile(lua_State *L, const char *what, int fileNameIdx) {
+    const char *strErr = strerror(errno);
     const char *filename = lua_tostring(L, fileNameIdx) + 1;
-    lua_pushfstring(L, "cannot %s %s: %s", what, filename, serr);
+    lua_pushfstring(L, "cannot %s %s: %s", what, filename, strErr);
     lua_remove(L, fileNameIdx);
     return LUA_ERRFILE;
 }
 
 
 int luaL_loadfile(lua_State *L, const char *filename) {
-    LoadF lf;
+    LoadFunc lf;
     int status, readStatus;
     int c;
     int fileNameIndex = lua_gettop(L) + 1;  /* index of filename on the stack */
-    lf.extraline = 0;
+    lf.ExtraLine = 0;
     if (filename == nullptr) {
         lua_pushliteral(L, "=stdin");
         lf.f = stdin;
     } else {
         lua_pushfstring(L, "@%s", filename);
         lf.f = fopen(filename, "r");
-        if (lf.f == nullptr) return errfile(L, "open", fileNameIndex);
+        if (lf.f == nullptr) return errFile(L, "open", fileNameIndex);
     }
     c = getc(lf.f);
     if (c == '#') {  /* Unix exec. file? */
-        lf.extraline = 1;
+        lf.ExtraLine = 1;
         while ((c = getc(lf.f)) != EOF && c != '\n');  /* skip first line */
         if (c == '\n') c = getc(lf.f);
     }
     if (c == LUA_SIGNATURE[0] && filename) {  /* binary file? */
         lf.f = freopen(filename, "rb", lf.f);  /* reopen in binary mode */
-        if (lf.f == nullptr) return errfile(L, "reopen", fileNameIndex);
+        if (lf.f == nullptr) return errFile(L, "reopen", fileNameIndex);
         /* skip eventual `#!...' */
         while ((c = getc(lf.f)) != EOF && c != LUA_SIGNATURE[0]);
-        lf.extraline = 0;
+        lf.ExtraLine = 0;
     }
     ungetc(c, lf.f);
     status = lua_load(L, getF, &lf, lua_tostring(L, -1));
@@ -578,21 +576,21 @@ int luaL_loadfile(lua_State *L, const char *filename) {
     if (filename) fclose(lf.f);  /* close file (even in case of errors) */
     if (readStatus) {
         lua_settop(L, fileNameIndex);  /* ignore results from `lua_load' */
-        return errfile(L, "read", fileNameIndex);
+        return errFile(L, "read", fileNameIndex);
     }
     lua_remove(L, fileNameIndex);
     return status;
 }
 
 
-typedef struct LoadS {
+struct LoadState {
     const char *s;
     size_t size;
-} LoadS;
+};
 
 
 static const char *getS(lua_State *L, void *ud, size_t *size) {
-    LoadS *ls = (LoadS *) ud;
+    auto ls = (LoadState *) ud;
     (void) L;
     if (ls->size == 0) return nullptr;
     *size = ls->size;
@@ -603,7 +601,7 @@ static const char *getS(lua_State *L, void *ud, size_t *size) {
 
 int luaL_loadbuffer(lua_State *L, const char *buff, size_t size,
                     const char *name) {
-    LoadS ls;
+    LoadState ls;
     ls.s = buff;
     ls.size = size;
     return lua_load(L, getS, &ls, name);
@@ -653,8 +651,10 @@ int luaL_fileresult(lua_State *L, int stat, const char *fileName) {
 #ifdef _WIN32
 #define doInspectStat(stat, what) ((void)0)
 #else
+LUA_C_BEGIN
 #include <unistd.h>
 #include <sys/wait.h>
+LUA_C_END
 #define doInspectStat(stat, what) do { \
     if (WIFEXITED(stat)) {             \
         stat = WEXITSTATUS(stat);      \
@@ -826,7 +826,7 @@ void *luaL_testudata(lua_State *L, int i, const char *tName) {
     return p;
 }
 
-void luaL_setmetatable (lua_State *L, const char *tName) {
+void luaL_setmetatable(lua_State *L, const char *tName) {
     luaL_checkstack(L, 1, "not enough stack slots");
     luaL_getmetatable(L, tName);
     lua_setmetatable(L, -2);
