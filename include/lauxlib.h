@@ -162,6 +162,12 @@ LUALIB_API void luaL_setmetatable(lua_State *L, const char *tName);
 
 #define luaL_opt(L, f, n, d)    (lua_isnoneornil(L,(n)) ? (d) : f(L,(n)))
 
+/* From Lua 5.2. */
+#define luaL_newlibtable(L, l) \
+    lua_createtable(L, 0, sizeof(l)/sizeof((l)[0]) - 1)
+#define luaL_newlib(L, l)    (luaL_newlibtable(L, l), luaL_setfuncs(L, l, 0))
+
+
 /*
 ** {======================================================
 ** Generic Buffer manipulation
@@ -179,8 +185,7 @@ typedef struct luaL_Buffer {
 } luaL_Buffer;
 
 #define luaL_addchar(B, c) \
-  ((void)((B)->p < ((B)->buffer+LUAL_BUFFERSIZE) || luaL_prepbuffer(B)), \
-   (*(B)->p++ = (char)(c)))
+    ((void)((B)->p < ((B)->buffer+LUAL_BUFFERSIZE) || luaL_prepbuffer(B)), (*(B)->p++ = (char)(c)))
 
 /* compatibility only */
 #define luaL_putchar(B, c)    luaL_addchar(B,c)

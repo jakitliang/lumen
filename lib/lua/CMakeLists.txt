@@ -17,6 +17,7 @@ add_library(
     ${LUA_PRODUCT_RESOURCE}
     $<TARGET_OBJECTS:lua51-core>
     $<TARGET_OBJECTS:lua51-std>
+    $<TARGET_OBJECTS:Lumen>
 )
 set_target_properties(
     lua51-shared PROPERTIES OUTPUT_NAME "lua51"
@@ -35,6 +36,7 @@ add_library(
     ${LUA_PRODUCT_RESOURCE}
     $<TARGET_OBJECTS:lua51-core>
     $<TARGET_OBJECTS:lua51-std>
+    $<TARGET_OBJECTS:Lumen>
 )
 target_include_directories(
     lua51-static INTERFACE

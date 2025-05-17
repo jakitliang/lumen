@@ -9,7 +9,7 @@ add_library(
     mathlib.c
     loadlib.c
     oslib.c
-    strlib.c
+    strlib.cpp
     tablib.c
     bitlib.c
 )
