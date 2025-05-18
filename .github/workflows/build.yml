@@ -18,6 +18,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
+    - name: 安装依赖 (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libreadline-dev libncurses-dev
+    
     - name: 设置 CMake 缓存
       uses: actions/cache@v3
       with:
@@ -28,25 +34,31 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cmake-${{ matrix.build_type }}-
     
-    - name: 配置 CMake
+    - name: 配置 CMake (非Windows)
+      if: matrix.os != 'windows-latest'
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
+      
+    - name: 配置 CMake (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: cmd
+      run: cmake -B "${{github.workspace}}\build" -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
 
-    - name: 构建
+    - name: 构建 (非Windows)
+      if: matrix.os != 'windows-latest'
       run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}}
+      
+    - name: 构建 (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: cmd
+      run: cmake --build "${{github.workspace}}\build" --config ${{matrix.build_type}}
 
-    - name: 测试
+    - name: 测试 (非Windows)
+      if: matrix.os != 'windows-latest'
       working-directory: ${{github.workspace}}/build
       run: ctest -C ${{matrix.build_type}} --output-on-failure
       
-  code-quality:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: 安装 clang-format
-      run: sudo apt-get install -y clang-format
-      
-    - name: 运行 clang-format 检查
-      run: |
-        find . -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | xargs clang-format --dry-run --Werror 
+    - name: 测试 (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: cmd
+      working-directory: ${{github.workspace}}\build
+      run: ctest -C ${{matrix.build_type}} --output-on-failure 

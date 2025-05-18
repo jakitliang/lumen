@@ -29,11 +29,34 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
-    - name: 配置 CMake
+    - name: 安装依赖 (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libreadline-dev libncurses-dev
+        
+    - name: 安装依赖 (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install readline ncurses
+    
+    - name: 配置 CMake (非Windows)
+      if: matrix.os != 'windows-latest'
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release
       
-    - name: 构建
+    - name: 配置 CMake (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: cmd
+      run: cmake -B "${{github.workspace}}\build" -DCMAKE_BUILD_TYPE=Release
+
+    - name: 构建 (非Windows)
+      if: matrix.os != 'windows-latest'
       run: cmake --build ${{github.workspace}}/build --config Release
+      
+    - name: 构建 (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: cmd
+      run: cmake --build "${{github.workspace}}\build" --config Release
       
     - name: 打包 (Linux/macOS)
       if: matrix.os != 'windows-latest'
@@ -48,13 +71,14 @@ jobs:
         
     - name: 打包 (Windows)
       if: matrix.os == 'windows-latest'
+      shell: cmd
       run: |
-        mkdir -p ${{github.workspace}}/dist/bin
-        cp ${{github.workspace}}/build/src/Release/lumen.exe ${{github.workspace}}/dist/bin/
-        cp -r ${{github.workspace}}/lib ${{github.workspace}}/dist/
-        cp ${{github.workspace}}/LICENSE ${{github.workspace}}/dist/
-        cp ${{github.workspace}}/README*.md ${{github.workspace}}/dist/
-        cd ${{github.workspace}}
+        mkdir "${{github.workspace}}\dist\bin"
+        copy "${{github.workspace}}\build\src\Release\lumen.exe" "${{github.workspace}}\dist\bin\"
+        xcopy /E /I "${{github.workspace}}\lib" "${{github.workspace}}\dist\lib"
+        copy "${{github.workspace}}\LICENSE" "${{github.workspace}}\dist\"
+        copy "${{github.workspace}}\README*.md" "${{github.workspace}}\dist\"
+        cd "${{github.workspace}}"
         ${{ matrix.compress_cmd }} ${{ matrix.asset_name }} dist
         
     - name: 上传构建产物
