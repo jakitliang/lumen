@@ -1,6 +1,5 @@
-
 add_library(
-    Lumen-objs OBJECT
+    lumen-objs OBJECT
     memory.cpp
     auxlib.cpp
     baselib.c
@@ -24,54 +23,83 @@ if (LUA_BUILD_TYPE MATCHES "SHARED")
             @ONLY
         )
     else ()
-        set_target_properties(Lumen-objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+        set_target_properties(lumen-objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
     endif ()
 endif ()
-target_compile_definitions(Lumen-objs PRIVATE ${LUA_COMPILE_DEF})
-target_compile_options(Lumen-objs PRIVATE ${LUA_COMPILE_OPT})
-target_link_libraries(Lumen-objs PRIVATE ${LUA_LINK_LIBS})
+target_compile_definitions(lumen-objs PRIVATE ${LUA_COMPILE_DEF})
+target_compile_options(lumen-objs PRIVATE ${LUA_COMPILE_OPT})
+target_link_libraries(lumen-objs PRIVATE ${LUA_LINK_LIBS})
 
 # ---------------------------------------------------
 
 add_library(
-    Lumen-shared SHARED
+    lumen-shared SHARED
     ${LUA_PRODUCT_RESOURCE}
     $<TARGET_OBJECTS:lua>
-    $<TARGET_OBJECTS:Lumen-objs>
+    $<TARGET_OBJECTS:lumen-objs>
 )
 target_include_directories(
-    Lumen-shared INTERFACE
+    lumen-shared INTERFACE
     $<BUILD_INTERFACE:${LUA_BASE_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-target_compile_definitions(Lumen-shared INTERFACE ${LUA_COMPILE_DEF})
-target_compile_options(Lumen-shared INTERFACE ${LUA_COMPILE_OPT})
-target_link_libraries(Lumen-shared INTERFACE ${LUA_LINK_LIBS})
+target_compile_definitions(lumen-shared INTERFACE ${LUA_COMPILE_DEF})
+target_compile_options(lumen-shared INTERFACE ${LUA_COMPILE_OPT})
+target_link_libraries(lumen-shared INTERFACE ${LUA_LINK_LIBS})
 set_target_properties(
-    Lumen-shared PROPERTIES OUTPUT_NAME "Lumen"
+    lumen-shared PROPERTIES OUTPUT_NAME "Lumen"
 )
 
 # ---------------------------------------------------
 
 add_library(
-    Lumen-static STATIC
+    lumen-static STATIC
     ${LUA_PRODUCT_RESOURCE}
     $<TARGET_OBJECTS:lua>
-    $<TARGET_OBJECTS:Lumen-objs>
+    $<TARGET_OBJECTS:lumen-objs>
 )
 target_include_directories(
-    Lumen-static INTERFACE
+    lumen-static INTERFACE
     $<BUILD_INTERFACE:${LUA_BASE_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-target_compile_definitions(Lumen-static INTERFACE ${LUA_COMPILE_DEF})
-target_compile_options(Lumen-static INTERFACE ${LUA_COMPILE_OPT})
-target_link_libraries(Lumen-static INTERFACE ${LUA_LINK_LIBS})
+target_compile_definitions(lumen-static INTERFACE ${LUA_COMPILE_DEF})
+target_compile_options(lumen-static INTERFACE ${LUA_COMPILE_OPT})
+target_link_libraries(lumen-static INTERFACE ${LUA_LINK_LIBS})
 
 # ---------------------------------------------------
 
 if (LUA_BUILD_TYPE MATCHES "SHARED")
-    add_library(Lumen ALIAS Lumen-shared)
+    add_library(Lumen ALIAS lumen-shared)
 else ()
-    add_library(Lumen ALIAS Lumen-static)
+    add_library(Lumen ALIAS lumen-static)
+endif ()
+
+if (NOT LUA_SKIP_INSTALL)
+    install(
+        FILES
+        ${LUMEN_BASE_SOURCE_DIR}/include/lauxlib.h
+        ${LUMEN_BASE_SOURCE_DIR}/include/lua.h
+        ${LUMEN_BASE_SOURCE_DIR}/include/luaconf.h
+        ${LUMEN_BASE_SOURCE_DIR}/include/lualib.h
+        DESTINATION include
+    )
+    install(
+        TARGETS lumen-shared
+        EXPORT lumen-shared
+        INCLUDES DESTINATION include
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+    )
+    install(
+        EXPORT lumen-shared
+        FILE lumen-sharedConfig.cmake
+        DESTINATION lib/cmake/Lumen
+    )
+    install(
+        FILES
+        ${LUMEN_BASE_SOURCE_DIR}/etc/lumen.pc
+        DESTINATION lib/pkgconfig
+    )
 endif ()

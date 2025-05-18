@@ -10,6 +10,9 @@ option(LUA_SKIP_INSTALL "Build shared library of Lua" OFF)
 option(LUA_USE_API_CHECK "Build with develop mode" OFF)
 option(LUA_USE_CORE_DEBUG "Build with develop mode" OFF)
 
+set(LUMEN_BASE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(LUMEN_BASE_BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
 set(LUA_PRODUCT_NUMBER 1)
 set(LUA_PRODUCT_VERSION 0)
 set(LUA_PRODUCT_PATCH 0)

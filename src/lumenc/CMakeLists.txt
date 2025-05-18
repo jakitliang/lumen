@@ -13,9 +13,21 @@ add_executable(
     lumenc.cpp
     print.cpp
     $<TARGET_OBJECTS:lua>
-    $<TARGET_OBJECTS:Lumen-objs>
+    $<TARGET_OBJECTS:lumen-objs>
     ${LUA_PRODUCT_RESOURCE}
 )
 target_compile_definitions(lumenc PRIVATE ${LUA_COMPILE_DEF})
 target_compile_options(lumenc INTERFACE ${LUA_COMPILE_OPT})
 target_link_libraries(lumenc PRIVATE ${LUA_LINK_LIBS})
+
+if (NOT LUA_SKIP_INSTALL)
+    install(
+        TARGETS lumenc
+        DESTINATION bin
+    )
+    install(
+        FILES
+        ${LUMEN_BASE_SOURCE_DIR}/doc/lumenc.1
+        DESTINATION share/man/man1
+    )
+endif ()

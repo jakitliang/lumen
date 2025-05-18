@@ -22,7 +22,12 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libreadline-dev libncurses-dev
+        sudo apt-get install -y libreadline-dev libncurses-dev patchelf
+
+    - name: 安装依赖 (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install readline ncurses
     
     - name: 设置 CMake 缓存
       uses: actions/cache@v3
@@ -34,31 +39,14 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cmake-${{ matrix.build_type }}-
     
-    - name: 配置 CMake (非Windows)
-      if: matrix.os != 'windows-latest'
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
-      
-    - name: 配置 CMake (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: cmd
-      run: cmake -B "${{github.workspace}}\build" -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
+    - name: 配置和构建
+      shell: bash
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_INSTALL_PREFIX="${{github.workspace}}/install"
+        cmake --build build --config ${{matrix.build_type}}
+        cmake --install build
 
-    - name: 构建 (非Windows)
-      if: matrix.os != 'windows-latest'
-      run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}}
-      
-    - name: 构建 (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: cmd
-      run: cmake --build "${{github.workspace}}\build" --config ${{matrix.build_type}}
-
-    - name: 测试 (非Windows)
-      if: matrix.os != 'windows-latest'
+    - name: 测试
+      shell: bash
       working-directory: ${{github.workspace}}/build
-      run: ctest -C ${{matrix.build_type}} --output-on-failure
-      
-    - name: 测试 (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: cmd
-      working-directory: ${{github.workspace}}\build
       run: ctest -C ${{matrix.build_type}} --output-on-failure 

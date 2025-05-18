@@ -1,0 +1,28 @@
+# lumen.pc -- pkg-config data for Lumen
+
+# vars from install Makefile
+
+R= 1.0.0
+
+# grep '^INSTALL_.*=' ../Makefile | sed 's/INSTALL_TOP/prefix/'
+prefix= /usr/local
+INSTALL_BIN= ${prefix}/bin
+INSTALL_INC= ${prefix}/include
+INSTALL_LIB= ${prefix}/lib
+INSTALL_MAN= ${prefix}/man/man1
+INSTALL_LMOD= ${prefix}/share/Lumen/
+INSTALL_CMOD= ${prefix}/lib/Lumen/
+
+# canonical vars
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: Lumen
+Description: A modernized and refined version of Lua
+Version: ${R}
+Requires: 
+Libs: -L${libdir} -lLumen -lm
+Cflags: -I${includedir}
+
+# (end of lumen.pc)
