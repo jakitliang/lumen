@@ -30,7 +30,7 @@ jobs:
     - name: 构建
       run: |
         cmake --build ${{github.workspace}}/build --config Debug
-        cmake --install ${{github.workspace}}/build
+        cmake --install ${{github.workspace}}/build --config Debug
       
     - name: 执行 CodeQL 分析
       uses: github/codeql-action/analyze@v2

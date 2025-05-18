@@ -39,12 +39,21 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cmake-${{ matrix.build_type }}-
     
-    - name: 配置和构建
+    - name: 配置和构建 (非Windows)
+      if: matrix.os != 'windows-latest'
       shell: bash
       run: |
         cmake -B build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_INSTALL_PREFIX="${{github.workspace}}/install"
         cmake --build build --config ${{matrix.build_type}}
-        cmake --install build
+        cmake --install build --config ${{matrix.build_type}}
+
+    - name: 配置和构建 (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: cmd
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_INSTALL_PREFIX="${{github.workspace}}/install"
+        cmake --build build --config ${{matrix.build_type}}
+        cmake --install build --config ${{matrix.build_type}}
 
     - name: 测试
       shell: bash
