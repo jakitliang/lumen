@@ -184,7 +184,7 @@ int Lua::Table::Next(Lua::State *L, Lua::Table *t, Lua::StkId key) {
 */
 
 
-static int computeSizes(int nums[], int *nArray) {
+static int computeSizes(const int nums[], int *nArray) {
     int i;
     int twoToInt;  /* 2^i */
     int a = 0;  /* number of elements smaller than 2^i */
@@ -304,7 +304,7 @@ static void resize(Lua::State *L, Lua::Table *t, int nArraySize, int nHashSize) 
         /* re-insert elements from vanishing slice */
         for (i = nArraySize; i < oldArraySize; i++) {
             if (!LuaTypeIsNil(&t->Array[i]))
-                    LuaSetObjectT2T (L, Lua::Table::SetNum(L, t, i + 1), &t->Array[i]);
+                LuaSetObjectT2T (L, Lua::Table::SetNum(L, t, i + 1), &t->Array[i]);
         }
         /* shrink array */
         LuaMemoryReAllocVector(L, t->Array, oldArraySize, nArraySize, Lua::Value);
@@ -313,7 +313,7 @@ static void resize(Lua::State *L, Lua::Table *t, int nArraySize, int nHashSize) 
     for (i = LuaTableTwoTo(oldHashSize) - 1; i >= 0; i--) {
         Lua::Node *old = nOld + i;
         if (!LuaTypeIsNil(LuaTableGetValue(old)))
-                LuaSetObjectT2T (L, Lua::Table::Set(L, t, LuaTableKey2KeyValue(old)), LuaTableGetValue(old));
+            LuaSetObjectT2T (L, Lua::Table::Set(L, t, LuaTableKey2KeyValue(old)), LuaTableGetValue(old));
     }
     if (nOld != dummyNode)
         LuaMemoryFreeArray(L, nOld, LuaTableTwoTo(oldHashSize), Lua::Node);  /* free old array */
@@ -550,7 +550,7 @@ static int unbound_search(Lua::Table *t, unsigned int j) {
 
 
 /*
-** Try to find a boundary in table `t'. A `boundary' is an integer index
+** Try to find a boundary in table `t`. A `boundary` is an integer index
 ** such that t[i] is non-nil and t[i+1] is nil (and 0 if t[1] is nil).
 */
 int Lua::Table::GetN(Lua::Table *t) {

@@ -81,21 +81,32 @@ namespace Lua {
         Lua::GCObject *GCList;
         int ArrayCount;  /* size of `array` array */
 
-        static const Lua::Value *GetNum (Lua::Table *t, int key);
-        static Lua::Value *SetNum (Lua::State *L, Lua::Table *t, int key);
-        static const Lua::Value *GetString (Lua::Table *t, Lua::String *key);
-        static Lua::Value *SetString (Lua::State *L, Lua::Table *t, Lua::String *key);
-        static const Lua::Value *Get (Lua::Table *t, const Lua::Value *key);
-        static Lua::Value *Set (Lua::State *L, Lua::Table *t, const Lua::Value *key);
-        static Lua::Table *New (Lua::State *L, int nArray, int nHash);
-        static void ResizeArray (Lua::State *L, Lua::Table *t, int nArraySize);
-        static void Free (Lua::State *L, Lua::Table *t);
-        static int Next (Lua::State *L, Lua::Table *t, Lua::StkId key);
-        static int GetN (Lua::Table *t);
+        static const Lua::Value *GetNum(Lua::Table *t, int key);
+
+        static Lua::Value *SetNum(Lua::State *L, Lua::Table *t, int key);
+
+        static const Lua::Value *GetString(Lua::Table *t, Lua::String *key);
+
+        static Lua::Value *SetString(Lua::State *L, Lua::Table *t, Lua::String *key);
+
+        static const Lua::Value *Get(Lua::Table *t, const Lua::Value *key);
+
+        static Lua::Value *Set(Lua::State *L, Lua::Table *t, const Lua::Value *key);
+
+        static Lua::Table *New(Lua::State *L, int nArray, int nHash);
+
+        static void ResizeArray(Lua::State *L, Lua::Table *t, int nArraySize);
+
+        static void Free(Lua::State *L, Lua::Table *t);
+
+        static int Next(Lua::State *L, Lua::Table *t, Lua::StkId key);
+
+        static int GetN(Lua::Table *t);
 
 #if defined(LUA_DEBUG)
-        static Lua::Node *MainPosition (const Lua::Table *t, const Lua::Value *key);
-        static int IsDummy (Lua::Node *n);
+        static Lua::Node *MainPosition(const Lua::Table *t, const Lua::Value *key);
+
+        static int IsDummy(Lua::Node *n);
 #endif
     };
 
@@ -149,8 +160,8 @@ namespace Lua {
 
         static void Free(Lua::State *L, Lua::Proto *f);
 
-        static const char *GetLocalName (const Lua::Proto *func, int local_number,
-                                              int pc);
+        static const char *GetLocalName(const Lua::Proto *func, int local_number,
+                                        int pc);
     };
 
     struct UpValue : Object {
@@ -169,7 +180,7 @@ namespace Lua {
 
         static void Close(Lua::State *L, Lua::StkId level);
 
-        static void Free (Lua::State *L, Lua::UpValue *uv);
+        static void Free(Lua::State *L, Lua::UpValue *uv);
     };
 
     struct BasicClosure : Lua::Object {
@@ -358,10 +369,10 @@ LuaDo(                              \
 #define LuaIsCFunction(o)    (LuaTypeOf(o) == LUA_TFUNCTION && LuaClosureValue(o)->AsC.IsC)
 #define LuaIsLFunction(o)    (LuaTypeOf(o) == LUA_TFUNCTION && !LuaClosureValue(o)->AsC.IsC)
 
-#define LuaCClosureSize(n)	(cast(int, sizeof(Lua::CClosure)) + \
+#define LuaCClosureSize(n)    (cast(int, sizeof(Lua::CClosure)) + \
                          cast(int, sizeof(Lua::Value)*((n)-1)))
 
-#define LuaLClosureSize(n)	(cast(int, sizeof(Lua::LClosure)) + \
+#define LuaLClosureSize(n)    (cast(int, sizeof(Lua::LClosure)) + \
                          cast(int, sizeof(Lua::Value *)*((n)-1)))
 
 // Other helpers

@@ -12,9 +12,10 @@ add_executable(
     lumenc
     lumenc.cpp
     print.cpp
-    $<TARGET_OBJECTS:lua51-core>
-    $<TARGET_OBJECTS:lua51-std>
+    $<TARGET_OBJECTS:lua>
+    $<TARGET_OBJECTS:Lumen-objs>
     ${LUA_PRODUCT_RESOURCE}
 )
-target_link_libraries(lumenc PRIVATE ${LUA_LINK_LIBS})
 target_compile_definitions(lumenc PRIVATE ${LUA_COMPILE_DEF})
+target_compile_options(lumenc INTERFACE ${LUA_COMPILE_OPT})
+target_link_libraries(lumenc PRIVATE ${LUA_LINK_LIBS})
