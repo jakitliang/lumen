@@ -73,7 +73,15 @@ jobs:
       shell: cmd
       run: |
         dir "${{github.workspace}}\build\src\"
-        dir "${{github.workspace}}\build\src\Release\" /a
+        dir "${{github.workspace}}\build\src\lumen\"
+        echo 检查其他可能的位置:
+        if exist "${{github.workspace}}\build\src\Release\" (
+          dir "${{github.workspace}}\build\src\Release\"
+        ) else (
+          echo Release 目录不存在
+        )
+        echo 查找可执行文件:
+        dir /s /b "${{github.workspace}}\build\*.exe"
     
     - name: 打包 (Linux)
       if: matrix.os == 'ubuntu-latest'
@@ -131,15 +139,17 @@ jobs:
         mkdir "${{github.workspace}}\dist\bin"
         
         REM 尝试不同位置的 lumen.exe
-        IF EXIST "${{github.workspace}}\build\src\Release\lumen.exe" (
+        IF EXIST "${{github.workspace}}\build\src\lumen\lumen.exe" (
+          copy "${{github.workspace}}\build\src\lumen\lumen.exe" "${{github.workspace}}\dist\bin\"
+        ) ELSE IF EXIST "${{github.workspace}}\build\src\lumen\*.exe" (
+          copy "${{github.workspace}}\build\src\lumen\*.exe" "${{github.workspace}}\dist\bin\"
+        ) ELSE IF EXIST "${{github.workspace}}\build\src\Release\lumen.exe" (
           copy "${{github.workspace}}\build\src\Release\lumen.exe" "${{github.workspace}}\dist\bin\"
         ) ELSE IF EXIST "${{github.workspace}}\build\src\lumen.exe" (
           copy "${{github.workspace}}\build\src\lumen.exe" "${{github.workspace}}\dist\bin\"
-        ) ELSE IF EXIST "${{github.workspace}}\build\src\Release\lumen\lumen.exe" (
-          copy "${{github.workspace}}\build\src\Release\lumen\lumen.exe" "${{github.workspace}}\dist\bin\"
         ) ELSE (
           REM 如果找不到明确的位置，则搜索
-          for /R "${{github.workspace}}\build" %%i in (lumen.exe) do copy "%%i" "${{github.workspace}}\dist\bin\"
+          for /R "${{github.workspace}}\build" %%i in (*.exe) do copy "%%i" "${{github.workspace}}\dist\bin\"
         )
         
         xcopy /E /I "${{github.workspace}}\lib" "${{github.workspace}}\dist\lib"
