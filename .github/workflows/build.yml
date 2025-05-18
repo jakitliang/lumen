@@ -1,4 +1,4 @@
-name: Lumen C++ CI
+name: Lumen Build
 
 on:
   push:
@@ -10,8 +10,17 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        platform: [linux, windows, macos, android]
         build_type: [Debug, Release]
+        include:
+          - platform: linux
+            os: ubuntu-latest
+          - platform: windows
+            os: windows-latest
+          - platform: macos
+            os: macos-latest
+          - platform: android
+            os: ubuntu-latest
         
     runs-on: ${{ matrix.os }}
 
@@ -19,17 +28,25 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: 安装依赖 (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.platform == 'linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y libreadline-dev libncurses-dev patchelf
 
     - name: 安装依赖 (macOS)
-      if: matrix.os == 'macos-latest'
+      if: matrix.platform == 'macos'
       run: |
         brew install readline ncurses
     
+    - name: 设置 Android NDK
+      if: matrix.platform == 'android'
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r25c
+        add-to-path: true
+    
     - name: 设置 CMake 缓存
+      if: matrix.platform != 'android'
       uses: actions/cache@v3
       with:
         path: |
@@ -39,8 +56,8 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cmake-${{ matrix.build_type }}-
     
-    - name: 配置和构建 (非Windows)
-      if: matrix.os != 'windows-latest'
+    - name: 配置和构建 (Linux)
+      if: matrix.platform == 'linux'
       shell: bash
       run: |
         cmake -B build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_INSTALL_PREFIX="${{github.workspace}}/install"
@@ -48,14 +65,40 @@ jobs:
         cmake --install build --config ${{matrix.build_type}}
 
     - name: 配置和构建 (Windows)
-      if: matrix.os == 'windows-latest'
+      if: matrix.platform == 'windows'
       shell: cmd
       run: |
         cmake -B build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_INSTALL_PREFIX="${{github.workspace}}/install"
         cmake --build build --config ${{matrix.build_type}}
         cmake --install build --config ${{matrix.build_type}}
+    
+    - name: 配置和构建 (macOS)
+      if: matrix.platform == 'macos'
+      shell: bash
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_INSTALL_PREFIX="${{github.workspace}}/install"
+        cmake --build build --config ${{matrix.build_type}}
+        cmake --install build --config ${{matrix.build_type}}
+    
+    - name: 配置和构建 (Android - arm64-v8a)
+      if: matrix.platform == 'android'
+      shell: bash
+      run: |
+        mkdir -p ${{github.workspace}}/install/android
+        mkdir -p ${{github.workspace}}/build-android
+        
+        cmake -B ${{github.workspace}}/build-android \
+          -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
+          -DANDROID_ABI=arm64-v8a \
+          -DANDROID_PLATFORM=android-21 \
+          -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+          -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install/android
+        
+        cmake --build ${{github.workspace}}/build-android --config ${{matrix.build_type}}
+        cmake --install ${{github.workspace}}/build-android --config ${{matrix.build_type}}
 
-    - name: 测试
+    - name: 测试 (非Android)
+      if: matrix.platform != 'android'
       shell: bash
       working-directory: ${{github.workspace}}/build
       run: ctest -C ${{matrix.build_type}} --output-on-failure 
