@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
 
+# 添加全局权限
+permissions:
+  contents: write
+  packages: read
+
 jobs:
   build:
     strategy:
@@ -167,7 +172,10 @@ jobs:
   create-release:
     needs: build
     runs-on: ubuntu-latest
-    
+    # 为发布任务添加特定权限
+    permissions:
+      contents: write
+      
     steps:
     - name: 下载所有构建产物
       uses: actions/download-artifact@v4
