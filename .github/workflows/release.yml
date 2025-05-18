@@ -57,12 +57,67 @@ jobs:
       if: matrix.os == 'windows-latest'
       shell: cmd
       run: cmake --build "${{github.workspace}}\build" --config Release
-      
-    - name: 打包 (Linux/macOS)
-      if: matrix.os != 'windows-latest'
+    
+    - name: 检查构建目录 (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        ls -la ${{github.workspace}}/build/src/
+        
+    - name: 检查构建目录 (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        ls -la ${{github.workspace}}/build/src/
+        
+    - name: 检查构建目录 (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: cmd
+      run: |
+        dir "${{github.workspace}}\build\src\"
+        dir "${{github.workspace}}\build\src\Release\" /a
+    
+    - name: 打包 (Linux)
+      if: matrix.os == 'ubuntu-latest'
       run: |
         mkdir -p ${{github.workspace}}/dist/bin
-        cp ${{github.workspace}}/build/src/lumen ${{github.workspace}}/dist/bin/
+        # 如果 lumen 是目录，复制整个目录内容
+        if [ -d "${{github.workspace}}/build/src/lumen" ]; then
+          cp -r ${{github.workspace}}/build/src/lumen/* ${{github.workspace}}/dist/bin/
+        # 否则如果是文件，直接复制
+        elif [ -f "${{github.workspace}}/build/src/lumen" ]; then
+          cp ${{github.workspace}}/build/src/lumen ${{github.workspace}}/dist/bin/
+        # 否则查找 lumen 可执行文件
+        else
+          find ${{github.workspace}}/build -name "lumen" -type f -executable -exec cp {} ${{github.workspace}}/dist/bin/ \;
+          # 如果找不到，尝试复制所有可执行文件
+          if [ ! "$(ls -A ${{github.workspace}}/dist/bin/)" ]; then
+            find ${{github.workspace}}/build -type f -executable -exec cp {} ${{github.workspace}}/dist/bin/ \;
+          fi
+        fi
+        cp -r ${{github.workspace}}/lib ${{github.workspace}}/dist/
+        cp ${{github.workspace}}/LICENSE ${{github.workspace}}/dist/
+        cp ${{github.workspace}}/README*.md ${{github.workspace}}/dist/
+        cd ${{github.workspace}}
+        ${{ matrix.compress_cmd }} ${{ matrix.asset_name }} dist
+        
+    - name: 打包 (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        mkdir -p ${{github.workspace}}/dist/bin
+        # 如果 lumen 是目录，复制整个目录内容
+        if [ -d "${{github.workspace}}/build/src/lumen" ]; then
+          cp -r ${{github.workspace}}/build/src/lumen/* ${{github.workspace}}/dist/bin/
+        # 否则如果是文件，直接复制
+        elif [ -f "${{github.workspace}}/build/src/lumen" ]; then
+          cp ${{github.workspace}}/build/src/lumen ${{github.workspace}}/dist/bin/
+        # 否则查找 lumen 可执行文件
+        else
+          find ${{github.workspace}}/build -name "lumen" -type f -perm +111 -exec cp {} ${{github.workspace}}/dist/bin/ \;
+          # 如果找不到，尝试复制所有可执行文件
+          if [ ! "$(ls -A ${{github.workspace}}/dist/bin/)" ]; then
+            # macOS 上使用不同的权限检查
+            find ${{github.workspace}}/build -type f -perm +111 -exec cp {} ${{github.workspace}}/dist/bin/ \;
+          fi
+        fi
         cp -r ${{github.workspace}}/lib ${{github.workspace}}/dist/
         cp ${{github.workspace}}/LICENSE ${{github.workspace}}/dist/
         cp ${{github.workspace}}/README*.md ${{github.workspace}}/dist/
@@ -74,7 +129,19 @@ jobs:
       shell: cmd
       run: |
         mkdir "${{github.workspace}}\dist\bin"
-        copy "${{github.workspace}}\build\src\Release\lumen.exe" "${{github.workspace}}\dist\bin\"
+        
+        REM 尝试不同位置的 lumen.exe
+        IF EXIST "${{github.workspace}}\build\src\Release\lumen.exe" (
+          copy "${{github.workspace}}\build\src\Release\lumen.exe" "${{github.workspace}}\dist\bin\"
+        ) ELSE IF EXIST "${{github.workspace}}\build\src\lumen.exe" (
+          copy "${{github.workspace}}\build\src\lumen.exe" "${{github.workspace}}\dist\bin\"
+        ) ELSE IF EXIST "${{github.workspace}}\build\src\Release\lumen\lumen.exe" (
+          copy "${{github.workspace}}\build\src\Release\lumen\lumen.exe" "${{github.workspace}}\dist\bin\"
+        ) ELSE (
+          REM 如果找不到明确的位置，则搜索
+          for /R "${{github.workspace}}\build" %%i in (lumen.exe) do copy "%%i" "${{github.workspace}}\dist\bin\"
+        )
+        
         xcopy /E /I "${{github.workspace}}\lib" "${{github.workspace}}\dist\lib"
         copy "${{github.workspace}}\LICENSE" "${{github.workspace}}\dist\"
         copy "${{github.workspace}}\README*.md" "${{github.workspace}}\dist\"
