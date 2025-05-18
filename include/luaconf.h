@@ -203,7 +203,7 @@
 */
 #if defined(__GNUC__) && ((__GNUC__*100 + __GNUC_MINOR__) >= 302) && \
       defined(__ELF__)
-#define LUAI_FUNC	LUA_C __attribute__((visibility("hidden"))) extern
+#define LUAI_FUNC	LUA_C __attribute__((visibility("hidden")))
 #define LUAI_DATA	LUAI_FUNC
 
 #else
