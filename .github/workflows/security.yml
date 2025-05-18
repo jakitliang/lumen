@@ -1,0 +1,49 @@
+name: 安全扫描
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # 每周日午夜运行
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  codeql-analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: 初始化 CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: cpp
+    
+    - name: 配置 CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Debug
+      
+    - name: 构建
+      run: cmake --build ${{github.workspace}}/build --config Debug
+      
+    - name: 执行 CodeQL 分析
+      uses: github/codeql-action/analyze@v2
+      
+  dependency-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: 依赖检查
+      uses: dependency-check/Dependency-Check_Action@main
+      with:
+        project: 'Lumen'
+        path: '.'
+        format: 'HTML'
+        out: 'reports'
+        
+    - name: 上传报告
+      uses: actions/upload-artifact@v3
+      with:
+        name: dependency-check-report
+        path: ${{github.workspace}}/reports 
