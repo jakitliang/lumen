@@ -14,13 +14,13 @@ jobs:
         build_type: [Debug, Release]
         include:
           - platform: linux
-            os: ubuntu-20.04
+            os: ubuntu-22.04
           - platform: windows
             os: windows-2019
           - platform: macos
             os: macos-14
           - platform: android
-            os: ubuntu-20.04
+            os: ubuntu-22.04
         
     runs-on: ${{ matrix.os }}
 
