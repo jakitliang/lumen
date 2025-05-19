@@ -30,7 +30,7 @@ if (NOT LUA_SKIP_INSTALL)
                 COMMAND install_name_tool -add_rpath \"@executable_path/../lib\" \"\${CMAKE_INSTALL_PREFIX}/bin/lumen\"
             )
         ")
-    elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    elseif (CMAKE_SYSTEM_NAME MATCHES "Linux" OR CMAKE_SYSTEM_NAME MATCHES "Android")
         install(CODE "
             execute_process(
                 COMMAND patchelf --set-rpath \"\\\$ORIGIN/../lib\" \"\${CMAKE_INSTALL_PREFIX}/bin/lumen\"
