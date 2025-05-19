@@ -14,13 +14,13 @@ jobs:
         build_type: [Debug, Release]
         include:
           - platform: linux
-            os: ubuntu-latest
+            os: ubuntu-20.04
           - platform: windows
-            os: windows-latest
+            os: windows-2019
           - platform: macos
-            os: macos-latest
+            os: macos-14
           - platform: android
-            os: ubuntu-latest
+            os: ubuntu-20.04
         
     runs-on: ${{ matrix.os }}
 
@@ -74,7 +74,7 @@ jobs:
       if: matrix.platform == 'windows'
       shell: cmd
       run: |
-        cmake -B build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_INSTALL_PREFIX="${{github.workspace}}/install"
+        cmake -B build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_INSTALL_PREFIX="${{github.workspace}}/install" -G "Visual Studio 16 2019"
         cmake --build build --config ${{matrix.build_type}}
         cmake --install build --config ${{matrix.build_type}}
     
