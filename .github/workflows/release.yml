@@ -48,6 +48,12 @@ jobs:
       if: matrix.os == 'macos-latest'
       run: |
         brew install readline ncurses
+
+    - name: 安装依赖 (Android)
+      if: matrix.build_android
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y patchelf
     
     - name: 设置 Android NDK
       if: matrix.build_android

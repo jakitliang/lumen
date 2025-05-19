@@ -38,6 +38,12 @@ jobs:
       run: |
         brew install readline ncurses
     
+    - name: 安装依赖 (Android)
+      if: matrix.platform == 'android'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y patchelf
+    
     - name: 设置 Android NDK
       if: matrix.platform == 'android'
       uses: nttld/setup-ndk@v1
