@@ -13,9 +13,19 @@ target_compile_options(lumen INTERFACE ${LUA_COMPILE_OPT})
 target_link_libraries(lumen PRIVATE Lumen ${LUA_LINK_LIBS})
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+    add_executable(lumenw lumen.c ${LUA_PRODUCT_RESOURCE} ${LUA_PRODUCT_RESOURCE})
+    target_compile_definitions(lumenw PRIVATE ${LUA_COMPILE_DEF})
+    target_compile_options(lumenw INTERFACE ${LUA_COMPILE_OPT})
+    target_link_libraries(lumenw PRIVATE Lumen ${LUA_LINK_LIBS})
+    target_link_options(lumenw PUBLIC "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTStartup")
+
     add_custom_command(
         TARGET lumen POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Lumen> $<TARGET_FILE_DIR:lumen>
+    )
+    add_custom_command(
+        TARGET lumenw POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Lumen> $<TARGET_FILE_DIR:lumenw>
     )
 endif ()
 
@@ -24,7 +34,12 @@ if (NOT LUA_SKIP_INSTALL)
         TARGETS lumen
         DESTINATION bin
     )
-    if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+        install(
+            TARGETS lumenw
+            DESTINATION bin
+        )
+    elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
         install(CODE "
             execute_process(
                 COMMAND install_name_tool -add_rpath \"@executable_path/../lib\" \"\${CMAKE_INSTALL_PREFIX}/bin/lumen\"

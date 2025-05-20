@@ -898,8 +898,6 @@ static void createMetatable(lua_State *L) {
     lua_pop(L, 1);  /* pop dummy string */
     lua_pushvalue(L, -2);  /* string library... */
     lua_setfield(L, -2, "__index");  /* ...is the __index metamethod */
-    lua_pushvalue(L, -1);
-    lua_setglobal(L, "String");
     lua_pop(L, 1);  /* pop metatable */
 }
 

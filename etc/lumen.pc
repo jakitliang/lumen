@@ -10,8 +10,8 @@ INSTALL_BIN= ${prefix}/bin
 INSTALL_INC= ${prefix}/include
 INSTALL_LIB= ${prefix}/lib
 INSTALL_MAN= ${prefix}/man/man1
-INSTALL_LMOD= ${prefix}/share/Lumen/
-INSTALL_CMOD= ${prefix}/lib/Lumen/
+INSTALL_LMOD= ${prefix}/share/lua/
+INSTALL_CMOD= ${prefix}/lib/lua/
 
 # canonical vars
 exec_prefix=${prefix}
