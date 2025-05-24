@@ -19,12 +19,12 @@
 #include "lua.h"
 #include "lauxlib.h"
 
-#include "lua/do.h"
-#include "lua/mem.h"
-#include "lua/object.h"
-#include "lua/opcodes.h"
-#include "lua/string.h"
-#include "lua/undump.h"
+#include "lumen/do.h"
+#include "lumen/mem.h"
+#include "lumen/object.h"
+#include "lumen/opcodes.h"
+#include "lumen/string.h"
+#include "lumen/undump.h"
 
 #define PROGRAM_NAME    "lumenc"        /* default program name */
 #define OUTPUT      PROGRAM_NAME ".out"    /* default output file */

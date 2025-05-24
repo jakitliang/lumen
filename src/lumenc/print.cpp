@@ -14,10 +14,10 @@
 #define lumenc_c
 #define LUA_CORE
 
-#include "lua/debug.h"
-#include "lua/object.h"
-#include "lua/opcodes.h"
-#include "lua/undump.h"
+#include "lumen/debug.h"
+#include "lumen/object.h"
+#include "lumen/opcodes.h"
+#include "lumen/undump.h"
 
 #define PrintFunction    Lumen::Dumper::Print
 
