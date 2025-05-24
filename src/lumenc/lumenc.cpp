@@ -108,30 +108,30 @@ static int doargs(int argc, char *argv[]) {
     return i;
 }
 
-#define toProto(L, i) (LuaClosureValue(L->Top+(i))->AsLua.Func)
+#define toProto(L, i) (LumenClosureValue(L->Top+(i))->AsLua.Func)
 
-static const Lua::Proto *combine(lua_State *L, int n) {
+static const Lumen::Proto *combine(lua_State *L, int n) {
     if (n == 1)
         return toProto(L, -1);
     else {
         int i, pc;
-        Lua::Proto *f = Lua::Proto::New(L);
-        LuaSetProtoValue2S(L, L->Top, f);
-        LuaIncrTop(L);
-        f->Source = LuaStringNewLiteral(L, "=(" PROGRAM_NAME ")");
+        Lumen::Proto *f = Lumen::Proto::New(L);
+        LumenSetProtoValue2S(L, L->Top, f);
+        LumenIncrTop(L);
+        f->Source = LumenStringNewLiteral(L, "=(" PROGRAM_NAME ")");
         f->MaxStackSize = 1;
         pc = 2 * n + 1;
-        f->Code = LuaMemoryNewVector(L, pc, Lua::Instruction);
+        f->Code = LumenMemoryNewVector(L, pc, Lumen::Instruction);
         f->CodeCount = pc;
-        f->SubProto = LuaMemoryNewVector(L, n, Lua::Proto*);
+        f->SubProto = LumenMemoryNewVector(L, n, Lumen::Proto*);
         f->SubProtoCount = n;
         pc = 0;
         for (i = 0; i < n; i++) {
             f->SubProto[i] = toProto(L, i - n - 1);
-            f->Code[pc++] = LuaOpCodeCreateABx(Lua::OpCodeClosure, 0, i);
-            f->Code[pc++] = LuaOpCodeCreateABC(Lua::OpCodeCall, 0, 1, 1);
+            f->Code[pc++] = LumenOpCodeCreateABx(Lumen::OpCodeClosure, 0, i);
+            f->Code[pc++] = LumenOpCodeCreateABC(Lumen::OpCodeCall, 0, 1, 1);
         }
-        f->Code[pc++] = LuaOpCodeCreateABC(Lua::OpCodeReturn, 0, 1, 0);
+        f->Code[pc++] = LumenOpCodeCreateABC(Lumen::OpCodeReturn, 0, 1, 0);
         return f;
     }
 }
@@ -150,7 +150,7 @@ static int pMain(lua_State *L) {
     MainArgs *s = (struct MainArgs *) lua_touserdata(L, 1);
     int argc = s->argc;
     char **argv = s->argv;
-    const Lua::Proto *f;
+    const Lumen::Proto *f;
     int i;
     if (!lua_checkstack(L, argc)) fatal("too many input files");
     for (i = 0; i < argc; i++) {
@@ -158,13 +158,13 @@ static int pMain(lua_State *L) {
         if (luaL_loadfile(L, filename) != 0) fatal(lua_tostring(L, -1));
     }
     f = combine(L, argc);
-    if (listing) Lua::Dumper::Print(f, listing > 1);
+    if (listing) Lumen::Dumper::Print(f, listing > 1);
     if (dumping) {
         FILE *D = (output == nullptr) ? stdout : fopen(output, "wb");
         if (D == nullptr) cannot("open");
-        LuaLock(L);
-        Lua::Dumper::Dump(L, f, writer, D, stripping);
-        LuaUnlock(L);
+        LumenLock(L);
+        Lumen::Dumper::Dump(L, f, writer, D, stripping);
+        LumenUnlock(L);
         if (ferror(D)) cannot("write");
         if (fclose(D)) cannot("close");
     }

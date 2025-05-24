@@ -19,6 +19,12 @@ Designed for developers who love Lua, Lumen offers a modern, maintainable, and s
 - **Lightweight**: A compact and efficient core that stays true to Lua’s lightweight philosophy.
 - **Modernization**: Modernized internal architecture to better suit today's systems and development needs.
 
+## Architecture
+
+The [/lib/lumen](/lib/lumen) directory contains the **core implementation** of the `Lumen`.
+
+And [/lib/lua](/lib/lua) provides the **standard libraries** and **extensions**, such as `string`, `table`, `math` and etc.
+
 ## Extensions
 
 - Some of Lua 5.2, 5.3 APIs and Aux APIs are added

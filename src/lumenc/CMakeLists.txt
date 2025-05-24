@@ -12,8 +12,8 @@ add_executable(
     lumenc
     lumenc.cpp
     print.cpp
-    $<TARGET_OBJECTS:lua>
-    $<TARGET_OBJECTS:lumen-objs>
+    $<TARGET_OBJECTS:lumen-core>
+    $<TARGET_OBJECTS:lumen-lua>
     ${LUA_PRODUCT_RESOURCE}
 )
 target_compile_definitions(lumenc PRIVATE ${LUA_COMPILE_DEF})

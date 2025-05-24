@@ -1,38 +1,105 @@
-
-if (LUA_USE_CORE_DEBUG)
-    list(APPEND LUA_COMPILE_DEF LUA_CORE_DEBUG)
-endif ()
-
 add_library(
-    lua OBJECT
-    api.cpp
-    code.cpp
-    debug.cpp
-    do.cpp
-    dump.cpp
-    func.cpp
-    gc.cpp
-    lex.cpp
-    mem.cpp
-    object.cpp
-    opcodes.cpp
-    parser.cpp
-    state.cpp
-    string.cpp
-    table.cpp
-    tm.cpp
-    undump.cpp
-    vm.cpp
-    zio.cpp
+    lumen-lua OBJECT
+    memory.cpp
+    auxlib.cpp
+    baselib.c
+    dblib.c
+    init.c
+    iolib.c
+    mathlib.c
+    loadlib.c
+    oslib.c
+    strlib.cpp
+    tablib.c
+    bitlib.c
 )
 if (LUA_BUILD_TYPE MATCHES "SHARED")
     if (CMAKE_SYSTEM_NAME MATCHES "Windows")
         list(APPEND LUA_COMPILE_DEF LUA_BUILD_AS_DLL)
+        set(LUA_PRODUCT_RESOURCE ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
+        configure_file(
+            version.rc.in
+            "${LUA_PRODUCT_RESOURCE}"
+            @ONLY
+        )
     else ()
-        set_target_properties(lua PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+        set_target_properties(lumen-lua PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
     endif ()
 endif ()
-target_compile_definitions(lua PRIVATE ${LUA_COMPILE_DEF})
-target_compile_options(lua PRIVATE ${LUA_COMPILE_OPT})
-target_link_libraries(lua PRIVATE ${LUA_LINK_LIBS})
+target_compile_definitions(lumen-lua PRIVATE ${LUA_COMPILE_DEF})
+target_compile_options(lumen-lua PRIVATE ${LUA_COMPILE_OPT})
+target_link_libraries(lumen-lua PRIVATE ${LUA_LINK_LIBS})
 
+# ---------------------------------------------------
+
+add_library(
+    lumen-shared SHARED
+    ${LUA_PRODUCT_RESOURCE}
+    $<TARGET_OBJECTS:lumen-core>
+    $<TARGET_OBJECTS:lumen-lua>
+)
+target_include_directories(
+    lumen-shared INTERFACE
+    $<BUILD_INTERFACE:${LUA_BASE_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_compile_definitions(lumen-shared INTERFACE ${LUA_COMPILE_DEF})
+target_compile_options(lumen-shared INTERFACE ${LUA_COMPILE_OPT})
+target_link_libraries(lumen-shared INTERFACE ${LUA_LINK_LIBS})
+set_target_properties(
+    lumen-shared PROPERTIES OUTPUT_NAME "Lumen"
+)
+
+# ---------------------------------------------------
+
+add_library(
+    lumen-static STATIC
+    ${LUA_PRODUCT_RESOURCE}
+    $<TARGET_OBJECTS:lumen-core>
+    $<TARGET_OBJECTS:lumen-lua>
+)
+target_include_directories(
+    lumen-static INTERFACE
+    $<BUILD_INTERFACE:${LUA_BASE_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_compile_definitions(lumen-static INTERFACE ${LUA_COMPILE_DEF})
+target_compile_options(lumen-static INTERFACE ${LUA_COMPILE_OPT})
+target_link_libraries(lumen-static INTERFACE ${LUA_LINK_LIBS})
+
+# ---------------------------------------------------
+
+if (LUA_BUILD_TYPE MATCHES "SHARED")
+    add_library(Lumen ALIAS lumen-shared)
+else ()
+    add_library(Lumen ALIAS lumen-static)
+endif ()
+
+if (NOT LUA_SKIP_INSTALL)
+    install(
+        FILES
+        ${LUMEN_BASE_SOURCE_DIR}/include/lauxlib.h
+        ${LUMEN_BASE_SOURCE_DIR}/include/lua.h
+        ${LUMEN_BASE_SOURCE_DIR}/include/luaconf.h
+        ${LUMEN_BASE_SOURCE_DIR}/include/lualib.h
+        DESTINATION include
+    )
+    install(
+        TARGETS lumen-shared
+        EXPORT lumen-shared
+        INCLUDES DESTINATION include
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+    )
+    install(
+        EXPORT lumen-shared
+        FILE lumen-sharedConfig.cmake
+        DESTINATION lib/cmake/Lumen
+    )
+    install(
+        FILES
+        ${LUMEN_BASE_SOURCE_DIR}/etc/lumen.pc
+        DESTINATION lib/pkgconfig
+    )
+endif ()

@@ -1,0 +1,639 @@
+/*!
+ * @brief Debug Interface
+ * @author Lua.org, PUC-Rio, Jakit (https://github.com/jakitliang/lumen)
+ * @date 2025/5/13
+ * @copyright
+ * Copyright (c) 2025 Lua.org, PUC-Rio, Jakit. All rights reserved.
+ * Licensed under the BSD 2-Clause License.
+ */
+
+
+#include <cstdarg>
+#include <cstring>
+
+
+#define LUA_CORE
+
+#include "lua.h"
+
+#include "lumen/api.h"
+#include "lumen/code.h"
+#include "lumen/debug.h"
+#include "lumen/do.h"
+#include "lumen/object.h"
+#include "lumen/opcodes.h"
+#include "lumen/state.h"
+#include "lumen/string.h"
+#include "lumen/table.h"
+#include "lumen/tm.h"
+#include "lumen/vm.h"
+
+
+static const char *getFuncName(Lumen::State *L, Lumen::CallInfo *ci, const char **name);
+
+
+static int currentPC(Lumen::State *L, Lumen::CallInfo *ci) {
+    if (!LumenFuncIsLua(ci)) return -1;  /* function is not a Lua function? */
+    if (ci == L->CallInfo)
+        ci->SavedPC = L->SavedPC;
+    return LumenDebugPCRel(ci->SavedPC, LumenCIFunc(ci)->AsLua.Func);
+}
+
+
+static int currentLine(Lumen::State *L, Lumen::CallInfo *ci) {
+    int pc = currentPC(L, ci);
+    if (pc < 0)
+        return -1;  /* only active lua functions have current-line information */
+    else
+        return LumenDebugGetLine(LumenCIFunc(ci)->AsLua.Func, pc);
+}
+
+
+/*
+** this function can be called asynchronous (e.g. during a signal)
+*/
+LUA_API int lua_sethook(Lumen::State *L, lua_Hook func, int mask, int count) {
+    if (func == nullptr || mask == 0) {  /* turn off hooks? */
+        mask = 0;
+        func = nullptr;
+    }
+    L->Hook = func;
+    L->BaseHookCount = count;
+    LumenDebugResetHookCount(L);
+    L->HookMask = cast_byte(mask);
+    return 1;
+}
+
+
+LUA_API lua_Hook lua_gethook(Lumen::State *L) {
+    return L->Hook;
+}
+
+
+LUA_API int lua_gethookmask(Lumen::State *L) {
+    return L->HookMask;
+}
+
+
+LUA_API int lua_gethookcount(Lumen::State *L) {
+    return L->BaseHookCount;
+}
+
+
+LUA_API int lua_getstack(Lumen::State *L, int level, lua_Debug *ar) {
+    int status;
+    Lumen::CallInfo *ci;
+    LumenLock(L);
+    for (ci = L->CallInfo; level > 0 && ci > L->BaseCI; ci--) {
+        level--;
+        if (LumenCIFuncIsLua(ci))  /* Lua function? */
+            level -= ci->NTailCalls;  /* skip lost tail calls */
+    }
+    if (level == 0 && ci > L->BaseCI) {  /* level found? */
+        status = 1;
+        ar->i_ci = cast_int(ci - L->BaseCI);
+    } else if (level < 0) {  /* level is of a lost tail call? */
+        status = 1;
+        ar->i_ci = 0;
+    } else status = 0;  /* no such level */
+    LumenUnlock(L);
+    return status;
+}
+
+
+static Lumen::Proto *getLuaProto(Lumen::CallInfo *ci) {
+    return (LumenFuncIsLua(ci) ? LumenCIFunc(ci)->AsLua.Func : nullptr);
+}
+
+
+static const char *findLocal(Lumen::State *L, Lumen::CallInfo *ci, int n) {
+    const char *name;
+    Lumen::Proto *fp = getLuaProto(ci);
+    if (fp && (name = Lumen::Proto::GetLocalName(fp, n, currentPC(L, ci))) != nullptr)
+        return name;  /* is a local variable in a Lua function */
+    else {
+        Lumen::StkId limit = (ci == L->CallInfo) ? L->Top : (ci + 1)->Func;
+        if (limit - ci->Base >= n && n > 0)  /* is 'n' inside 'ci' stack? */
+            return "(*temporary)";
+        else
+            return nullptr;
+    }
+}
+
+
+LUA_API const char *lua_getlocal(Lumen::State *L, const lua_Debug *ar, int n) {
+    Lumen::CallInfo *ci = L->BaseCI + ar->i_ci;
+    const char *name = findLocal(L, ci, n);
+    LumenLock(L);
+    if (name)
+        Lumen::PushObject(L, ci->Base + (n - 1));
+    LumenUnlock(L);
+    return name;
+}
+
+
+LUA_API const char *lua_setlocal(Lumen::State *L, const lua_Debug *ar, int n) {
+    Lumen::CallInfo *ci = L->BaseCI + ar->i_ci;
+    const char *name = findLocal(L, ci, n);
+    LumenLock(L);
+    if (name)
+        LumenSetObjectS2S (L, ci->Base + (n - 1), L->Top - 1);
+    L->Top--;  /* pop value */
+    LumenUnlock(L);
+    return name;
+}
+
+
+static void funcInfo(lua_Debug *ar, Lumen::Closure *cl) {
+    if (cl->AsC.IsC) {
+        ar->source = "=[C]";
+        ar->linedefined = -1;
+        ar->lastlinedefined = -1;
+        ar->what = "C";
+    } else {
+        ar->source = LumenStringCString(cl->AsLua.Func->Source);
+        ar->linedefined = cl->AsLua.Func->LineDefined;
+        ar->lastlinedefined = cl->AsLua.Func->LastLineDefined;
+        ar->what = (ar->linedefined == 0) ? "main" : "Lua";
+    }
+    Lumen::ChunkId(ar->short_src, ar->source, LUA_IDSIZE);
+}
+
+
+static void infoTailCall(lua_Debug *ar) {
+    ar->name = ar->namewhat = "";
+    ar->what = "tail";
+    ar->lastlinedefined = ar->linedefined = ar->currentline = -1;
+    ar->source = "=(tail call)";
+    Lumen::ChunkId(ar->short_src, ar->source, LUA_IDSIZE);
+    ar->nups = 0;
+}
+
+
+static void collectValidLines(Lumen::State *L, Lumen::Closure *f) {
+    if (f == nullptr || f->AsC.IsC) {
+        LumenSetNilValue(L->Top);
+    } else {
+        Lumen::Table *t = Lumen::Table::New(L, 0, 0);
+        int *lineinfo = f->AsLua.Func->LineInfo;
+        int i;
+        for (i = 0; i < f->AsLua.Func->LineInfoCount; i++) LumenSetBoolValue(Lumen::Table::SetNum(L, t, lineinfo[i]), 1);
+        LumenSetTableValue(L, L->Top, t);
+    }
+    LumenIncrTop(L);
+}
+
+
+static int auxGetInfo(Lumen::State *L, const char *what, lua_Debug *ar,
+                      Lumen::Closure *f, Lumen::CallInfo *ci) {
+    int status = 1;
+    if (f == nullptr) {
+        infoTailCall(ar);
+        return status;
+    }
+    for (; *what; what++) {
+        switch (*what) {
+            case 'S': {
+                funcInfo(ar, f);
+                break;
+            }
+            case 'l': {
+                ar->currentline = (ci) ? currentLine(L, ci) : -1;
+                break;
+            }
+            case 'u': {
+                ar->nups = f->AsC.NUpValues;
+                break;
+            }
+            case 'n': {
+                ar->namewhat = (ci) ? getFuncName(L, ci, &ar->name) : nullptr;
+                if (ar->namewhat == nullptr) {
+                    ar->namewhat = "";  /* not found */
+                    ar->name = nullptr;
+                }
+                break;
+            }
+            case 'L':
+            case 'f':  /* handled by lua_getinfo */
+                break;
+            default:
+                status = 0;  /* invalid option */
+        }
+    }
+    return status;
+}
+
+
+LUA_API int lua_getinfo(Lumen::State *L, const char *what, lua_Debug *ar) {
+    int status;
+    Lumen::Closure *f = nullptr;
+    Lumen::CallInfo *ci = nullptr;
+    LumenLock(L);
+    if (*what == '>') {
+        Lumen::StkId func = L->Top - 1;
+        luai_apicheck(L, LumenTypeIsFunction(func));
+        what++;  /* skip the '>' */
+        f = LumenClosureValue(func);
+        L->Top--;  /* pop function */
+    } else if (ar->i_ci != 0) {  /* no tail call? */
+        ci = L->BaseCI + ar->i_ci;
+        lua_assert(LumenTypeIsFunction(ci->Func));
+        f = LumenClosureValue(ci->Func);
+    }
+    status = auxGetInfo(L, what, ar, f, ci);
+    if (strchr(what, 'f')) {
+        if (f == nullptr) LumenSetNilValue(L->Top);
+        else
+            LumenSetClosureValue(L, L->Top, f);
+        LumenIncrTop(L);
+    }
+    if (strchr(what, 'L'))
+        collectValidLines(L, f);
+    LumenUnlock(L);
+    return status;
+}
+
+
+/*
+** {======================================================
+** Symbolic Execution and code checker
+** =======================================================
+*/
+
+#define check(x)             do { if (!(x)) return 0; } while (0)
+
+#define checkJump(pt, pc)    check(0 <= pc && pc < pt->CodeCount)
+
+#define checkReg(pt, reg)    check((reg) < (pt)->MaxStackSize)
+
+
+static int preCheck(const Lumen::Proto *pt) {
+    check(pt->MaxStackSize <= Lumen::MaxStack);
+    check(pt->NUmParams + (pt->IsVararg & Lumen::Proto::VarargHasArg) <= pt->MaxStackSize);
+    check(!(pt->IsVararg & Lumen::Proto::VarargIsNeedsArg) ||
+          (pt->IsVararg & Lumen::Proto::VarargHasArg));
+    check(pt->UpValuesCount <= pt->NUpValues);
+    check(pt->LineInfoCount == pt->CodeCount || pt->LineInfoCount == 0);
+    check(pt->CodeCount > 0 && LumenOpCodeGet(pt->Code[pt->CodeCount - 1]) == Lumen::OpCodeReturn);
+    return 1;
+}
+
+
+#define checkOpenOP(pt, pc)    Lumen::Debug::CheckOpenOP((pt)->Code[(pc)+1])
+
+int Lumen::Debug::CheckOpenOP(Lumen::Instruction i) {
+    switch (LumenOpCodeGet(i)) {
+        case Lumen::OpCodeCall:
+        case Lumen::OpCodeTailCall:
+        case Lumen::OpCodeReturn:
+        case Lumen::OpCodeSetList: {
+            check(LumenOpCodeGetArgB(i) == 0);
+            return 1;
+        }
+        default:
+            return 0;  /* invalid instruction after an open call */
+    }
+}
+
+
+static int checkArgMode(const Lumen::Proto *pt, int r, Lumen::OpArg mode) {
+    switch (mode) {
+        case Lumen::OpArgN:
+            check(r == 0);
+            break;
+        case Lumen::OpArgU:
+            break;
+        case Lumen::OpArgR:
+            checkReg(pt, r);
+            break;
+        case Lumen::OpArgK:
+            check(LumenOpCodeIsK(r) ? LumenOpCodeIndexK(r) < pt->KCount : r < pt->MaxStackSize);
+            break;
+    }
+    return 1;
+}
+
+
+static Lumen::Instruction symbolExec(const Lumen::Proto *pt, int lastPC, int reg) {
+    int pc;
+    int last;  /* stores position of last instruction that changed `reg` */
+    last = pt->CodeCount - 1;  /* points to final return (a `neutral` instruction) */
+    check(preCheck(pt));
+    for (pc = 0; pc < lastPC; pc++) {
+        Lumen::Instruction i = pt->Code[pc];
+        Lumen::OpCode op = LumenOpCodeGet(i);
+        int a = LumenOpCodeGetArgA(i);
+        int b = 0;
+        int c = 0;
+        check(op < Lumen::OpCodeCount);
+        checkReg(pt, a);
+        switch (LumenGetOpMode(op)) {
+            case Lumen::OpModeIABC: {
+                b = LumenOpCodeGetArgB(i);
+                c = LumenOpCodeGetArgC(i);
+                check(checkArgMode(pt, b, LumenGetBMode(op)));
+                check(checkArgMode(pt, c, LumenGetCMode(op)));
+                break;
+            }
+            case Lumen::OpModeIABx: {
+                b = LumenOpCodeGetArgBx(i);
+                if (LumenGetBMode(op) == Lumen::OpArgK) check(b < pt->KCount);
+                break;
+            }
+            case Lumen::OpModeIAsBx: {
+                b = LumenOpCodeGetArgsBx(i);
+                if (LumenGetBMode(op) == Lumen::OpArgR) {
+                    int dest = pc + 1 + b;
+                    check(0 <= dest && dest < pt->CodeCount);
+                    if (dest > 0) {
+                        int j;
+                        /* check that it does not jump to a setlist count; this
+                           is tricky, because the count from a previous setlist may
+                           have the same value of an invalid setlist; so, we must
+                           go all the way back to the first of them (if any) */
+                        for (j = 0; j < dest; j++) {
+                            Lumen::Instruction d = pt->Code[dest - 1 - j];
+                            if (!(LumenOpCodeGet(d) == Lumen::OpCodeSetList && LumenOpCodeGetArgC(d) == 0)) break;
+                        }
+                        /* if 'j' is even, previous value is not a setlist (even if
+                           it looks like one) */
+                        check((j & 1) == 0);
+                    }
+                }
+                break;
+            }
+        }
+        if (LumenTestAMode(op)) {
+            if (a == reg) last = pc;  /* change register `a' */
+        }
+        if (LumenTestTMode(op)) {
+            check(pc + 2 < pt->CodeCount);  /* check skip */
+            check(LumenOpCodeGet(pt->Code[pc + 1]) == Lumen::OpCodeJump);
+        }
+        switch (op) {
+            case Lumen::OpCodeLoadBool: {
+                if (c == 1) {  /* does it jump? */
+                    check(pc + 2 < pt->CodeCount);  /* check its jump */
+                    check(LumenOpCodeGet(pt->Code[pc + 1]) != Lumen::OpCodeSetList ||
+                          LumenOpCodeGetArgC(pt->Code[pc + 1]) != 0);
+                }
+                break;
+            }
+            case Lumen::OpCodeLoadNil: {
+                if (a <= reg && reg <= b)
+                    last = pc;  /* set registers from `a' to `b' */
+                break;
+            }
+            case Lumen::OpCodeGetUpVal:
+            case Lumen::OpCodeSetUpVal: {
+                check(b < pt->NUpValues);
+                break;
+            }
+            case Lumen::OpCodeGetGlobal:
+            case Lumen::OpCodeSetGlobal: {
+                check(LumenTypeIsString(&pt->K[b]));
+                break;
+            }
+            case Lumen::OpCodeSelf: {
+                checkReg(pt, a + 1);
+                if (reg == a + 1) last = pc;
+                break;
+            }
+            case Lumen::OpCodeConcat: {
+                check(b < c);  /* at least two operands */
+                break;
+            }
+            case Lumen::OpCodeTForLoop: {
+                check(c >= 1);  /* at least one result (control variable) */
+                checkReg(pt, a + 2 + c);  /* space for results */
+                if (reg >= a + 2) last = pc;  /* affect all regs above its base */
+                break;
+            }
+            case Lumen::OpCodeForLoop:
+            case Lumen::OpCodeForPrep:
+                checkReg(pt, a + 3);
+                /* go through */
+            case Lumen::OpCodeJump: {
+                int dest = pc + 1 + b;
+                /* not full check and jump is forward and do not skip `lastPC`? */
+                if (reg != NO_REG && pc < dest && dest <= lastPC)
+                    pc += b;  /* do the jump */
+                break;
+            }
+            case Lumen::OpCodeCall:
+            case Lumen::OpCodeTailCall: {
+                if (b != 0) {
+                    checkReg(pt, a + b - 1);
+                }
+                c--;  /* c = num. returns */
+                if (c == LUA_MULTRET) {
+                    check(checkOpenOP(pt, pc));
+                } else if (c != 0)
+                    checkReg(pt, a + c - 1);
+                if (reg >= a) last = pc;  /* affect all registers above base */
+                break;
+            }
+            case Lumen::OpCodeReturn: {
+                b--;  /* b = num. returns */
+                if (b > 0) checkReg(pt, a + b - 1);
+                break;
+            }
+            case Lumen::OpCodeSetList: {
+                if (b > 0) checkReg(pt, a + b);
+                if (c == 0) {
+                    pc++;
+                    check(pc < pt->CodeCount - 1);
+                }
+                break;
+            }
+            case Lumen::OpCodeClosure: {
+                int nup, j;
+                check(b < pt->SubProtoCount);
+                nup = pt->SubProto[b]->NUpValues;
+                check(pc + nup < pt->CodeCount);
+                for (j = 1; j <= nup; j++) {
+                    Lumen::OpCode op1 = LumenOpCodeGet(pt->Code[pc + j]);
+                    check(op1 == Lumen::OpCodeGetUpVal || op1 == Lumen::OpCodeMove);
+                }
+                if (reg != NO_REG)  /* tracing? */
+                    pc += nup;  /* do not 'execute' these pseudo-instructions */
+                break;
+            }
+            case Lumen::OpCodeVararg: {
+                check((pt->IsVararg & Lumen::Proto::VarargIsVararg) &&
+                      !(pt->IsVararg & Lumen::Proto::VarargIsNeedsArg));
+                b--;
+                if (b == LUA_MULTRET) check(checkOpenOP(pt, pc));
+                checkReg(pt, a + b - 1);
+                break;
+            }
+            default:
+                break;
+        }
+    }
+    return pt->Code[last];
+}
+
+#undef check
+#undef checkJump
+#undef checkReg
+
+/* }====================================================== */
+
+
+int Lumen::Debug::CheckCode(const Lumen::Proto *pt) {
+    return (symbolExec(pt, pt->CodeCount, NO_REG) != 0);
+}
+
+
+static const char *kName(Lumen::Proto *p, int c) {
+    if (LumenOpCodeIsK(c) && LumenTypeIsString(&p->K[LumenOpCodeIndexK(c)]))
+        return LumenStringValue2CString(&p->K[LumenOpCodeIndexK(c)]);
+    else
+        return "?";
+}
+
+
+static const char *getObjName(Lumen::State *L, Lumen::CallInfo *ci, int stackPos,
+                              const char **name) {
+    if (LumenFuncIsLua(ci)) {  /* a Lua function? */
+        Lumen::Proto *p = LumenCIFunc(ci)->AsLua.Func;
+        int pc = currentPC(L, ci);
+        Lumen::Instruction i;
+        *name = Lumen::Proto::GetLocalName(p, stackPos + 1, pc);
+        if (*name)  /* is a local? */
+            return "local";
+        i = symbolExec(p, pc, stackPos);  /* try symbolic execution */
+        lua_assert(pc != -1);
+        switch (LumenOpCodeGet(i)) {
+            case Lumen::OpCodeGetGlobal: {
+                int g = LumenOpCodeGetArgBx(i);  /* global index */
+                lua_assert(LumenTypeIsString(&p->K[g]));
+                *name = LumenStringValue2CString(&p->K[g]);
+                return "global";
+            }
+            case Lumen::OpCodeMove: {
+                int a = LumenOpCodeGetArgA(i);
+                int b = LumenOpCodeGetArgB(i);  /* move from `b` to `a` */
+                if (b < a)
+                    return getObjName(L, ci, b, name);  /* get name for `b` */
+                break;
+            }
+            case Lumen::OpCodeGetTable: {
+                int k = LumenOpCodeGetArgC(i);  /* key index */
+                *name = kName(p, k);
+                return "field";
+            }
+            case Lumen::OpCodeGetUpVal: {
+                int u = LumenOpCodeGetArgB(i);  /* upvalue index */
+                *name = p->UpValues ? LumenStringCString(p->UpValues[u]) : "?";
+                return "upvalue";
+            }
+            case Lumen::OpCodeSelf: {
+                int k = LumenOpCodeGetArgC(i);  /* key index */
+                *name = kName(p, k);
+                return "method";
+            }
+            default:
+                break;
+        }
+    }
+    return nullptr;  /* no useful name found */
+}
+
+
+static const char *getFuncName(Lumen::State *L, Lumen::CallInfo *ci, const char **name) {
+    Lumen::Instruction i;
+    if ((LumenFuncIsLua(ci) && ci->NTailCalls > 0) || !LumenFuncIsLua(ci - 1))
+        return nullptr;  /* calling function is not Lua (or is unknown) */
+    ci--;  /* calling function */
+    i = LumenCIFunc(ci)->AsLua.Func->Code[currentPC(L, ci)];
+    if (LumenOpCodeGet(i) == Lumen::OpCodeCall || LumenOpCodeGet(i) == Lumen::OpCodeTailCall ||
+        LumenOpCodeGet(i) == Lumen::OpCodeTForLoop)
+        return getObjName(L, ci, LumenOpCodeGetArgA(i), name);
+    else
+        return nullptr;  /* no useful name can be found */
+}
+
+
+/* only ANSI way to check whether a pointer points to an array */
+static int isInStack(Lumen::CallInfo *ci, const Lumen::Value *o) {
+    Lumen::StkId p;
+    for (p = ci->Base; p < ci->Top; p++)
+        if (o == p) return 1;
+    return 0;
+}
+
+
+void Lumen::Debug::TypeError(Lumen::State *L, const Lumen::Value *o, const char *op) {
+    const char *name = nullptr;
+    const char *t = Lumen::TM::TypeNames[LumenTypeOf(o)];
+    const char *kind = (isInStack(L->CallInfo, o)) ?
+                       getObjName(L, L->CallInfo, cast_int(o - L->Base), &name) :
+                       nullptr;
+    if (kind)
+        Lumen::Debug::RunError(L, "attempt to %s %s " LUA_QS " (a %s value)",
+                             op, kind, name, t);
+    else
+        Lumen::Debug::RunError(L, "attempt to %s a %s value", op, t);
+}
+
+
+void Lumen::Debug::ConcatError(Lumen::State *L, Lumen::StkId p1, Lumen::StkId p2) {
+    if (LumenTypeIsString(p1) || LumenTypeIsNumber(p1)) p1 = p2;
+    lua_assert(!LumenTypeIsString(p1) && !LumenTypeIsNumber(p1));
+    Lumen::Debug::TypeError(L, p1, "concatenate");
+}
+
+
+void Lumen::Debug::ArithError(lua_State *L, const Lumen::Value *p1, const Lumen::Value *p2) {
+    Lumen::Value temp; // NOLINT
+    if (Lumen::VM::ToNumber(p1, &temp) == nullptr)
+        p2 = p1;  /* first operand is wrong */
+    Lumen::Debug::TypeError(L, p2, "perform arithmetic on");
+}
+
+
+int Lumen::Debug::OrderError(lua_State *L, const Lumen::Value *p1, const Lumen::Value *p2) {
+    const char *t1 = Lumen::TM::TypeNames[LumenTypeOf(p1)];
+    const char *t2 = Lumen::TM::TypeNames[LumenTypeOf(p2)];
+    if (t1[2] == t2[2])
+        Lumen::Debug::RunError(L, "attempt to compare two %s values", t1);
+    else
+        Lumen::Debug::RunError(L, "attempt to compare %s with %s", t1, t2);
+    return 0;
+}
+
+
+static void addInfo(lua_State *L, const char *msg) {
+    Lumen::CallInfo *ci = L->CallInfo;
+    if (LumenFuncIsLua(ci)) {  /* is Lua code? */
+        char buff[LUA_IDSIZE];  /* add file:line information */
+        int line = currentLine(L, ci);
+        Lumen::ChunkId(buff, LumenStringCString(getLuaProto(ci)->Source), LUA_IDSIZE);
+        Lumen::PushFString(L, "%s:%d: %s", buff, line, msg);
+    }
+}
+
+
+void Lumen::Debug::ErrorMessage(lua_State *L) {
+    if (L->ErrFunc != 0) {  /* is there an error handling function? */
+        Lumen::StkId errFunc = LumenRestoreStack(L, L->ErrFunc);
+        if (!LumenTypeIsFunction(errFunc)) Lumen::Do::Throw(L, LUA_ERRERR);
+        LumenSetObjectS2S(L, L->Top, L->Top - 1);  /* move argument */
+        LumenSetObjectS2S(L, L->Top - 1, errFunc);  /* push function */
+        LumenIncrTop(L);
+        Lumen::Do::Call(L, L->Top - 2, 1);  /* call it */
+    }
+    Lumen::Do::Throw(L, LUA_ERRRUN);
+}
+
+
+void Lumen::Debug::RunError(lua_State *L, const char *fmt, ...) {
+    va_list argP;
+    va_start(argP, fmt);
+    addInfo(L, Lumen::PushVFString(L, fmt, argP));
+    va_end(argP);
+    Lumen::Debug::ErrorMessage(L);
+}
+
