@@ -80,7 +80,7 @@ static void fixJump(Lumen::FuncState *fs, int pc, int dest) {
     Lumen::Instruction *jmp = &fs->Func->Code[pc];
     int offset = dest - (pc + 1);
     lua_assert(dest != NO_JUMP);
-    if (abs(offset) > LUA_CODE_MAX_ARG_sBx)
+    if (abs(offset) > Lumen::Code::sBxMaxArg)
         Lumen::LexState::SyntaxError(fs->Lexer, "control structure too long");
     LumenOpCodeSetArgsBx(*jmp, offset);
 }
@@ -236,7 +236,7 @@ static int addK(Lumen::FuncState *fs, Lumen::Value *k, Lumen::Value *v) {
     } else {  /* constant not found; create a new entry */
         LumenSetNumberValue(idx, cast_num(fs->ConstantsCount));
         LumenMemoryGrowVector(L, f->K, fs->ConstantsCount, f->KCount, Lumen::Value,
-                            LUA_CODE_MAX_ARG_Bx, "constant table overflow");
+                            Lumen::Code::BxMaxArg, "constant table overflow");
         while (oldSize < f->KCount) LumenSetNilValue(&f->K[oldSize++]);
         LumenSetObject(L, &f->K[fs->ConstantsCount], v);
         LumenGCBarrier(L, f, v);
@@ -446,7 +446,7 @@ int Lumen::FuncState::Exp2RK(Lumen::FuncState *fs, Lumen::ExpDesc *e) {
         case Lumen::ExpDesc::KindTrue:
         case Lumen::ExpDesc::KindFalse:
         case Lumen::ExpDesc::KindNil: {
-            if (fs->ConstantsCount <= LumenOpCodeMaxIndexRK) {  /* constant fit in RK operand? */
+            if (fs->ConstantsCount <= Lumen::Code::MaxIndexRK) {  /* constant fit in RK operand? */
                 e->Info = (e->k == Lumen::ExpDesc::KindNil) ? nilK(fs) :
                           (e->k == Lumen::ExpDesc::KindKNum) ? Lumen::FuncState::NumberK(fs, e->NumberValue) :
                           boolK(fs, (e->k == Lumen::ExpDesc::KindTrue));
@@ -455,7 +455,7 @@ int Lumen::FuncState::Exp2RK(Lumen::FuncState *fs, Lumen::ExpDesc *e) {
             } else break;
         }
         case Lumen::ExpDesc::KindK: {
-            if (e->Info <= LumenOpCodeMaxIndexRK)  /* constant fit in argC? */
+            if (e->Info <= Lumen::Code::MaxIndexRK)  /* constant fit in argC? */
                 return LumenOpCodeRKAsk(e->Info);
             else break;
         }
@@ -879,7 +879,7 @@ void Lumen::FuncState::SetList(Lumen::FuncState *fs, int base, int nElements, in
     int c = (nElements - 1) / LUA_FIELDS_PER_FLUSH + 1;
     int b = (toStore == LUA_MULTRET) ? 0 : toStore;
     lua_assert(toStore != 0);
-    if (c <= LUA_CODE_MAX_ARG_C)
+    if (c <= Lumen::Code::CMaxArg)
         Lumen::FuncState::CodeABC(fs, Lumen::OpCodeSetList, base, b, c);
     else {
         Lumen::FuncState::CodeABC(fs, Lumen::OpCodeSetList, base, b, 0);

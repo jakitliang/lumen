@@ -307,7 +307,7 @@ static void pushClosure(Lumen::LexState *ls, Lumen::FuncState *func, Lumen::ExpD
     int oldSize = f->SubProtoCount;
     int i;
     LumenMemoryGrowVector(ls->L, f->SubProto, fs->ProtoCount, f->SubProtoCount, Lumen::Proto *,
-                        LUA_CODE_MAX_ARG_Bx, "constant table overflow");
+                        Lumen::Code::BxMaxArg, "constant table overflow");
     while (oldSize < f->SubProtoCount) f->SubProto[oldSize++] = nullptr;
     f->SubProto[fs->ProtoCount++] = func->Func;
     LumenGCObjectBarrier(ls->L, f, func->Func);

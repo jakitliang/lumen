@@ -22,12 +22,12 @@
 namespace Lumen {
     using Byte = unsigned char;
     using UInt32 = LUAI_UINT32;
+
+    using Number = LUA_NUMBER;
     using MemorySize = LUAI_UMEM;
     using MemoryDelta = LUAI_MEM;
 
     using UACNumber = LUAI_UACNUMBER; // Result of a `usual argument conversion' over lua_Number
-
-    using Number = LUA_NUMBER;
 
     struct State;
 
@@ -102,6 +102,8 @@ namespace Lumen {
 #else
     inline constexpr size_t MinBufferSize = LUA_MINBUFFER;
 #endif
+
+    inline constexpr size_t BitsInt = sizeof(int);
 }
 
 #define LumenDo(block) do { block } while(0)

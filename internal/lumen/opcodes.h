@@ -18,11 +18,11 @@
   We assume that instructions are unsigned numbers.
   All instructions have an opcode in the first 6 bits.
   Instructions can have the following fields:
-	`A' : 8 bits
-	`B' : 9 bits
-	`C' : 9 bits
-	`Bx' : 18 bits (`B' and `C' together)
-	`sBx' : signed Bx
+	`A` : 8 bits
+	`B` : 9 bits
+	`C` : 9 bits
+	`Bx` : 18 bits (`B` and `C` together)
+	`sBx` : signed Bx
 
   A signed argument is represented in excess K; that is, the number
   value is the unsigned value minus K. K is exactly the maximum value
@@ -31,108 +31,134 @@
   unsigned argument.
 ===========================================================================*/
 
-/*
-** size and position of opcode arguments.
-*/
-#define LUA_CODE_SIZE_C        9
-#define LUA_CODE_SIZE_B        9
-#define LUA_CODE_SIZE_Bx        (LUA_CODE_SIZE_C + LUA_CODE_SIZE_B)
-#define LUA_CODE_SIZE_A        8
 
-#define LUA_CODE_SIZE_OP        6
+namespace Lumen::Code {
+    /*
+    ** size and position of opcode arguments.
+    */
 
-#define LUA_CODE_POS_OP        0
-#define LUA_CODE_POS_A        (LUA_CODE_POS_OP + LUA_CODE_SIZE_OP)
-#define LUA_CODE_POS_C        (LUA_CODE_POS_A + LUA_CODE_SIZE_A)
-#define LUA_CODE_POS_B        (LUA_CODE_POS_C + LUA_CODE_SIZE_C)
-#define LUA_CODE_POS_Bx        LUA_CODE_POS_C
+    inline constexpr size_t CFieldSize = 9;
+    inline constexpr size_t BFieldSize = 9;
+    inline constexpr size_t BxFieldSize = Lumen::Code::CFieldSize + Lumen::Code::BFieldSize;
+    inline constexpr size_t AFieldSize = 8;
+    inline constexpr size_t OpFieldSize = 6;
 
+    inline constexpr size_t OpPos = 0;
+    inline constexpr size_t APos = Lumen::Code::OpPos + Lumen::Code::OpFieldSize;
+    inline constexpr size_t CPos = Lumen::Code::APos + Lumen::Code::AFieldSize;
+    inline constexpr size_t BPos = Lumen::Code::CPos + Lumen::Code::CFieldSize;
+    inline constexpr size_t BxPos = Lumen::Code::CPos;
 
-/*
-** limits for opcode arguments.
-** we use (signed) int to manipulate most arguments,
-** so they must fit in LUAI_BITSINT-1 bits (-1 for sign)
-*/
-#if LUA_CODE_SIZE_Bx < LUAI_BITSINT - 1
-#define LUA_CODE_MAX_ARG_Bx        ((1<<LUA_CODE_SIZE_Bx)-1)
-#define LUA_CODE_MAX_ARG_sBx        (LUA_CODE_MAX_ARG_Bx>>1)         /* `sBx' is signed */
-#else
-#define LUA_CODE_MAX_ARG_Bx        Lumen::MaxInt
-#define LUA_CODE_MAX_ARG_sBx        Lumen::MaxInt
-#endif
+    /*
+    ** limits for opcode arguments.
+    ** we use (signed) int to manipulate most arguments,
+    ** so they must fit in LUAI_BITSINT-1 bits (-1 for sign)
+    */
 
+    inline constexpr size_t BxMaxArg = (1 << Lumen::Code::BxFieldSize) - 1;
+    inline constexpr size_t sBxMaxArg = Lumen::Code::BxMaxArg >> 1; /* `sBx` is signed */
 
-#define LUA_CODE_MAX_ARG_A        ((1<<LUA_CODE_SIZE_A)-1)
-#define LUA_CODE_MAX_ARG_B        ((1<<LUA_CODE_SIZE_B)-1)
-#define LUA_CODE_MAX_ARG_C        ((1<<LUA_CODE_SIZE_C)-1)
+    inline constexpr size_t AMaxArg = (1 << Lumen::Code::AFieldSize) - 1;
+    inline constexpr size_t BMaxArg = (1 << Lumen::Code::BFieldSize) - 1;
+    inline constexpr size_t CMaxArg = (1 << Lumen::Code::CFieldSize) - 1;
 
+    /* creates a mask with `n' 1 bits at position `p' */
+    constexpr Lumen::Instruction MakeMask1(size_t n, size_t p) {
+        return ((~((~(Lumen::Instruction) 0) << n)) << p);
+    }
 
-/* creates a mask with `n' 1 bits at position `p' */
-#define LUA_CODE_MASK1(n, p)    ((~((~(Lumen::Instruction)0)<<n))<<p)
+    /* creates a mask with `n' 0 bits at position `p' */
+    constexpr Lumen::Instruction MakeMask0(size_t n, size_t p) {
+        return (~MakeMask1(n, p));
+    }
 
-/* creates a mask with `n' 0 bits at position `p' */
-#define LUA_CODE_MASK0(n, p)    (~LUA_CODE_MASK1(n,p))
+    inline constexpr Lumen::Instruction AMask1 = MakeMask1(Lumen::Code::AFieldSize, 0);
+    inline constexpr Lumen::Instruction BMask1 = MakeMask1(Lumen::Code::BFieldSize, 0);
+    inline constexpr Lumen::Instruction CMask1 = MakeMask1(Lumen::Code::CFieldSize, 0);
+    inline constexpr Lumen::Instruction BxMask1 = MakeMask1(Lumen::Code::BxFieldSize, 0);
+    inline constexpr Lumen::Instruction OpMask1 = MakeMask1(Lumen::Code::OpFieldSize, 0);
+
+    inline constexpr Lumen::Instruction APosMask1 = MakeMask1(Lumen::Code::AFieldSize, Lumen::Code::APos);
+    inline constexpr Lumen::Instruction BPosMask1 = MakeMask1(Lumen::Code::BFieldSize, Lumen::Code::BPos);
+    inline constexpr Lumen::Instruction CPosMask1 = MakeMask1(Lumen::Code::CFieldSize, Lumen::Code::CPos);
+    inline constexpr Lumen::Instruction BxPosMask1 = MakeMask1(Lumen::Code::BxFieldSize, Lumen::Code::BxPos);
+    inline constexpr Lumen::Instruction OpPosMask1 = MakeMask1(Lumen::Code::OpFieldSize, Lumen::Code::OpPos);
+
+    inline constexpr Lumen::Instruction AMask0 = MakeMask0(Lumen::Code::AFieldSize, 0);
+    inline constexpr Lumen::Instruction BMask0 = MakeMask0(Lumen::Code::BFieldSize, 0);
+    inline constexpr Lumen::Instruction CMask0 = MakeMask0(Lumen::Code::CFieldSize, 0);
+    inline constexpr Lumen::Instruction BxMask0 = MakeMask0(Lumen::Code::BxFieldSize, 0);
+    inline constexpr Lumen::Instruction OpMask0 = MakeMask0(Lumen::Code::OpFieldSize, 0);
+
+    inline constexpr Lumen::Instruction APosMask0 = MakeMask0(Lumen::Code::AFieldSize, Lumen::Code::APos);
+    inline constexpr Lumen::Instruction BPosMask0 = MakeMask0(Lumen::Code::BFieldSize, Lumen::Code::BPos);
+    inline constexpr Lumen::Instruction CPosMask0 = MakeMask0(Lumen::Code::CFieldSize, Lumen::Code::CPos);
+    inline constexpr Lumen::Instruction BxPosMask0 = MakeMask0(Lumen::Code::BxFieldSize, Lumen::Code::BxPos);
+    inline constexpr Lumen::Instruction OpPosMask0 = MakeMask0(Lumen::Code::OpFieldSize, Lumen::Code::OpPos);
+}
 
 /*
 ** the following macros help to manipulate instructions
 */
 
-#define LumenOpCodeGet(i)    (cast(Lumen::OpCode, ((i)>>LUA_CODE_POS_OP) & LUA_CODE_MASK1(LUA_CODE_SIZE_OP, 0)))
-#define LumenOpCodeSet(i, o)    ((i) = (((i) & LUA_CODE_MASK0(LUA_CODE_SIZE_OP,LUA_CODE_POS_OP)) | \
-        ((cast(Lumen::Instruction, o)<<LUA_CODE_POS_OP) & LUA_CODE_MASK1(LUA_CODE_SIZE_OP,LUA_CODE_POS_OP))))
+#define LumenOpCodeGet(i)    (cast(Lumen::OpCode, ((i)>>Lumen::Code::OpPos) & Lumen::Code::OpMask1))
+#define LumenOpCodeSet(i, o)    ((i) = (((i) & Lumen::Code::OpPosMask0) | \
+        ((cast(Lumen::Instruction, o) << Lumen::Code::OpPos) & Lumen::Code::OpPosMask1)))
 
-#define LumenOpCodeGetArgA(i)    (cast(int, ((i)>>LUA_CODE_POS_A) & LUA_CODE_MASK1(LUA_CODE_SIZE_A, 0)))
-#define LumenOpCodeSetArgA(i, u)    ((i) = (((i) & LUA_CODE_MASK0(LUA_CODE_SIZE_A,LUA_CODE_POS_A)) | \
-        ((cast(Lumen::Instruction, u)<<LUA_CODE_POS_A) & LUA_CODE_MASK1(LUA_CODE_SIZE_A,LUA_CODE_POS_A))))
+#define LumenOpCodeGetArgA(i)    (cast(int, ((i)>>Lumen::Code::APos) & Lumen::Code::AMask1))
+#define LumenOpCodeSetArgA(i, u)    ((i) = (((i) & Lumen::Code::APosMask0) | \
+        ((cast(Lumen::Instruction, u) << Lumen::Code::APos) & Lumen::Code::APosMask1)))
 
-#define LumenOpCodeGetArgB(i)    (cast(int, ((i)>>LUA_CODE_POS_B) & LUA_CODE_MASK1(LUA_CODE_SIZE_B, 0)))
-#define LumenOpCodeSetArgB(i, b)    ((i) = (((i) & LUA_CODE_MASK0(LUA_CODE_SIZE_B,LUA_CODE_POS_B)) | \
-        ((cast(Lumen::Instruction, b)<<LUA_CODE_POS_B) & LUA_CODE_MASK1(LUA_CODE_SIZE_B,LUA_CODE_POS_B))))
+#define LumenOpCodeGetArgB(i)    (cast(int, ((i)>>Lumen::Code::BPos) & Lumen::Code::BMask1))
+#define LumenOpCodeSetArgB(i, b)    ((i) = (((i) & Lumen::Code::BPosMask0) | \
+        ((cast(Lumen::Instruction, b)<<Lumen::Code::BPos) & Lumen::Code::BPosMask1)))
 
-#define LumenOpCodeGetArgC(i)    (cast(int, ((i)>>LUA_CODE_POS_C) & LUA_CODE_MASK1(LUA_CODE_SIZE_C, 0)))
-#define LumenOpCodeSetArgC(i, b)    ((i) = (((i) & LUA_CODE_MASK0(LUA_CODE_SIZE_C,LUA_CODE_POS_C)) | \
-        ((cast(Lumen::Instruction, b)<<LUA_CODE_POS_C) & LUA_CODE_MASK1(LUA_CODE_SIZE_C,LUA_CODE_POS_C))))
+#define LumenOpCodeGetArgC(i)    (cast(int, ((i)>>Lumen::Code::CPos) & Lumen::Code::CMask1))
+#define LumenOpCodeSetArgC(i, b)    ((i) = (((i) & Lumen::Code::CPosMask0) | \
+        ((cast(Lumen::Instruction, b)<<Lumen::Code::CPos) & Lumen::Code::CPosMask1)))
 
-#define LumenOpCodeGetArgBx(i)    (cast(int, ((i)>>LUA_CODE_POS_Bx) & LUA_CODE_MASK1(LUA_CODE_SIZE_Bx, 0)))
-#define LumenOpCodeSetArgBx(i, b)    ((i) = (((i) & LUA_CODE_MASK0(LUA_CODE_SIZE_Bx,LUA_CODE_POS_Bx)) | \
-        ((cast(Lumen::Instruction, b)<<LUA_CODE_POS_Bx) & LUA_CODE_MASK1(LUA_CODE_SIZE_Bx,LUA_CODE_POS_Bx))))
+#define LumenOpCodeGetArgBx(i)    (cast(int, ((i)>>Lumen::Code::BxPos) & Lumen::Code::BxMask1))
+#define LumenOpCodeSetArgBx(i, b)    ((i) = (((i) & Lumen::Code::BxPosMask0) | \
+        ((cast(Lumen::Instruction, b)<<Lumen::Code::BxPos) & Lumen::Code::BxPosMask1)))
 
-#define LumenOpCodeGetArgsBx(i)    (LumenOpCodeGetArgBx(i) - LUA_CODE_MAX_ARG_sBx)
-#define LumenOpCodeSetArgsBx(i, b)    LumenOpCodeSetArgBx((i), cast(unsigned int, (b) + LUA_CODE_MAX_ARG_sBx))
+#define LumenOpCodeGetArgsBx(i)    (LumenOpCodeGetArgBx(i) - Lumen::Code::sBxMaxArg)
+#define LumenOpCodeSetArgsBx(i, b)    LumenOpCodeSetArgBx((i), cast(unsigned int, (b) + Lumen::Code::sBxMaxArg))
 
-#define LumenOpCodeCreateABC(o, a, b, c)    ((cast(Lumen::Instruction, o)<<LUA_CODE_POS_OP) \
-            | (cast(Lumen::Instruction, a)<<LUA_CODE_POS_A) \
-            | (cast(Lumen::Instruction, b)<<LUA_CODE_POS_B) \
-            | (cast(Lumen::Instruction, c)<<LUA_CODE_POS_C))
+#define LumenOpCodeCreateABC(o, a, b, c)    ((cast(Lumen::Instruction, o) << Lumen::Code::OpPos) \
+            | (cast(Lumen::Instruction, a) << Lumen::Code::APos) \
+            | (cast(Lumen::Instruction, b) << Lumen::Code::BPos) \
+            | (cast(Lumen::Instruction, c) << Lumen::Code::CPos))
 
-#define LumenOpCodeCreateABx(o, a, bc)    ((cast(Lumen::Instruction, o)<<LUA_CODE_POS_OP) \
-            | (cast(Lumen::Instruction, a)<<LUA_CODE_POS_A) \
-            | (cast(Lumen::Instruction, bc)<<LUA_CODE_POS_Bx))
+#define LumenOpCodeCreateABx(o, a, bc)    ((cast(Lumen::Instruction, o) << Lumen::Code::OpPos) \
+            | (cast(Lumen::Instruction, a) << Lumen::Code::APos) \
+            | (cast(Lumen::Instruction, bc) << Lumen::Code::BxPos))
 
 
 /*
 ** Macros to operate RK indices
 */
 
-/* this bit 1 means constant (0 means register) */
-#define LumenOpCodeBitRK        (1 << (LUA_CODE_SIZE_B - 1))
+namespace Lumen::Code {
+    /* this bit 1 means constant (0 means register) */
+    inline constexpr int BitRK = 1 << (BFieldSize - 1);
+
+    inline constexpr int MaxIndexRK = BitRK - 1;
+}
 
 /* test whether value is a constant */
-#define LumenOpCodeIsK(x)        ((x) & LumenOpCodeBitRK)
+#define LumenOpCodeIsK(x)        ((x) & Lumen::Code::BitRK)
 
 /* gets the index of the constant */
-#define LumenOpCodeIndexK(r)    ((int)(r) & ~LumenOpCodeBitRK)
-
-#define LumenOpCodeMaxIndexRK    (LumenOpCodeBitRK - 1)
+#define LumenOpCodeIndexK(r)    ((int)(r) & ~Lumen::Code::BitRK)
 
 /* code a constant index as a RK value */
-#define LumenOpCodeRKAsk(x)    ((x) | LumenOpCodeBitRK)
+#define LumenOpCodeRKAsk(x)    ((x) | Lumen::Code::BitRK)
 
 
 /*
 ** invalid register that fits in 8 bits
 */
-#define NO_REG        LUA_CODE_MAX_ARG_A
+#define NO_REG        Lumen::Code::AMaxArg
 
 
 namespace Lumen {

@@ -125,7 +125,7 @@ namespace Lumen {
 
 #define LumenFuncStateGetCode(fs, e)    ((fs)->Func->Code[(e)->Info])
 
-#define LumenFuncStateCodeAsBx(fs, o, A, sBx)    Lumen::FuncState::CodeABx(fs,o,A,(sBx)+LUA_CODE_MAX_ARG_sBx)
+#define LumenFuncStateCodeAsBx(fs, o, A, sBx)    Lumen::FuncState::CodeABx(fs,o,A,(sBx)+Lumen::Code::sBxMaxArg)
 
 #define LumenFuncStateSetMulRet(fs, e)    Lumen::FuncState::SetReturns(fs, e, LUA_MULTRET)
 

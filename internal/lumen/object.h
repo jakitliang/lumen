@@ -41,8 +41,8 @@ enum {
 };
 
 namespace Lumen {
-    using Reader = lua_Reader;
-    using Writer = lua_Writer;
+    typedef const char *(*Reader)(lua_State *L, void *ud, size_t *sz);
+    typedef int (*Writer)(lua_State *L, const void *p, size_t sz, void *ud);
 
     struct Object : BasicObject {
         Lumen::GC::Mark Marked;
