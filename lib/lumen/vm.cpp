@@ -252,7 +252,7 @@ static int lessEqual(Lumen::State *L, const Lumen::Value *l, const Lumen::Value 
 
 int Lumen::VM::EqualVal(Lumen::State *L, const Lumen::Value *t1, const Lumen::Value *t2) {
     const Lumen::Value *tm;
-    lua_assert(LumenTypeOf(t1) == LumenTypeOf(t2));
+    LumenAssert(LumenTypeOf(t1) == LumenTypeOf(t2));
     switch (LumenTypeOf(t1)) {
         case LUA_TNIL:
             return 1;
@@ -347,7 +347,7 @@ static void Arith(Lumen::State *L, Lumen::StkId ra, const Lumen::Value *rb,
                 LumenSetNumberValue(ra, luai_numunm(nb));
                 break;
             default:
-                lua_assert(0);
+                LumenAssert(0);
                 break;
         }
     } else if (!call_binTM(L, rb, rc, ra, op))
@@ -405,7 +405,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
     Lumen::Value *k;
     const Lumen::Instruction *pc;
     reentry:  /* entry point */
-    lua_assert(LumenFuncIsLua(L->CallInfo));
+    LumenAssert(LumenFuncIsLua(L->CallInfo));
     pc = L->SavedPC;
     cl = &LumenClosureValue(L->CallInfo->Func)->AsLua;
     base = L->Base;
@@ -425,9 +425,9 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
         }
         /* warning!! several calls may realloc the stack and invalidate `ra' */
         ra = RA(i);
-        lua_assert(base == L->Base && L->Base == L->CallInfo->Base);
-        lua_assert(base <= L->Top && L->Top <= L->Stack + L->StackCount);
-        lua_assert(L->Top == L->CallInfo->Top || Lumen::Debug::CheckOpenOP(i));
+        LumenAssert(base == L->Base && L->Base == L->CallInfo->Base);
+        LumenAssert(base <= L->Top && L->Top <= L->Stack + L->StackCount);
+        LumenAssert(L->Top == L->CallInfo->Top || Lumen::Debug::CheckOpenOP(i));
         switch (LumenOpCodeGet(i)) {
             case Lumen::OpCodeMove: {
                 LumenSetObjectS2S(L, ra, RB(i));
@@ -458,7 +458,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 Lumen::Value g;
                 Lumen::Value *rb = KBx(i);
                 LumenSetTableValue(L, &g, cl->Env);
-                lua_assert(LumenTypeIsString(rb));
+                LumenAssert(LumenTypeIsString(rb));
                 Protect(Lumen::VM::GetTable(L, &g, rb, ra));
                 continue;
             }
@@ -469,7 +469,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
             case Lumen::OpCodeSetGlobal: {
                 Lumen::Value g;
                 LumenSetTableValue(L, &g, cl->Env);
-                lua_assert(LumenTypeIsString(KBx(i)));
+                LumenAssert(LumenTypeIsString(KBx(i)));
                 Protect(Lumen::VM::SetTable(L, &g, KBx(i), ra));
                 continue;
             }
@@ -631,7 +631,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 int b = LumenOpCodeGetArgB(i);
                 if (b != 0) L->Top = ra + b;  /* else previous instruction set top */
                 L->SavedPC = pc;
-                lua_assert(LumenOpCodeGetArgC(i) - 1 == LUA_MULTRET);
+                LumenAssert(LumenOpCodeGetArgC(i) - 1 == LUA_MULTRET);
                 switch (Lumen::Do::PreCall(L, ra, LUA_MULTRET)) {
                     case Lumen::Do::PCRetLua: {
                         /* tail call: put new frame in place of previous one */
@@ -644,7 +644,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                         for (aux = 0; pfunc + aux < L->Top; aux++)  /* move frame down */
                             LumenSetObjectS2S (L, func + aux, pfunc + aux);
                         ci->Top = L->Top = func + aux;  /* correct top */
-                        lua_assert(L->Top == L->Base + LumenClosureValue(func)->AsLua.Func->MaxStackSize);
+                        LumenAssert(L->Top == L->Base + LumenClosureValue(func)->AsLua.Func->MaxStackSize);
                         ci->SavedPC = L->SavedPC;
                         ci->NTailCalls++;  /* one more call lost */
                         L->CallInfo--;  /* remove new frame */
@@ -669,8 +669,8 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                     return;  /* no: return */
                 else {  /* yes: continue its execution */
                     if (b) L->Top = L->CallInfo->Top;
-                    lua_assert(LumenFuncIsLua(L->CallInfo));
-                    lua_assert(LumenOpCodeGet(*((L->CallInfo)->SavedPC - 1)) == Lumen::OpCodeCall);
+                    LumenAssert(LumenFuncIsLua(L->CallInfo));
+                    LumenAssert(LumenOpCodeGet(*((L->CallInfo)->SavedPC - 1)) == Lumen::OpCodeCall);
                     goto reentry;
                 }
             }
@@ -755,7 +755,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                     if (LumenOpCodeGet(*pc) == Lumen::OpCodeGetUpVal)
                         ncl->AsLua.UpValues[j] = cl->UpValues[LumenOpCodeGetArgB(*pc)];
                     else {
-                        lua_assert(LumenOpCodeGet(*pc) == Lumen::OpCodeMove);
+                        LumenAssert(LumenOpCodeGet(*pc) == Lumen::OpCodeMove);
                         ncl->AsLua.UpValues[j] = Lumen::UpValue::Find(L, base + LumenOpCodeGetArgB(*pc));
                     }
                 }

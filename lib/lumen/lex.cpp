@@ -59,7 +59,7 @@ void Lumen::LexState::Init(Lumen::State *L) {
     for (i = 0; i < Lumen::Token::ReservedCount; i++) {
         Lumen::String *ts = Lumen::String::New(L, Lumen::Token::Names[i]);
         LumenStringFix(ts);  /* reserved words are never collected */
-        lua_assert(strlen(Lumen::Token::Names[i]) + 1 <= Lumen::LexState::TokenLength);
+        LumenAssert(strlen(Lumen::Token::Names[i]) + 1 <= Lumen::LexState::TokenLength);
         ts->Reserved = cast_byte(i + 1);  /* reserved word */
     }
 }
@@ -70,7 +70,7 @@ void Lumen::LexState::Init(Lumen::State *L) {
 
 const char *Lumen::LexState::Token2CString(Lumen::LexState *ls, int token) {
     if (token < LUA_LEX_STATE_FIRST_RESERVED) {
-        lua_assert(token == cast(unsigned char, token));
+        LumenAssert(token == cast(unsigned char, token));
         return (iscntrl(token)) ? Lumen::PushFString(ls->L, "char(%d)", token) :
                Lumen::PushFString(ls->L, "%c", token);
     } else
@@ -120,7 +120,7 @@ Lumen::String *Lumen::LexState::NewString(Lumen::LexState *ls, const char *str, 
 
 static void inclineNumber(Lumen::LexState *ls) {
     int old = ls->Current;
-    lua_assert(currIsNewline(ls));
+    LumenAssert(currIsNewline(ls));
     next(ls);  /* skip `\n' or `\r' */
     if (currIsNewline(ls) && ls->Current != old)
         next(ls);  /* skip `\n\r' or `\r\n' */
@@ -183,7 +183,7 @@ static void tryDecimalPoint(Lumen::LexState *ls, Lumen::SemInfo *semInfo) {
 
 /* LUA_NUMBER */
 static void readNumeral(Lumen::LexState *ls, Lumen::SemInfo *semInfo) {
-    lua_assert(isdigit(ls->Current));
+    LumenAssert(isdigit(ls->Current));
     do {
         saveAndNext(ls);
     } while (isdigit(ls->Current) || ls->Current == '.');
@@ -201,7 +201,7 @@ static void readNumeral(Lumen::LexState *ls, Lumen::SemInfo *semInfo) {
 static int skipSep(Lumen::LexState *ls) {
     int count = 0;
     int s = ls->Current;
-    lua_assert(s == '[' || s == ']');
+    LumenAssert(s == '[' || s == ']');
     saveAndNext(ls);
     while (ls->Current == '=') {
         saveAndNext(ls);
@@ -432,7 +432,7 @@ static int LLex(Lumen::LexState *ls, Lumen::SemInfo *semInfo) {
             }
             default: {
                 if (isspace(ls->Current)) {
-                    lua_assert(!currIsNewline(ls));
+                    LumenAssert(!currIsNewline(ls));
                     next(ls);
                     continue;
                 } else if (isdigit(ls->Current)) {
@@ -474,7 +474,7 @@ void Lumen::LexState::Next(Lumen::LexState *ls) {
 
 
 void Lumen::LexState::LookAhead(Lumen::LexState *ls) {
-    lua_assert(ls->Ahead.Kind == Lumen::Token::SymbolEOS);
+    LumenAssert(ls->Ahead.Kind == Lumen::Token::SymbolEOS);
     ls->Ahead.Kind = LLex(ls, &ls->Ahead.SemInfo);
 }
 

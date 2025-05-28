@@ -88,7 +88,7 @@ static void DumpConstants(const Lumen::Proto *f, DumpState *D) {
                 DumpString(LumenStringValue(o), D);
                 break;
             default:
-                lua_assert(0);            /* cannot happen */
+                LumenAssert(0);            /* cannot happen */
                 break;
         }
     }

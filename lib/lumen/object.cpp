@@ -85,7 +85,7 @@ int Lumen::RawEqualObject(const Lumen::Value *t1, const Lumen::Value *t2) {
             case LUA_TLIGHTUSERDATA:
                 return LumenLUDataValue(t1) == LumenLUDataValue(t2);
             default:
-                lua_assert(LumenIsCollectable(t1));
+                LumenAssert(LumenIsCollectable(t1));
                 return LumenGCValue(t1) == LumenGCValue(t2);
         }
 }

@@ -67,7 +67,7 @@ void Lumen::Do::SetErrorObject(Lumen::State *L, int errcode, Lumen::StkId oldTop
 
 
 static void restoreStackLimit(Lumen::State *L) {
-    lua_assert(L->StackLast - L->Stack == L->StackCount - Lumen::ExtraStack - 1);
+    LumenAssert(L->StackLast - L->Stack == L->StackCount - Lumen::ExtraStack - 1);
     if (L->BaseCICount > LUAI_MAXCALLS) {  /* there was an overflow? */
         int inuse = cast_int(L->CallInfo - L->BaseCI);
         if (inuse + 1 < LUAI_MAXCALLS)  /* can `undo' overflow? */
@@ -138,7 +138,7 @@ static void correctStack(Lumen::State *L, Lumen::Value *oldStack) {
 void Lumen::Do::ReAllocStack(Lumen::State *L, int newSize) {
     Lumen::Value *oldStack = L->Stack;
     int realSize = newSize + 1 + (int) Lumen::ExtraStack;
-    lua_assert(L->StackLast - L->Stack == L->StackCount - Lumen::ExtraStack - 1);
+    LumenAssert(L->StackLast - L->Stack == L->StackCount - Lumen::ExtraStack - 1);
     LumenMemoryReAllocVector(L, L->Stack, L->StackCount, realSize, Lumen::Value);
     L->StackCount = realSize;
     L->StackLast = L->Stack + newSize;
@@ -189,12 +189,12 @@ void Lumen::Do::CallHook(Lumen::State *L, int event, int line) {
             ar.i_ci = cast_int(L->CallInfo - L->BaseCI);
         LumenDoCheckStack(L, Lumen::MinStack);  /* ensure minimum stack size */
         L->CallInfo->Top = L->Top + Lumen::MinStack;
-        lua_assert(L->CallInfo->Top <= L->StackLast);
+        LumenAssert(L->CallInfo->Top <= L->StackLast);
         L->AllowHook = 0;  /* cannot call hooks inside a hook */
         LumenUnlock(L);
         (*hook)(L, &ar);
         LumenLock(L);
-        lua_assert(!L->AllowHook);
+        LumenAssert(!L->AllowHook);
         L->AllowHook = 1;
         L->CallInfo->Top = LumenRestoreStack(L, ci_top);
         L->Top = LumenRestoreStack(L, top);
@@ -212,7 +212,7 @@ static Lumen::StkId adjustVarargs(Lumen::State *L, Lumen::Proto *p, int actual) 
 #if defined(LUA_COMPAT_VARARG)
     if (p->IsVararg & Lumen::Proto::VarargIsNeedsArg) { /* compat. with old-style vararg? */
         int nVar = actual - nFixArgs;  /* number of extra arguments */
-        lua_assert(p->IsVararg & Lumen::Proto::VarargHasArg);
+        LumenAssert(p->IsVararg & Lumen::Proto::VarargHasArg);
         LumenGCCheckGC(L);
         LumenDoCheckStack(L, p->MaxStackSize);
         hashTable = Lumen::Table::New(L, nVar, 1);  /* create `arg' table */
@@ -232,7 +232,7 @@ static Lumen::StkId adjustVarargs(Lumen::State *L, Lumen::Proto *p, int actual) 
     /* add `arg' parameter */
     if (hashTable) {
         LumenSetTableValue(L, L->Top++, hashTable);
-        lua_assert(LumenGCIsWhite(LumenObject2GCObject(hashTable)));
+        LumenAssert(LumenGCIsWhite(LumenObject2GCObject(hashTable)));
     }
     return base;
 }
@@ -285,7 +285,7 @@ int Lumen::Do::PreCall(Lumen::State *L, Lumen::StkId func, int nResults) {
         ci->Func = func;
         L->Base = ci->Base = base;
         ci->Top = L->Base + p->MaxStackSize;
-        lua_assert(ci->Top <= L->StackLast);
+        LumenAssert(ci->Top <= L->StackLast);
         L->SavedPC = p->Code;  /* starting point */
         ci->NTailCalls = 0;
         ci->NResults = nResults;
@@ -306,7 +306,7 @@ int Lumen::Do::PreCall(Lumen::State *L, Lumen::StkId func, int nResults) {
         ci->Func = LumenRestoreStack(L, funcR);
         L->Base = ci->Base = ci->Func + 1;
         ci->Top = L->Top + Lumen::MinStack;
-        lua_assert(ci->Top <= L->StackLast);
+        LumenAssert(ci->Top <= L->StackLast);
         ci->NResults = nResults;
         if (L->HookMask & LUA_MASKCALL)
             Lumen::Do::CallHook(L, LUA_HOOKCALL, -1);
@@ -375,15 +375,15 @@ static void resume(Lumen::State *L, void *ud) {
     Lumen::StkId firstArg = cast(Lumen::StkId, ud);
     Lumen::CallInfo *ci = L->CallInfo;
     if (L->Status == 0) {  /* start coroutine? */
-        lua_assert(ci == L->BaseCI && firstArg > L->Base);
+        LumenAssert(ci == L->BaseCI && firstArg > L->Base);
         if (Lumen::Do::PreCall(L, firstArg - 1, LUA_MULTRET) != Lumen::Do::PCRetLua)
             return;
     } else {  /* resuming from previous yield */
-        lua_assert(L->Status == LUA_YIELD);
+        LumenAssert(L->Status == LUA_YIELD);
         L->Status = 0;
         if (!LumenCIFuncIsLua(ci)) {  /* `common' yield? */
             /* finish interrupted execution of `Lumen::OpCodeCall' */
-            lua_assert(LumenOpCodeGet(*((ci - 1)->SavedPC - 1)) == Lumen::OpCodeCall ||
+            LumenAssert(LumenOpCodeGet(*((ci - 1)->SavedPC - 1)) == Lumen::OpCodeCall ||
                        LumenOpCodeGet(*((ci - 1)->SavedPC - 1)) == Lumen::OpCodeTailCall);
             if (Lumen::Do::PosCall(L, firstArg))  /* complete it... */
                 L->Top = L->CallInfo->Top;  /* and correct top if not multiple results */
@@ -409,7 +409,7 @@ LUA_API int lua_resume(Lumen::State *L, int nArgs) {
     if (L->NCCalls >= LUAI_MAXCCALLS)
         return resumeError(L, "C stack overflow");
     luai_userstateresume(L, nArgs);
-    lua_assert(L->ErrFunc == 0);
+    LumenAssert(L->ErrFunc == 0);
     L->BaseCCalls = ++L->NCCalls;
     status = Lumen::Do::RawRunProtected(L, resume, L->Top - nArgs);
     if (status != 0) {  /* error? */
@@ -417,7 +417,7 @@ LUA_API int lua_resume(Lumen::State *L, int nArgs) {
         Lumen::Do::SetErrorObject(L, status, L->Top);
         L->CallInfo->Top = L->Top;
     } else {
-        lua_assert(L->NCCalls == L->BaseCCalls);
+        LumenAssert(L->NCCalls == L->BaseCCalls);
         status = L->Status;
     }
     --L->NCCalls;

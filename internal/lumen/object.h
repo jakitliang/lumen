@@ -41,8 +41,10 @@ enum {
 };
 
 namespace Lumen {
-    typedef const char *(*Reader)(Lumen::State *L, void *ud, size_t *sz);
-    typedef int (*Writer)(Lumen::State *L, const void *p, size_t sz, void *ud);
+    typedef LUAI_DELEGATE(Delegate);
+
+    typedef LUAI_READER(Reader);
+    typedef LUAI_WRITER(Writer);
 
     struct Object : BasicObject {
         /**
@@ -207,7 +209,7 @@ namespace Lumen {
     union Closure;
 
     struct CClosure : Lumen::BasicClosure {
-        lua_CFunction Func;
+        Lumen::Delegate Func;
         Lumen::Value UpValues[1];
 
         static Lumen::Closure *New(Lumen::State *L, int nElements, Lumen::Table *e);
@@ -280,10 +282,10 @@ namespace Lumen {
 ** for internal debug only
 */
 #define LumenCheckConsistency(obj) \
-lua_assert(!LumenIsCollectable(obj) || (LumenTypeOf(obj) == (obj)->value.gc->AsObject.Type))
+LumenAssert(!LumenIsCollectable(obj) || (LumenTypeOf(obj) == (obj)->value.gc->AsObject.Type))
 
 #define LumenCheckLiveness(g, obj) \
-lua_assert(!LumenIsCollectable(obj) || \
+LumenAssert(!LumenIsCollectable(obj) || \
     ((LumenTypeOf(obj) == (obj)->value.gc->AsObject.Type) && !LumenGCIsDead(g, (obj)->value.gc)))
 
 

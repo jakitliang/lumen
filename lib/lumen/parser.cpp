@@ -183,7 +183,7 @@ static int indexUpValue(Lumen::FuncState *fs, Lumen::String *name, Lumen::ExpDes
     int oldSize = f->UpValuesCount;
     for (i = 0; i < f->NUpValues; i++) {
         if (fs->UpValues[i].k == v->k && fs->UpValues[i].Info == v->Info) {
-            lua_assert(f->UpValues[i] == name);
+            LumenAssert(f->UpValues[i] == name);
             return i;
         }
     }
@@ -194,7 +194,7 @@ static int indexUpValue(Lumen::FuncState *fs, Lumen::String *name, Lumen::ExpDes
     while (oldSize < f->UpValuesCount) f->UpValues[oldSize++] = nullptr;
     f->UpValues[f->NUpValues] = name;
     LumenGCObjectBarrier(fs->L, f, name);
-    lua_assert(v->k == Lumen::ExpDesc::KindLocal || v->k == Lumen::ExpDesc::KindUpValue);
+    LumenAssert(v->k == Lumen::ExpDesc::KindLocal || v->k == Lumen::ExpDesc::KindUpValue);
     fs->UpValues[f->NUpValues].k = cast_byte(v->k);
     fs->UpValues[f->NUpValues].Info = cast_byte(v->Info);
     return f->NUpValues++;
@@ -283,7 +283,7 @@ static void enterBlock(Lumen::FuncState *fs, Lumen::BlockNode *bl, Lumen::Byte i
     bl->IsUpValue = 0;
     bl->Previous = fs->Blocks;
     fs->Blocks = bl;
-    lua_assert(fs->FreeReg == fs->ActiveVarsCount);
+    LumenAssert(fs->FreeReg == fs->ActiveVarsCount);
 }
 
 
@@ -294,8 +294,8 @@ static void leaveBlock(Lumen::FuncState *fs) {
     if (bl->IsUpValue)
         Lumen::FuncState::CodeABC(fs, Lumen::OpCodeClose, bl->ActiveVarsCount, 0, 0);
     /* a block either controls scope or breaks (never both) */
-    lua_assert(!bl->IsBreakable || !bl->IsUpValue);
-    lua_assert(bl->ActiveVarsCount == fs->ActiveVarsCount);
+    LumenAssert(!bl->IsBreakable || !bl->IsUpValue);
+    LumenAssert(bl->ActiveVarsCount == fs->ActiveVarsCount);
     fs->FreeReg = fs->ActiveVarsCount;  /* free registers */
     Lumen::FuncState::PatchToHere(fs, bl->BreakList);
 }
@@ -365,8 +365,8 @@ static void closeFunc(Lumen::LexState *ls) {
     f->LocalVarsCount = fs->LocalVarsCount;
     LumenMemoryReAllocVector(L, f->UpValues, f->UpValuesCount, f->NUpValues, Lumen::String *);
     f->UpValuesCount = f->NUpValues;
-    lua_assert(Lumen::Debug::CheckCode(f));
-    lua_assert(fs->Blocks == nullptr);
+    LumenAssert(Lumen::Debug::CheckCode(f));
+    LumenAssert(fs->Blocks == nullptr);
     ls->fs = fs->Prev;
     /* last token read was anchored in defunct function; must reAnchor it */
     if (fs) anchorToken(ls);
@@ -385,9 +385,9 @@ Lumen::Proto *Lumen::Parser::Parse(Lumen::State *L, Lumen::ZIO *z, Lumen::ZBuffe
     chunk(&lexState);
     check(&lexState, Lumen::Token::SymbolEOS);
     closeFunc(&lexState);
-    lua_assert(funcState.Prev == nullptr);
-    lua_assert(funcState.Func->NUpValues == 0);
-    lua_assert(lexState.fs == nullptr);
+    LumenAssert(funcState.Prev == nullptr);
+    LumenAssert(funcState.Func->NUpValues == 0);
+    LumenAssert(lexState.fs == nullptr);
     return funcState.Func;
 }
 
@@ -500,7 +500,7 @@ static void constructor(Lumen::LexState *ls, Lumen::ExpDesc *t) {
     Lumen::FuncState::Exp2NextReg(ls->fs, t);  /* fix it at stack top (for gc) */
     checkNext(ls, '{');
     do {
-        lua_assert(cc.v.k == Lumen::ExpDesc::KindVoid || cc.tostore > 0);
+        LumenAssert(cc.v.k == Lumen::ExpDesc::KindVoid || cc.tostore > 0);
         if (ls->CurToken.Kind == '}') break;
         closeListField(fs, &cc);
         switch (ls->CurToken.Kind) {
@@ -632,7 +632,7 @@ static void funcArgs(Lumen::LexState *ls, Lumen::ExpDesc *f) {
             return;
         }
     }
-    lua_assert(f->k == Lumen::ExpDesc::KindNonRelocatable);
+    LumenAssert(f->k == Lumen::ExpDesc::KindNonRelocatable);
     base = f->Info;  /* base register for call */
     if (hasMulRet(args.k))
         nParams = LUA_MULTRET;  /* open call */
@@ -911,7 +911,7 @@ static void block(Lumen::LexState *ls) {
     Lumen::BlockNode bl;
     enterBlock(fs, &bl, 0);
     chunk(ls);
-    lua_assert(bl.BreakList == NO_JUMP);
+    LumenAssert(bl.BreakList == NO_JUMP);
     leaveBlock(fs);
 }
 
@@ -1278,7 +1278,7 @@ static void retStat(Lumen::LexState *ls) {
             LumenFuncStateSetMulRet(fs, &e);
             if (e.k == Lumen::ExpDesc::KindCall && nRet == 1) {  /* tail call? */
                 LumenOpCodeSet(LumenFuncStateGetCode(fs, &e), Lumen::OpCodeTailCall);
-                lua_assert(LumenOpCodeGetArgA(LumenFuncStateGetCode(fs, &e)) == fs->ActiveVarsCount);
+                LumenAssert(LumenOpCodeGetArgA(LumenFuncStateGetCode(fs, &e)) == fs->ActiveVarsCount);
             }
             first = fs->ActiveVarsCount;
             nRet = LUA_MULTRET;  /* return all values */
@@ -1288,7 +1288,7 @@ static void retStat(Lumen::LexState *ls) {
             else {
                 Lumen::FuncState::Exp2NextReg(fs, &e);  /* values must go to the `stack` */
                 first = fs->ActiveVarsCount;  /* return all `active' values */
-                lua_assert(nRet == fs->FreeReg - first);
+                LumenAssert(nRet == fs->FreeReg - first);
             }
         }
     }
@@ -1357,7 +1357,7 @@ static void chunk(Lumen::LexState *ls) {
     while (!islast && !blockFollow(ls->CurToken.Kind)) {
         islast = statement(ls);
         testNext(ls, ';');
-        lua_assert(ls->fs->Func->MaxStackSize >= ls->fs->FreeReg &&
+        LumenAssert(ls->fs->Func->MaxStackSize >= ls->fs->FreeReg &&
                    ls->fs->FreeReg >= ls->fs->ActiveVarsCount);
         ls->fs->FreeReg = ls->fs->ActiveVarsCount;  /* free registers */
     }

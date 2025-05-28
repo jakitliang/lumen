@@ -72,11 +72,11 @@ void *Lumen::Memory::TooBig(Lumen::State *L) {
 */
 void *Lumen::Memory::ReAlloc(Lumen::State *L, void *block, size_t oldSize, size_t newSize) {
     Lumen::GlobalState *g = LumenGlobal(L);
-    lua_assert((oldSize == 0) == (block == nullptr));
+    LumenAssert((oldSize == 0) == (block == nullptr));
     block = (*g->ReAllocator)(g->ReAllocatorUData, block, oldSize, newSize);
     if (block == nullptr && newSize > 0)
         Lumen::Do::Throw(L, LUA_ERRMEM);
-    lua_assert((newSize == 0) == (block == nullptr));
+    LumenAssert((newSize == 0) == (block == nullptr));
     g->TotalBytes = (g->TotalBytes - oldSize) + newSize;
     return block;
 }

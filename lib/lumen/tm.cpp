@@ -48,7 +48,7 @@ void Lumen::TM::Init(Lumen::State *L) {
 */
 const Lumen::Value *Lumen::TM::Get(Lumen::Table *events, Lumen::TM::Name event, Lumen::String *ename) {
     const Lumen::Value *tm = Lumen::Table::GetString(events, ename);
-    lua_assert(event <= Lumen::TM::NameEQ);
+    LumenAssert(event <= Lumen::TM::NameEQ);
     if (LumenTypeIsNil(tm)) {  /* no tag method? */
         events->Flags |= cast_byte(1u << event);  /* cache this fact */
         return nullptr;

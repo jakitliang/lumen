@@ -622,6 +622,13 @@
 #define LUAI_STATE struct LuaState
 #endif
 
+#define LUAI_DELEGATE(name) int (*name)(LUAI_STATE *L)
+
+#define LUAI_READER(name) const char *(*name)(LUAI_STATE *L, void *ud, size_t *sz)
+#define LUAI_WRITER(name) int (*name)(LUAI_STATE *L, const void *p, size_t sz, void *ud)
+
+
+
 /*
 @@ LUAI_EXTRASPACE allows you to add user-specific data in a lua_State
 @* (the data goes just *before* the lua_State pointer).

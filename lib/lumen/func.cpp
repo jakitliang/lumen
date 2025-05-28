@@ -54,7 +54,7 @@ Lumen::UpValue *Lumen::UpValue::Find(Lumen::State *L, Lumen::StkId level) {
     Lumen::UpValue *p;
     Lumen::UpValue *uv;
     while (*pp != nullptr && (p = LumenNullGCObject2UpValue(*pp))->SelfValue >= level) {
-        lua_assert(p->SelfValue != &p->Value);
+        LumenAssert(p->SelfValue != &p->Value);
         if (p->SelfValue == level) {  /* found a corresponding upvalue? */
             if (LumenGCIsDead(g, LumenObject2GCObject(p)))  /* is it dead? */
                 LumenGCChangeWhite(LumenObject2GCObject(p));  /* ressurect it */
@@ -72,13 +72,13 @@ Lumen::UpValue *Lumen::UpValue::Find(Lumen::State *L, Lumen::StkId level) {
     uv->Next = g->UpValueHead.Next;
     uv->Next->Prev = uv;
     g->UpValueHead.Next = uv;
-    lua_assert(uv->Next->Prev == uv && uv->Prev->Next == uv);
+    LumenAssert(uv->Next->Prev == uv && uv->Prev->Next == uv);
     return uv;
 }
 
 
 static void unlinkUpValue(Lumen::UpValue *uv) {
-    lua_assert(uv->Next->Prev == uv && uv->Prev->Next == uv);
+    LumenAssert(uv->Next->Prev == uv && uv->Prev->Next == uv);
     uv->Next->Prev = uv->Prev;  /* remove from `uvhead' list */
     uv->Prev->Next = uv->Next;
 }
@@ -96,7 +96,7 @@ void Lumen::UpValue::Close(Lumen::State *L, Lumen::StkId level) {
     Lumen::GlobalState *g = LumenGlobal(L);
     while (L->OpenedUpValue != nullptr && (uv = LumenNullGCObject2UpValue(L->OpenedUpValue))->SelfValue >= level) {
         Lumen::GCObject *o = LumenObject2GCObject(uv);
-        lua_assert(!LumenGCIsBlack(o) && uv->SelfValue != &uv->Value);
+        LumenAssert(!LumenGCIsBlack(o) && uv->SelfValue != &uv->Value);
         L->OpenedUpValue = uv->GCNext;  /* remove from `open' list */
         if (LumenGCIsDead(g, o))
             Lumen::UpValue::Free(L, uv);  /* free upvalue */

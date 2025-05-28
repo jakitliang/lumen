@@ -196,7 +196,7 @@ static int computeSizes(const int nums[], int *nArray) {
         if (a == *nArray) break;  /* all elements already counted */
     }
     *nArray = n;
-    lua_assert(*nArray / 2 <= na && na <= *nArray);
+    LumenAssert(*nArray / 2 <= na && na <= *nArray);
     return na;
 }
 
@@ -394,7 +394,7 @@ static Lumen::Value *newKey(Lumen::State *L, Lumen::Table *t, const Lumen::Value
             rehash(L, t, key);  /* grow table */
             return Lumen::Table::Set(L, t, key);  /* re-insert key into grown table */
         }
-        lua_assert(n != dummyNode);
+        LumenAssert(n != dummyNode);
         otherN = mainPosition(t, LumenTableKey2KeyValue(mp));
         if (otherN != mp) {  /* is colliding node out of its main position? */
             /* yes; move colliding node into free position */
@@ -413,7 +413,7 @@ static Lumen::Value *newKey(Lumen::State *L, Lumen::Table *t, const Lumen::Value
     LumenTableGetKey(mp)->value = key->value;
     LumenTableGetKey(mp)->Type = key->Type;
     LumenGCBarrierTable(L, t, key);
-    lua_assert(LumenTypeIsNil(LumenTableGetValue(mp)));
+    LumenAssert(LumenTypeIsNil(LumenTableGetValue(mp)));
     return LumenTableGetValue(mp);
 }
 

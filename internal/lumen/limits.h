@@ -103,17 +103,18 @@ namespace Lumen {
 #define LumenIntPoint(p)  ((unsigned int)(Lumen::MemorySize)(p))
 
 /* internal assertions for in-house debugging */
+#if defined(LUA_CORE_DEBUG)
 #ifdef lua_assert
-#define LumenCheckExp(c,e)     (lua_assert(c), (e))
-#define LumenApiCheck(l,e)     lua_assert(e)
-#elif defined(LUA_CORE_DEBUG)
-#define lua_assert(exp)      assert(exp)
-#define LumenCheckExp(c,e)     (lua_assert(c), (e))
-#define LumenApiCheck(l,e)     lua_assert(e)
+#define LumenAssert(e)         lua_assert(e)
 #else
-#define lua_assert(c)        ((void)0)
+#define LumenAssert(e)         assert(e)
+#endif
+#define LumenCheckExp(c, e)    (LumenAssert(c), (e))
+#define LumenApiCheck(L, e)    luai_apicheck(L, e)
+#else
+#define LumenAssert(e)         ((void)0)
 #define LumenCheckExp(c, e)    (e)
-#define LumenApiCheck          luai_apicheck
+#define LumenApiCheck(L, o)    luai_apicheck(L, o)
 #endif
 
 
@@ -127,7 +128,7 @@ namespace Lumen {
 #endif
 
 #define cast_byte(i)    cast(Lumen::Byte, (i))
-#define cast_num(i)     cast(lua_Number, (i))
+#define cast_num(i)     cast(Lumen::Number, (i))
 #define cast_int(i)     cast(int, (i))
 
 

@@ -74,16 +74,15 @@ enum {
 
 typedef LUAI_STATE lua_State;
 
-typedef int (*lua_CFunction)(lua_State *L);
+typedef LUAI_DELEGATE(lua_CFunction);
 
 
 /*
 ** functions that read/write blocks when loading/dumping Lua chunks
 */
-typedef const char *(*lua_Reader)(lua_State *L, void *ud, size_t *sz);
+typedef LUAI_READER(lua_Reader);
 
-typedef int (*lua_Writer)(lua_State *L, const void *p, size_t sz, void *ud);
-
+typedef LUAI_WRITER(lua_Writer);
 
 /*
 ** prototype for memory-allocation functions

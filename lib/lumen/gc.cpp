@@ -66,14 +66,14 @@ LumenDo(                   \
 
 
 static void removeEntry(Lumen::Node *n) {
-    lua_assert(LumenTypeIsNil(LumenTableGetValue(n)));
+    LumenAssert(LumenTypeIsNil(LumenTableGetValue(n)));
     if (LumenIsCollectable(LumenTableGetKey(n)))
         LumenSetType(LumenTableGetKey(n), LUA_TDEADKEY);  /* dead key; remove it */
 }
 
 
 static void reallyMarkObject(Lumen::GlobalState *g, Lumen::GCObject *o) {
-    lua_assert(LumenGCIsWhite(o) && !LumenGCIsDead(g, o));
+    LumenAssert(LumenGCIsWhite(o) && !LumenGCIsDead(g, o));
     white2gray(o);
     switch (o->AsObject.Type) {
         case LUA_TSTRING: {
@@ -114,7 +114,7 @@ static void reallyMarkObject(Lumen::GlobalState *g, Lumen::GCObject *o) {
             break;
         }
         default:
-            lua_assert(0);
+            LumenAssert(0);
     }
 }
 
@@ -187,11 +187,11 @@ static int traverseTable(Lumen::GlobalState *g, Lumen::Table *h) {
     i = LumenTableNodeCount(h);
     while (i--) {
         Lumen::Node *n = LumenTableGetNode(h, i);
-        lua_assert(LumenTypeOf(LumenTableGetKey(n)) != LUA_TDEADKEY || LumenTypeIsNil(LumenTableGetValue(n)));
+        LumenAssert(LumenTypeOf(LumenTableGetKey(n)) != LUA_TDEADKEY || LumenTypeIsNil(LumenTableGetValue(n)));
         if (LumenTypeIsNil(LumenTableGetValue(n)))
             removeEntry(n);  /* remove empty entries */
         else {
-            lua_assert(!LumenTypeIsNil(LumenTableGetKey(n)));
+            LumenAssert(!LumenTypeIsNil(LumenTableGetKey(n)));
             if (!weakKey) markValue(g, LumenTableGetKey(n));
             if (!weakValue) markValue(g, LumenTableGetValue(n));
         }
@@ -231,7 +231,7 @@ static void traverseClosure(Lumen::GlobalState *g, Lumen::Closure *cl) {
             markValue(g, &cl->AsC.UpValues[i]);
     } else {
         int i;
-        lua_assert(cl->AsLua.NUpValues == cl->AsLua.Func->NUpValues);
+        LumenAssert(cl->AsLua.NUpValues == cl->AsLua.Func->NUpValues);
         markObject(g, cl->AsLua.Func);
         for (i = 0; i < cl->AsLua.NUpValues; i++)  /* mark its upValues */
             markObject(g, cl->AsLua.UpValues[i]);
@@ -260,7 +260,7 @@ static void traverseStack(Lumen::GlobalState *g, Lumen::State *l) {
     markValue(g, LumenGlobalTable(l));
     lim = l->Top;
     for (ci = l->BaseCI; ci <= l->CallInfo; ci++) {
-        lua_assert(ci->Top <= l->StackLast);
+        LumenAssert(ci->Top <= l->StackLast);
         if (lim < ci->Top) lim = ci->Top;
     }
     for (o = l->Stack; o < l->Top; o++) markValue(g, o);
@@ -276,7 +276,7 @@ static void traverseStack(Lumen::GlobalState *g, Lumen::State *l) {
 */
 static Lumen::MemoryDelta propagateMark(Lumen::GlobalState *g) {
     Lumen::GCObject *o = g->GCGray;
-    lua_assert(LumenGCIsGray(o));
+    LumenAssert(LumenGCIsGray(o));
     LumenGCGray2Black(o);
     switch (o->AsObject.Type) {
         case LUA_TTABLE: {
@@ -316,7 +316,7 @@ static Lumen::MemoryDelta propagateMark(Lumen::GlobalState *g) {
                    sizeof(Lumen::String *) * p->UpValuesCount;
         }
         default:
-            lua_assert(0);
+            LumenAssert(0);
             return 0;
     }
 }
@@ -354,7 +354,7 @@ static void clearTable(Lumen::GCObject *l) {
     while (l) {
         Lumen::Table *h = LumenGCObject2Table(l);
         int i = h->ArrayCount;
-        lua_assert(LumenGCTestBit(h->Marked, Lumen::GC::MarkValueWeakBit) ||
+        LumenAssert(LumenGCTestBit(h->Marked, Lumen::GC::MarkValueWeakBit) ||
                    LumenGCTestBit(h->Marked, Lumen::GC::MarkKeyWeakBit));
         if (LumenGCTestBit(h->Marked, Lumen::GC::MarkValueWeakBit)) {
             while (i--) {
@@ -392,7 +392,7 @@ static void freeObject(Lumen::State *L, Lumen::GCObject *o) {
             Lumen::Table::Free(L, LumenGCObject2Table(o));
             break;
         case LUA_TTHREAD: {
-            lua_assert(LumenGCObject2Thread(o) != L && LumenGCObject2Thread(o) != LumenGlobal(L)->MainThread);
+            LumenAssert(LumenGCObject2Thread(o) != L && LumenGCObject2Thread(o) != LumenGlobal(L)->MainThread);
             Lumen::State::FreeThread(L, LumenGCObject2Thread(o));
             break;
         }
@@ -406,7 +406,7 @@ static void freeObject(Lumen::State *L, Lumen::GCObject *o) {
             break;
         }
         default:
-            lua_assert(0);
+            LumenAssert(0);
     }
 }
 
@@ -422,11 +422,11 @@ static Lumen::GCObject **sweepList(Lumen::State *L, Lumen::GCObject **p, Lumen::
         if (curr->AsObject.Type == LUA_TTHREAD)  /* sweep open upvalues of each thread */
             sweepWholeList(L, &LumenGCObject2Thread(curr)->OpenedUpValue);
         if ((curr->AsObject.Marked ^ Lumen::GC::MarkWhiteBits) & deadMask) {  /* not dead? */
-            lua_assert(!LumenGCIsDead(g, curr) || LumenGCTestBit(curr->AsObject.Marked, Lumen::GC::MarkFixedBit));
+            LumenAssert(!LumenGCIsDead(g, curr) || LumenGCTestBit(curr->AsObject.Marked, Lumen::GC::MarkFixedBit));
             makeWhite(g, curr);  /* make it white (for next cycle) */
             p = &curr->AsObject.GCNext;
         } else {  /* must erase `curr' */
-            lua_assert(LumenGCIsDead(g, curr) || deadMask == LumenGCBitMask(Lumen::GC::MarkSFixedBit));
+            LumenAssert(LumenGCIsDead(g, curr) || deadMask == LumenGCBitMask(Lumen::GC::MarkSFixedBit));
             *p = curr->AsObject.GCNext;
             if (curr == g->GCRoot)  /* is the first element of the list? */
                 g->GCRoot = curr->AsObject.GCNext;  /* adjust first */
@@ -524,7 +524,7 @@ static void markRoot(Lumen::State *L) {
 static void remarkUpValues(Lumen::GlobalState *g) {
     Lumen::UpValue *uv;
     for (uv = g->UpValueHead.Next; uv != &g->UpValueHead; uv = uv->Next) {
-        lua_assert(uv->Next->Prev == uv && uv->Prev->Next == uv);
+        LumenAssert(uv->Next->Prev == uv && uv->Prev->Next == uv);
         if (LumenGCIsGray(LumenObject2GCObject(uv))) markValue(g, uv->SelfValue);
     }
 }
@@ -540,7 +540,7 @@ static void atomic(Lumen::State *L) {
     /* remark weak tables */
     g->GCGray = g->GCWeak;
     g->GCWeak = nullptr;
-    lua_assert(!LumenGCIsWhite(LumenObject2GCObject(g->MainThread)));
+    LumenAssert(!LumenGCIsWhite(LumenObject2GCObject(g->MainThread)));
     markObject(g, L);  /* mark running thread */
     markMetatable(g);  /* mark basic metatables (again) */
     propagateAll(g);
@@ -582,7 +582,7 @@ static Lumen::MemoryDelta singleStep(Lumen::State *L) {
             sweepWholeList(L, &g->StringMap.HashTable[g->GCStringMap++]);
             if (g->GCStringMap >= g->StringMap.Capacity)  /* nothing more to sweep? */
                 g->GCState = Lumen::GC::StateSweep;  /* end sweep-string phase */
-            lua_assert(old >= g->TotalBytes);
+            LumenAssert(old >= g->TotalBytes);
             g->Estimate -= old - g->TotalBytes;
             return LUA_GC_SWEEP_COST;
         }
@@ -593,7 +593,7 @@ static Lumen::MemoryDelta singleStep(Lumen::State *L) {
                 checkSizes(L);
                 g->GCState = Lumen::GC::StateFinalize;  /* end sweep phase */
             }
-            lua_assert(old >= g->TotalBytes);
+            LumenAssert(old >= g->TotalBytes);
             g->Estimate -= old - g->TotalBytes;
             return LUA_GC_SWEEP_MAX * LUA_GC_SWEEP_COST;
         }
@@ -610,7 +610,7 @@ static Lumen::MemoryDelta singleStep(Lumen::State *L) {
             }
         }
         default:
-            lua_assert(0);
+            LumenAssert(0);
             return 0;
     }
 }
@@ -652,10 +652,10 @@ void Lumen::GC::FullGC(Lumen::State *L) {
         g->GCWeak = nullptr;
         g->GCState = Lumen::GC::StateSweepString;
     }
-    lua_assert(g->GCState != Lumen::GC::StatePause && g->GCState != Lumen::GC::StatePropagate);
+    LumenAssert(g->GCState != Lumen::GC::StatePause && g->GCState != Lumen::GC::StatePropagate);
     /* finish any pending sweep phase */
     while (g->GCState != Lumen::GC::StateFinalize) {
-        lua_assert(g->GCState == Lumen::GC::StateSweepString || g->GCState == Lumen::GC::StateSweep);
+        LumenAssert(g->GCState == Lumen::GC::StateSweepString || g->GCState == Lumen::GC::StateSweep);
         singleStep(L);
     }
     markRoot(L);
@@ -668,9 +668,9 @@ void Lumen::GC::FullGC(Lumen::State *L) {
 
 void Lumen::GC::BarrierF(Lumen::State *L, Lumen::GCObject *o, Lumen::GCObject *v) {
     Lumen::GlobalState *g = LumenGlobal(L);
-    lua_assert(LumenGCIsBlack(o) && LumenGCIsWhite(v) && !LumenGCIsDead(g, v) && !LumenGCIsDead(g, o));
-    lua_assert(g->GCState != Lumen::GC::StateFinalize && g->GCState != Lumen::GC::StatePause);
-    lua_assert(LumenTypeOf(&o->AsObject) != LUA_TTABLE);
+    LumenAssert(LumenGCIsBlack(o) && LumenGCIsWhite(v) && !LumenGCIsDead(g, v) && !LumenGCIsDead(g, o));
+    LumenAssert(g->GCState != Lumen::GC::StateFinalize && g->GCState != Lumen::GC::StatePause);
+    LumenAssert(LumenTypeOf(&o->AsObject) != LUA_TTABLE);
     /* must keep invariant? */
     if (g->GCState == Lumen::GC::StatePropagate)
         reallyMarkObject(g, v);  /* restore invariant */
@@ -682,8 +682,8 @@ void Lumen::GC::BarrierF(Lumen::State *L, Lumen::GCObject *o, Lumen::GCObject *v
 void Lumen::GC::BarrierBack(Lumen::State *L, Lumen::Table *t) {
     Lumen::GlobalState *g = LumenGlobal(L);
     Lumen::GCObject *o = LumenObject2GCObject(t);
-    lua_assert(LumenGCIsBlack(o) && !LumenGCIsDead(g, o));
-    lua_assert(g->GCState != Lumen::GC::StateFinalize && g->GCState != Lumen::GC::StatePause);
+    LumenAssert(LumenGCIsBlack(o) && !LumenGCIsDead(g, o));
+    LumenAssert(g->GCState != Lumen::GC::StateFinalize && g->GCState != Lumen::GC::StatePause);
     black2gray(o);  /* make table gray (again) */
     t->GCList = g->GCGrayAgain;
     g->GCGrayAgain = o;
@@ -710,7 +710,7 @@ void Lumen::GC::LinkUpValue(Lumen::State *L, Lumen::UpValue *uv) {
             LumenGCBarrier(L, uv, uv->SelfValue);
         } else {  /* sweep phase: sweep it (turning it into white) */
             makeWhite(g, o);
-            lua_assert(g->GCState != Lumen::GC::StateFinalize && g->GCState != Lumen::GC::StatePause);
+            LumenAssert(g->GCState != Lumen::GC::StateFinalize && g->GCState != Lumen::GC::StatePause);
         }
     }
 }

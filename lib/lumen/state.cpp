@@ -104,12 +104,12 @@ static void LuaStateClose(Lumen::State *L) {
     Lumen::GlobalState *g = LumenGlobal(L);
     Lumen::UpValue::Close(L, L->Stack);  /* close all upvalues for this thread */
     Lumen::GC::FreeAll(L);  /* collect all objects */
-    lua_assert(g->GCRoot == LumenObject2GCObject(L));
-    lua_assert(g->StringMap.Count == 0);
+    LumenAssert(g->GCRoot == LumenObject2GCObject(L));
+    LumenAssert(g->StringMap.Count == 0);
     LumenMemoryFreeArray(L, LumenGlobal(L)->StringMap.HashTable, LumenGlobal(L)->StringMap.Capacity, Lumen::String *);
     LumenZBufferFree(L, &g->Buff);
     stackFree(L, L);
-    lua_assert(g->TotalBytes == sizeof(LG));
+    LumenAssert(g->TotalBytes == sizeof(LG));
     (*g->ReAllocator)(g->ReAllocatorUData, fromState(L), sizeOfState(LG), 0);
 }
 
@@ -124,14 +124,14 @@ Lumen::State *Lumen::State::NewThread(Lumen::State *L) {
     L1->BaseHookCount = L->BaseHookCount;
     L1->Hook = L->Hook;
     LumenDebugResetHookCount(L1);
-    lua_assert(LumenGCIsWhite(LumenObject2GCObject(L1)));
+    LumenAssert(LumenGCIsWhite(LumenObject2GCObject(L1)));
     return L1;
 }
 
 
 void Lumen::State::FreeThread(Lumen::State *L, Lumen::State *L1) {
     Lumen::UpValue::Close(L1, L1->Stack);  /* close all upvalues for this thread */
-    lua_assert(L1->OpenedUpValue == nullptr);
+    LumenAssert(L1->OpenedUpValue == nullptr);
     luai_userstatefree(L1);
     stackFree(L, L1);
     LumenMemoryFreeMemory(L, fromState(L1), sizeOfState(Lumen::State));
@@ -204,7 +204,7 @@ LUA_API void lua_close(Lumen::State *L) {
         L->Base = L->Top = L->CallInfo->Base;
         L->NCCalls = L->BaseCCalls = 0;
     } while (Lumen::Do::RawRunProtected(L, LuaStateCallAllGcTM, nullptr) != 0);
-    lua_assert(LumenGlobal(L)->GCTMUData == nullptr);
+    LumenAssert(LumenGlobal(L)->GCTMUData == nullptr);
     luai_userstateclose(L);
     LuaStateClose(L);
 }

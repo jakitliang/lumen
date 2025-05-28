@@ -129,8 +129,8 @@ LUA_API void lua_setlevel(Lumen::State *from, Lumen::State *to) {
 }
 
 
-LUA_API lua_CFunction lua_atpanic(Lumen::State *L, lua_CFunction fPanic) {
-    lua_CFunction old;
+LUA_API Lumen::Delegate lua_atpanic(Lumen::State *L, Lumen::Delegate fPanic) {
+    Lumen::Delegate old;
     LumenLock(L);
     old = LumenGlobal(L)->Panic;
     LumenGlobal(L)->Panic = fPanic;
@@ -319,11 +319,11 @@ LUA_API Lumen::Number lua_tonumber(Lumen::State *L, int idx) {
 }
 
 
-LUA_API lua_Integer lua_tointeger(Lumen::State *L, int idx) {
+LUA_API Lumen::Integer lua_tointeger(Lumen::State *L, int idx) {
     Lumen::Value n;
     const Lumen::Value *o = index2addr(L, idx);
     if (LumenVMToNumber(o, &n)) {
-        lua_Integer res;
+        Lumen::Integer res;
         Lumen::Number num = LumenNumberValue(o);
         lua_number2integer(res, num);
         return res;
@@ -378,7 +378,7 @@ LUA_API size_t lua_objlen(Lumen::State *L, int idx) {
 }
 
 
-LUA_API lua_CFunction lua_tocfunction(Lumen::State *L, int idx) {
+LUA_API Lumen::Delegate lua_tocfunction(Lumen::State *L, int idx) {
     Lumen::StkId o = index2addr(L, idx);
     return (!LumenIsCFunction(o)) ? nullptr : LumenClosureValue(o)->AsC.Func;
 }
@@ -443,7 +443,7 @@ LUA_API void lua_pushnumber(Lumen::State *L, Lumen::Number n) {
 }
 
 
-LUA_API void lua_pushinteger(Lumen::State *L, lua_Integer n) {
+LUA_API void lua_pushinteger(Lumen::State *L, Lumen::Integer n) {
     LumenLock(L);
     LumenSetNumberValue(L->Top, cast_num(n));
     apiIncrTop(L);
@@ -492,7 +492,7 @@ LUA_API const char *lua_pushfstring(Lumen::State *L, const char *fmt, ...) {
 }
 
 
-LUA_API void lua_pushcclosure(Lumen::State *L, lua_CFunction fn, int n) {
+LUA_API void lua_pushcclosure(Lumen::State *L, Lumen::Delegate fn, int n) {
     Lumen::Closure *cl;
     LumenLock(L);
     LumenGCCheckGC(L);
@@ -503,7 +503,7 @@ LUA_API void lua_pushcclosure(Lumen::State *L, lua_CFunction fn, int n) {
     while (n--)
         LumenSetObject2N(L, &cl->AsC.UpValues[n], L->Top + n);
     LumenSetClosureValue(L, L->Top, cl);
-    lua_assert(LumenGCIsWhite(LumenObject2GCObject(cl)));
+    LumenAssert(LumenGCIsWhite(LumenObject2GCObject(cl)));
     apiIncrTop(L);
     LumenUnlock(L);
 }
@@ -838,7 +838,7 @@ LUA_API int lua_pcall(Lumen::State *L, int nargs, int nResults, int errFunc) {
 ** Execute a protected C call.
 */
 struct ProtectedCCall {
-    lua_CFunction func;
+    Lumen::Delegate func;
     void *ud;
 
     static void Call(Lumen::State *L, void *ud) {
@@ -855,7 +855,7 @@ struct ProtectedCCall {
 };
 
 
-LUA_API int lua_cpcall(Lumen::State *L, lua_CFunction func, void *ud) {
+LUA_API int lua_cpcall(Lumen::State *L, Lumen::Delegate func, void *ud) {
     ProtectedCCall c;
     int status;
     LumenLock(L);
@@ -1108,28 +1108,28 @@ LUA_API void *lua_upvalueid(Lumen::State *L, int idx, int n) {
 LUA_API void lua_upvaluejoin(Lumen::State *L, int idx1, int n1, int idx2, int n2) {
     auto o1 = index2addr(L, idx1);
     auto o2 = index2addr(L, idx2);
-    lua_assert(LumenTypeIsFunction(o1) && LumenTypeIsFunction(o2));
+    LumenAssert(LumenTypeIsFunction(o1) && LumenTypeIsFunction(o2));
     auto cl1 = LumenClosureValue(o1);
     auto cl2 = LumenClosureValue(o2);
-    lua_assert(cl1->AsC.NUpValues >= n1 && cl2->AsC.NUpValues >= n2);
+    LumenAssert(cl1->AsC.NUpValues >= n1 && cl2->AsC.NUpValues >= n2);
     if (LumenIsCFunction(o1) && LumenIsCFunction(o2)) {
         cl1->AsC.UpValues[n1 - 1] = cl2->AsC.UpValues[n2 - 1];
     } else if (LumenIsLFunction(o1) && LumenIsLFunction(o2)) {
         cl1->AsLua.UpValues[n1 - 1] = cl2->AsLua.UpValues[n2 - 1];
     } else {
-        lua_assert(0 && "mismatched function types in lua_upvaluejoin");
+        LumenAssert(0 && "mismatched function types in lua_upvaluejoin");
     }
 }
 
-LUA_API int lua_loadx(Lumen::State *L, lua_Reader reader, void *data,
+LUA_API int lua_loadx(Lumen::State *L, Lumen::Reader reader, void *data,
                       const char *chunkName, const char *mode) {
     (void) mode;  /* Lua 5.1 Can't specify mode */
     return lua_load(L, reader, data, chunkName);
 }
 
-static const lua_Number lua_version_number = 5.1;
+static const Lumen::Number lua_version_number = 5.1;
 
-LUA_API const lua_Number *lua_version(Lumen::State *L) {
+LUA_API const Lumen::Number *lua_version(Lumen::State *L) {
     (void) L;
     return &lua_version_number;
 }
@@ -1152,14 +1152,14 @@ LUA_API void lua_copy(Lumen::State *L, int fromIdx, int toIdx) {
     lua_replace(L, absTo);
 }
 
-LUA_API lua_Number lua_tonumberx(Lumen::State *L, int idx, int *isNum) {
-    lua_Number n = lua_tonumber(L, idx);
+LUA_API Lumen::Number lua_tonumberx(Lumen::State *L, int idx, int *isNum) {
+    Lumen::Number n = lua_tonumber(L, idx);
     if (isNum) *isNum = (n != 0 || lua_isnumber(L, idx));
     return n;
 }
 
-LUA_API lua_Integer lua_tointegerx(Lumen::State *L, int idx, int *isNum) {
-    lua_Integer n = lua_tointeger(L, idx);
+LUA_API Lumen::Integer lua_tointegerx(Lumen::State *L, int idx, int *isNum) {
+    Lumen::Integer n = lua_tointeger(L, idx);
     if (isNum) *isNum = (n != 0 || lua_isnumber(L, idx));
     return n;
 }

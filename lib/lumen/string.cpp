@@ -34,7 +34,7 @@ void Lumen::String::Resize(Lumen::State *L, int newSize) {
             Lumen::GCObject *next = p->AsObject.GCNext;  /* save next */
             unsigned int h = LumenGCObject2String(p)->Hash;
             int h1 = LumenLogMod(h, newSize);  /* new position */
-            lua_assert(cast_int(h % newSize) == LumenLogMod(h, newSize));
+            LumenAssert(cast_int(h % newSize) == LumenLogMod(h, newSize));
             p->AsObject.GCNext = newHash[h1];  /* chain it */
             newHash[h1] = p;
             p = next;

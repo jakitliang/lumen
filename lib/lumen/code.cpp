@@ -74,7 +74,7 @@ static int condJump(Lumen::FuncState *fs, Lumen::OpCode op, int A, int B, int C)
 static void fixJump(Lumen::FuncState *fs, int pc, int dest) {
     Lumen::Instruction *jmp = &fs->Func->Code[pc];
     int offset = dest - (pc + 1);
-    lua_assert(dest != NO_JUMP);
+    LumenAssert(dest != NO_JUMP);
     if (abs(offset) > Lumen::Code::sBxMaxArg)
         Lumen::LexState::SyntaxError(fs->Lexer, "control structure too long");
     LumenOpCodeSetArgsBx(*jmp, offset);
@@ -164,7 +164,7 @@ void Lumen::FuncState::PatchList(Lumen::FuncState *fs, int list, int target) {
     if (target == fs->PC)
         Lumen::FuncState::PatchToHere(fs, list);
     else {
-        lua_assert(target < fs->PC);
+        LumenAssert(target < fs->PC);
         patchListAux(fs, list, target, NO_REG, target);
     }
 }
@@ -209,7 +209,7 @@ void Lumen::FuncState::ReserveRegs(Lumen::FuncState *fs, int n) {
 static void freeReg(Lumen::FuncState *fs, int reg) {
     if (!LumenOpCodeIsK(reg) && reg >= fs->ActiveVarsCount) {
         fs->FreeReg--;
-        lua_assert(reg == fs->FreeReg);
+        LumenAssert(reg == fs->FreeReg);
     }
 }
 
@@ -226,7 +226,7 @@ static int addK(Lumen::FuncState *fs, Lumen::Value *k, Lumen::Value *v) {
     Lumen::Proto *f = fs->Func;
     int oldSize = f->KCount;
     if (LumenTypeIsNumber(idx)) {
-        lua_assert(Lumen::RawEqualObject(&fs->Func->K[cast_int(LumenNumberValue(idx))], v));
+        LumenAssert(Lumen::RawEqualObject(&fs->Func->K[cast_int(LumenNumberValue(idx))], v));
         return cast_int(LumenNumberValue(idx));
     } else {  /* constant not found; create a new entry */
         LumenSetNumberValue(idx, cast_num(fs->ConstantsCount));
@@ -363,7 +363,7 @@ static void discharge2reg(Lumen::FuncState *fs, Lumen::ExpDesc *e, int reg) {
             break;
         }
         default: {
-            lua_assert(e->k == Lumen::ExpDesc::KindVoid || e->k == Lumen::ExpDesc::KindJmp);
+            LumenAssert(e->k == Lumen::ExpDesc::KindVoid || e->k == Lumen::ExpDesc::KindJmp);
             return;  /* nothing to do... */
         }
     }
@@ -485,7 +485,7 @@ void Lumen::FuncState::StoreVar(Lumen::FuncState *fs, Lumen::ExpDesc *var, Lumen
             break;
         }
         default: {
-            lua_assert(0);  /* invalid var kind to store */
+            LumenAssert(0);  /* invalid var kind to store */
             break;
         }
     }
@@ -508,7 +508,7 @@ void Lumen::FuncState::Self(Lumen::FuncState *fs, Lumen::ExpDesc *e, Lumen::ExpD
 
 static void invertJump(Lumen::FuncState *fs, Lumen::ExpDesc *e) {
     Lumen::Instruction *pc = getJumpControl(fs, e->Info);
-    lua_assert(LumenTestTMode(LumenOpCodeGet(*pc)) && LumenOpCodeGet(*pc) != Lumen::OpCodeTestTest &&
+    LumenAssert(LumenTestTMode(LumenOpCodeGet(*pc)) && LumenOpCodeGet(*pc) != Lumen::OpCodeTestTest &&
                LumenOpCodeGet(*pc) != Lumen::OpCodeTest);
     LumenOpCodeSetArgA(*pc, !(LumenOpCodeGetArgA(*pc)));
 }
@@ -606,7 +606,7 @@ static void codeNot(Lumen::FuncState *fs, Lumen::ExpDesc *e) {
             break;
         }
         default: {
-            lua_assert(0);  /* cannot happen */
+            LumenAssert(0);  /* cannot happen */
             break;
         }
     }
@@ -659,7 +659,7 @@ static int constFolding(Lumen::OpCode op, Lumen::ExpDesc *e1, Lumen::ExpDesc *e2
         case Lumen::OpCodeLen:
             return 0;  /* no constant folding for 'len' */
         default:
-            lua_assert(0);
+            LumenAssert(0);
             r = 0;
             break;
     }
@@ -727,7 +727,7 @@ void Lumen::FuncState::Prefix(Lumen::FuncState *fs, Lumen::UnOpr op, Lumen::ExpD
             break;
         }
         default:
-            lua_assert(0);
+            LumenAssert(0);
     }
 }
 
@@ -766,14 +766,14 @@ void Lumen::FuncState::InFix(Lumen::FuncState *fs, Lumen::BinOpr op, Lumen::ExpD
 void Lumen::FuncState::PosFix(Lumen::FuncState *fs, Lumen::BinOpr op, Lumen::ExpDesc *e1, Lumen::ExpDesc *e2) {
     switch (op) {
         case Lumen::BinOprAND: {
-            lua_assert(e1->t == NO_JUMP);  /* list must be closed */
+            LumenAssert(e1->t == NO_JUMP);  /* list must be closed */
             Lumen::FuncState::DischargeVars(fs, e2);
             Lumen::FuncState::Concat(fs, &e2->f, e1->f);
             *e1 = *e2;
             break;
         }
         case Lumen::BinOprOR: {
-            lua_assert(e1->f == NO_JUMP);  /* list must be closed */
+            LumenAssert(e1->f == NO_JUMP);  /* list must be closed */
             Lumen::FuncState::DischargeVars(fs, e2);
             Lumen::FuncState::Concat(fs, &e2->t, e1->t);
             *e1 = *e2;
@@ -782,7 +782,7 @@ void Lumen::FuncState::PosFix(Lumen::FuncState *fs, Lumen::BinOpr op, Lumen::Exp
         case Lumen::BinOprConcat: {
             Lumen::FuncState::Exp2Val(fs, e2);
             if (e2->k == Lumen::ExpDesc::KindRelocatable && LumenOpCodeGet(LumenFuncStateGetCode(fs, e2)) == Lumen::OpCodeConcat) {
-                lua_assert(e1->Info == LumenOpCodeGetArgB(LumenFuncStateGetCode(fs, e2)) - 1);
+                LumenAssert(e1->Info == LumenOpCodeGetArgB(LumenFuncStateGetCode(fs, e2)) - 1);
                 freeExp(fs, e1);
                 LumenOpCodeSetArgB(LumenFuncStateGetCode(fs, e2), e1->Info);
                 e1->k = Lumen::ExpDesc::KindRelocatable;
@@ -830,7 +830,7 @@ void Lumen::FuncState::PosFix(Lumen::FuncState *fs, Lumen::BinOpr op, Lumen::Exp
             codeComp(fs, Lumen::OpCodeLE, 0, e1, e2);
             break;
         default:
-            lua_assert(0);
+            LumenAssert(0);
     }
 }
 
@@ -856,16 +856,16 @@ static int LuaFuncStateCode(Lumen::FuncState *fs, Lumen::Instruction i, int line
 
 
 int Lumen::FuncState::CodeABC(Lumen::FuncState *fs, Lumen::OpCode o, int a, int b, int c) {
-    lua_assert(LumenGetOpMode(o) == Lumen::OpModeIABC);
-    lua_assert(LumenGetBMode(o) != Lumen::OpArgN || b == 0);
-    lua_assert(LumenGetCMode(o) != Lumen::OpArgN || c == 0);
+    LumenAssert(LumenGetOpMode(o) == Lumen::OpModeIABC);
+    LumenAssert(LumenGetBMode(o) != Lumen::OpArgN || b == 0);
+    LumenAssert(LumenGetCMode(o) != Lumen::OpArgN || c == 0);
     return LuaFuncStateCode(fs, LumenOpCodeCreateABC(o, a, b, c), fs->Lexer->LastLine);
 }
 
 
 int Lumen::FuncState::CodeABx(Lumen::FuncState *fs, Lumen::OpCode o, int a, unsigned int bc) {
-    lua_assert(LumenGetOpMode(o) == Lumen::OpModeIABx || LumenGetOpMode(o) == Lumen::OpModeIAsBx);
-    lua_assert(LumenGetCMode(o) == Lumen::OpArgN);
+    LumenAssert(LumenGetOpMode(o) == Lumen::OpModeIABx || LumenGetOpMode(o) == Lumen::OpModeIAsBx);
+    LumenAssert(LumenGetCMode(o) == Lumen::OpArgN);
     return LuaFuncStateCode(fs, LumenOpCodeCreateABx(o, a, bc), fs->Lexer->LastLine);
 }
 
@@ -873,7 +873,7 @@ int Lumen::FuncState::CodeABx(Lumen::FuncState *fs, Lumen::OpCode o, int a, unsi
 void Lumen::FuncState::SetList(Lumen::FuncState *fs, int base, int nElements, int toStore) {
     int c = (nElements - 1) / LUA_FIELDS_PER_FLUSH + 1;
     int b = (toStore == LUA_MULTRET) ? 0 : toStore;
-    lua_assert(toStore != 0);
+    LumenAssert(toStore != 0);
     if (c <= Lumen::Code::CMaxArg)
         Lumen::FuncState::CodeABC(fs, Lumen::OpCodeSetList, base, b, c);
     else {

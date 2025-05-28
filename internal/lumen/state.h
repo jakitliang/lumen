@@ -59,7 +59,7 @@ namespace Lumen {
         Lumen::MemorySize GCDept;  /* how much GC is `behind schedule' */
         int GCPause;  /* size of pause between successive GCs */
         int GCStepMul;  /* GC `granularity' */
-        lua_CFunction Panic;  /* to be called in unprotected errors */
+        Lumen::Delegate Panic;  /* to be called in unprotected errors */
         Lumen::Value Registry;
         Lumen::State *MainThread;
         Lumen::UpValue UpValueHead;  /* head of double-linked list of all open upValues */

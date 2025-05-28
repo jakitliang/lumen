@@ -228,13 +228,13 @@ LUA_API int lua_getinfo(Lumen::State *L, const char *what, lua_Debug *ar) {
     LumenLock(L);
     if (*what == '>') {
         Lumen::StkId func = L->Top - 1;
-        luai_apicheck(L, LumenTypeIsFunction(func));
+        LumenApiCheck(L, LumenTypeIsFunction(func));
         what++;  /* skip the '>' */
         f = LumenClosureValue(func);
         L->Top--;  /* pop function */
     } else if (ar->i_ci != 0) {  /* no tail call? */
         ci = L->BaseCI + ar->i_ci;
-        lua_assert(LumenTypeIsFunction(ci->Func));
+        LumenAssert(LumenTypeIsFunction(ci->Func));
         f = LumenClosureValue(ci->Func);
     }
     status = auxGetInfo(L, what, ar, f, ci);
@@ -501,11 +501,11 @@ static const char *getObjName(Lumen::State *L, Lumen::CallInfo *ci, int stackPos
         if (*name)  /* is a local? */
             return "local";
         i = symbolExec(p, pc, stackPos);  /* try symbolic execution */
-        lua_assert(pc != -1);
+        LumenAssert(pc != -1);
         switch (LumenOpCodeGet(i)) {
             case Lumen::OpCodeGetGlobal: {
                 int g = LumenOpCodeGetArgBx(i);  /* global index */
-                lua_assert(LumenTypeIsString(&p->K[g]));
+                LumenAssert(LumenTypeIsString(&p->K[g]));
                 *name = LumenStringValue2CString(&p->K[g]);
                 return "global";
             }
@@ -578,7 +578,7 @@ void Lumen::Debug::TypeError(Lumen::State *L, const Lumen::Value *o, const char 
 
 void Lumen::Debug::ConcatError(Lumen::State *L, Lumen::StkId p1, Lumen::StkId p2) {
     if (LumenTypeIsString(p1) || LumenTypeIsNumber(p1)) p1 = p2;
-    lua_assert(!LumenTypeIsString(p1) && !LumenTypeIsNumber(p1));
+    LumenAssert(!LumenTypeIsString(p1) && !LumenTypeIsNumber(p1));
     Lumen::Debug::TypeError(L, p1, "concatenate");
 }
 
