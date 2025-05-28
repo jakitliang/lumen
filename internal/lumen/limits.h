@@ -67,18 +67,17 @@ namespace Lumen {
     using Instruction = UInt32;
 
     struct DebugInfo {
-        int event;
-        const char *name;    /* (n) */
-        const char *namewhat;    /* (n) `global', `local', `field', `method' */
-        const char *what;    /* (S) `Lua', `C', `main', `tail' */
-        const char *source;    /* (S) */
-        int currentline;    /* (l) */
-        int nups;        /* (u) number of upvalues */
-        int linedefined;    /* (S) */
-        int lastlinedefined;    /* (S) */
-        char short_src[LUA_IDSIZE]; /* (S) */
-        /* private part */
-        int i_ci;  /* active function */
+        int Event;
+        const char *Name;    /* (n) */
+        const char *NameSpace;    /* (n) `global', `local', `field', `method' */
+        const char *Space;    /* (S) `Lua', `C', `main', `tail' */
+        const char *Source;    /* (S) */
+        int CurrentLine;    /* (l) */
+        int NUpValues;        /* (u) number of upvalues */
+        int LineDefined;    /* (S) */
+        int LastLineDefined;    /* (S) */
+        char SourceHint[LUA_IDSIZE]; /* (S) */
+        int CurrentCI;  /* active function */
     };
 
     typedef LUAI_HOOK(Hook);

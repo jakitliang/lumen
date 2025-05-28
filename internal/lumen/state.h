@@ -102,7 +102,7 @@ struct Lumen::State : Lumen::Object {
     Lumen::Byte AllowHook;
     int BaseHookCount;
     int HookCount;
-    lua_Hook Hook;
+    Lumen::Hook Hook;
     Lumen::Value Global;  /* table of globals */
     Lumen::Value Env;  /* temporary place for environments */
     union Lumen::GCObject *OpenedUpValue;  /* list of open upValues in this stack */

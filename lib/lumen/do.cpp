@@ -176,17 +176,17 @@ static Lumen::CallInfo *growCI(Lumen::State *L) {
 
 
 void Lumen::Do::CallHook(Lumen::State *L, int event, int line) {
-    lua_Hook hook = L->Hook;
+    Lumen::Hook hook = L->Hook;
     if (hook && L->AllowHook) {
         ptrdiff_t top = LumenSaveStack(L, L->Top);
         ptrdiff_t ci_top = LumenSaveStack(L, L->CallInfo->Top);
         Lumen::DebugInfo ar;
-        ar.event = event;
-        ar.currentline = line;
+        ar.Event = event;
+        ar.CurrentLine = line;
         if (event == LUA_HOOKTAILRET)
-            ar.i_ci = 0;  /* tail call; no debug information about it */
+            ar.CurrentCI = 0;  /* tail call; no debug information about it */
         else
-            ar.i_ci = cast_int(L->CallInfo - L->BaseCI);
+            ar.CurrentCI = cast_int(L->CallInfo - L->BaseCI);
         LumenDoCheckStack(L, Lumen::MinStack);  /* ensure minimum stack size */
         L->CallInfo->Top = L->Top + Lumen::MinStack;
         LumenAssert(L->CallInfo->Top <= L->StackLast);
