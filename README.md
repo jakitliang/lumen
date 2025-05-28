@@ -21,9 +21,30 @@ Designed for developers who love Lua, Lumen offers a modern, maintainable, and s
 
 ## Architecture
 
+### Kernel
+
+> Lumen is the core provides VM and runtime libraries.
+
 The [/lib/lumen](/lib/lumen) directory contains the **core implementation** of the `Lumen`.
 
-And [/lib/lua](/lib/lua) provides the **standard libraries** and **extensions**, such as `string`, `table`, `math` and etc.
+And [/lib/lua](/lib/lua) provides the **standard libraries** and **extensions**,
+such as `string`, `table`, `math` and etc.
+
+### Interpreter
+
+> Light is the main program as the entry of Lumen.
+
+The [/src/light](/src/light) is the implementation for the Interpreter entry of `Lumen` (Lua)
+
+`light` is the generic entry but commandline entry for Windows.
+
+`lightw` is the graphical entry. (Windows only)
+
+### Compiler
+
+The [/src/lightc](/src/lightc) is the implementation for the Compiler entry of `Lumen`.
+
+`lightc` is used to compile sources (`.lua`) into bytecode (`.luac`).
 
 ## Extensions
 

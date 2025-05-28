@@ -1,15 +1,15 @@
-.TH LUMEN 1 "2025-05-15" "Lumen 1.0.0" "Lumen Manual"
+.TH LIGHT 1 "2025-05-15" "Lumen 1.0.0" "Lumen Manual"
 .SH NAME
-lumen \- Lua interpreter
+light \- Lua interpreter
 
 .SH SYNOPSIS
-.B lumen
+.B light
 [\fIoptions\fR] [\fIscript\fR [\fIargs\fR]]
 
 .SH DESCRIPTION
-.B lumen
-is the stand-alone Lua interpreter under the name "lumen". It loads and executes Lua programs, either in textual source form or in precompiled binary form (compiled with
-.BR lumenc (1)).
+.B light
+is the stand-alone Lua interpreter under the name "light". It loads and executes Lua programs, either in textual source form or in precompiled binary form (compiled with
+.BR lightc (1)).
 
 The given
 .I options
@@ -74,7 +74,7 @@ Stop handling options. All following arguments are passed to the script.
 
 .SH INTERACTIVE MODE
 If no arguments are provided and stdin is a terminal,
-.B lumen
+.B light
 enters interactive mode. It prompts for input using the values of the global variables
 .B _PROMPT
 and

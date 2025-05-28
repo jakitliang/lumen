@@ -9,25 +9,25 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows")
 endif ()
 
 add_executable(
-    lumenc
-    lumenc.cpp
+    lightc
+    lightc.cpp
     print.cpp
     $<TARGET_OBJECTS:lumen-core>
     $<TARGET_OBJECTS:lumen-lua>
     ${LUA_PRODUCT_RESOURCE}
 )
-target_compile_definitions(lumenc PRIVATE ${LUA_COMPILE_DEF})
-target_compile_options(lumenc INTERFACE ${LUA_COMPILE_OPT})
-target_link_libraries(lumenc PRIVATE ${LUA_LINK_LIBS})
+target_compile_definitions(lightc PRIVATE ${LUA_COMPILE_DEF})
+target_compile_options(lightc INTERFACE ${LUA_COMPILE_OPT})
+target_link_libraries(lightc PRIVATE ${LUA_LINK_LIBS})
 
 if (NOT LUA_SKIP_INSTALL)
     install(
-        TARGETS lumenc
+        TARGETS lightc
         DESTINATION bin
     )
     install(
         FILES
-        ${LUMEN_BASE_SOURCE_DIR}/doc/lumenc.1
+        ${LUMEN_BASE_SOURCE_DIR}/doc/lightc.1
         DESTINATION share/man/man1
     )
 endif ()

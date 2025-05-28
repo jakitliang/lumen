@@ -1,13 +1,13 @@
-.TH LUMENC 1 "2025-05-15" "Lumen 1.0.0" "Lumen Manual"
+.TH LIGHTC 1 "2025-05-15" "Lumen 1.0.0" "Lumen Manual"
 .SH NAME
-lumenc \- Lua compiler
+lightc \- Lua compiler
 
 .SH SYNOPSIS
-.B lumenc
+.B lightc
 [\fIoptions\fR] [\fIfilenames\fR]
 
 .SH DESCRIPTION
-.B lumenc
+.B lightc
 is the Lua bytecode compiler. It translates Lua source files into binary precompiled files (bytecode) that can later be loaded and executed by the Lua interpreter.
 
 Precompiling chunks provides:
@@ -24,7 +24,7 @@ Note that precompiling does not improve runtime performance: Lua always compiles
 Precompiled chunks are architecture-dependent: they are portable only between systems with the same word size and byte order.
 
 By default, all input files are compiled into a single output file:
-.B lumenc.out
+.B lightc.out
 You can specify a different output with the
 .B \-o
 option.
@@ -38,9 +38,9 @@ Options must be passed separately (e.g. "\-p \-l", not "\-pl").
 .B \-l
 List the compiled bytecode (disassembly) for Lua's virtual machine. This is helpful for learning or debugging.  
 If no files are provided,
-.B lumenc
+.B lightc
 loads
-.B lumenc.out
+.B lightc.out
 and lists its contents.
 
 .TP
@@ -48,7 +48,7 @@ and lists its contents.
 Set output filename to
 .IR file .
 Default is
-.B lumenc.out .
+.B lightc.out .
 Use
 .B \-
 to output to stdout (not recommended on platforms where stdout is opened in text mode).
@@ -57,9 +57,9 @@ to output to stdout (not recommended on platforms where stdout is opened in text
 .B \-p
 Parse input files and load them, but do not produce output. Used for syntax checking or integrity testing.  
 If no files are given,
-.B lumenc
+.B lightc
 will load
-.B lumenc.out
+.B lightc.out
 and validate it. No output is printed if the file is valid.
 
 .TP
@@ -72,11 +72,11 @@ Show version information.
 
 .SH FILES
 .TP
-.B lumenc.out
+.B lightc.out
 Default output file for compiled bytecode.
 
 .SH SEE ALSO
-.BR lumen (1)
+.BR light (1)
 .br
 https://github.com/jakitliang/lumen
 

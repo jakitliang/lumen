@@ -1,4 +1,4 @@
 
-add_subdirectory(lumen)
+add_subdirectory(light)
 
-add_subdirectory(lumenc)
+add_subdirectory(lightc)

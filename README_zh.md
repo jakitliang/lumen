@@ -21,9 +21,31 @@
 
 ## 架构
 
+### 内核
+
+> Lumen 是提供虚拟机和运行时库的核心.
+
 首先，目录 [/lib/lumen](/lib/lumen) 包含了 `Lumen` 的核心实现.
 
-其次，目录 [/lib/lua](/lib/lua) 包含了 **标准库** 和 **扩展库**，比如像 `string`、`table`、`math` 之类的……
+其次，目录 [/lib/lua](/lib/lua) 包含了 **标准库** 和 **扩展库**，
+比如像 `string`、`table`、`math` 之类的……
+
+
+### 解释器
+
+> Light 是 Lumen 的主程序入口.
+
+目录 [/src/light](/src/light) 是 `Lumen` (Lua) 的解释器入口实现
+
+`light` 是通用的入口程序，但对 Windows 来说，它是控制台程序.
+
+`lightw` 是图形入口程序. (仅限 Windows)
+
+### 编译器
+
+目录 [/src/lightc](/src/lightc) 是 `Lumen` 的编译器入口实现.
+
+`lightc` 用于编译源码 (`.lua`) 成字节码 (`.luac`).
 
 ## 扩展
 
