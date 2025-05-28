@@ -42,7 +42,7 @@ namespace Lumen {
     /*
     ** Union of all collectable objects
     */
-    union GCObject;
+    struct GCObject;
 
     /**
      * Union of all Lua values

@@ -208,7 +208,7 @@ namespace Lumen {
         Lumen::Table *Env;
     };
 
-    union Closure;
+    struct Closure;
 
     struct CClosure : Lumen::BasicClosure {
         Lumen::Delegate Func;
@@ -224,9 +224,11 @@ namespace Lumen {
         static Lumen::Closure *New(Lumen::State *L, int nElements, Lumen::Table *e);
     };
 
-    union Closure {
-        Lumen::CClosure AsC;
-        Lumen::LClosure AsLua;
+    struct Closure {
+        union {
+            Lumen::CClosure AsC;
+            Lumen::LClosure AsLua;
+        };
 
         static void Free(Lumen::State *L, Lumen::Closure *c);
     };

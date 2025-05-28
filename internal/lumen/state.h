@@ -105,9 +105,9 @@ struct Lumen::State : Lumen::Object {
     Lumen::Hook Hook;
     Lumen::Value Global;  /* table of globals */
     Lumen::Value Env;  /* temporary place for environments */
-    union Lumen::GCObject *OpenedUpValue;  /* list of open upValues in this stack */
-    union Lumen::GCObject *GCList;
-    struct Lumen::LongJump *ErrorJmp;  /* current error recover point */
+    Lumen::GCObject *OpenedUpValue;  /* list of open upValues in this stack */
+    Lumen::GCObject *GCList;
+    Lumen::LongJump *ErrorJmp;  /* current error recover point */
     ptrdiff_t ErrFunc;  /* current error handling function (stack index) */
 
     static Lumen::State *NewThread(Lumen::State *L);
@@ -119,15 +119,17 @@ namespace Lumen {
     /*
     ** Union of all collectable objects
     */
-    union GCObject {
-        Lumen::Object AsObject;
-        Lumen::String AsString;
-        Lumen::Userdata AsUserdata;
-        Lumen::Closure AsClosure;
-        Lumen::Table AsTable;
-        Lumen::Proto AsProto;
-        Lumen::UpValue AsUpValue;
-        Lumen::State AsThread;  /* thread */
+    struct GCObject {
+        union {
+            Lumen::Object AsObject;
+            Lumen::String AsString;
+            Lumen::Userdata AsUserdata;
+            Lumen::Closure AsClosure;
+            Lumen::Table AsTable;
+            Lumen::Proto AsProto;
+            Lumen::UpValue AsUpValue;
+            Lumen::State AsThread;  /* thread */
+        };
     };
 }
 
