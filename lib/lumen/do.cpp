@@ -371,7 +371,7 @@ void Lumen::Do::Call(Lumen::State *L, Lumen::StkId func, int nResults) {
     LumenGCCheckGC(L);
 }
 
-static void resume(lua_State *L, void *ud) {
+static void resume(Lumen::State *L, void *ud) {
     Lumen::StkId firstArg = cast(Lumen::StkId, ud);
     Lumen::CallInfo *ci = L->CallInfo;
     if (L->Status == 0) {  /* start coroutine? */
@@ -393,7 +393,7 @@ static void resume(lua_State *L, void *ud) {
     Lumen::VM::Execute(L, cast_int(L->CallInfo - L->BaseCI));
 }
 
-static int resumeError(lua_State *L, const char *msg) {
+static int resumeError(Lumen::State *L, const char *msg) {
     L->Top = L->CallInfo->Base;
     LumenSetStringValue2S(L, L->Top, Lumen::String::New(L, msg));
     LumenIncrTop(L);
@@ -401,7 +401,7 @@ static int resumeError(lua_State *L, const char *msg) {
     return LUA_ERRRUN;
 }
 
-LUA_API int lua_resume(lua_State *L, int nArgs) {
+LUA_API int lua_resume(Lumen::State *L, int nArgs) {
     int status;
     LumenLock(L);
     if (L->Status != LUA_YIELD && (L->Status != 0 || L->CallInfo != L->BaseCI))
@@ -425,7 +425,7 @@ LUA_API int lua_resume(lua_State *L, int nArgs) {
     return status;
 }
 
-LUA_API int lua_yield(lua_State *L, int nResults) {
+LUA_API int lua_yield(Lumen::State *L, int nResults) {
     luai_userstateyield(L, nResults);
     LumenLock(L);
     if (L->NCCalls > L->BaseCCalls)
@@ -436,7 +436,7 @@ LUA_API int lua_yield(lua_State *L, int nResults) {
     return -1;
 }
 
-int Lumen::Do::PCall(lua_State *L, Lumen::Do::PFunc func, void *u,
+int Lumen::Do::PCall(Lumen::State *L, Lumen::Do::PFunc func, void *u,
                    ptrdiff_t old_top, ptrdiff_t ef) {
     int status;
     unsigned short oldNCCalls = L->NCCalls;
@@ -460,7 +460,7 @@ int Lumen::Do::PCall(lua_State *L, Lumen::Do::PFunc func, void *u,
     return status;
 }
 
-static void funcParser(lua_State *L, void *ud) {
+static void funcParser(Lumen::State *L, void *ud) {
     int i;
     Lumen::Proto *tf;
     Lumen::Closure *cl;
@@ -477,7 +477,7 @@ static void funcParser(lua_State *L, void *ud) {
     LumenIncrTop(L);
 }
 
-int Lumen::Do::ProtectedParser(lua_State *L, Lumen::ZIO *z, const char *name) {
+int Lumen::Do::ProtectedParser(Lumen::State *L, Lumen::ZIO *z, const char *name) {
     Lumen::Parser p; // NOLINT
     int status;
     p.z = z;

@@ -72,7 +72,7 @@ enum {
 };
 
 
-typedef LUA_STATE lua_State;
+typedef LUAI_STATE lua_State;
 
 typedef int (*lua_CFunction)(lua_State *L);
 

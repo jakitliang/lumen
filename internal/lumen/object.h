@@ -41,8 +41,8 @@ enum {
 };
 
 namespace Lumen {
-    typedef const char *(*Reader)(lua_State *L, void *ud, size_t *sz);
-    typedef int (*Writer)(lua_State *L, const void *p, size_t sz, void *ud);
+    typedef const char *(*Reader)(Lumen::State *L, void *ud, size_t *sz);
+    typedef int (*Writer)(Lumen::State *L, const void *p, size_t sz, void *ud);
 
     struct Object : BasicObject {
         /**

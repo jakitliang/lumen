@@ -193,7 +193,7 @@ static void LuaStateCallAllGcTM(Lumen::State *L, void *ud) {
 }
 
 
-LUA_API void lua_close(lua_State *L) {
+LUA_API void lua_close(Lumen::State *L) {
     L = LumenGlobal(L)->MainThread;  /* only the main thread can be closed */
     LumenLock(L);
     Lumen::UpValue::Close(L, L->Stack);  /* close all upvalues for this thread */

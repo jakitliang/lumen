@@ -583,7 +583,7 @@ void Lumen::Debug::ConcatError(Lumen::State *L, Lumen::StkId p1, Lumen::StkId p2
 }
 
 
-void Lumen::Debug::ArithError(lua_State *L, const Lumen::Value *p1, const Lumen::Value *p2) {
+void Lumen::Debug::ArithError(Lumen::State *L, const Lumen::Value *p1, const Lumen::Value *p2) {
     Lumen::Value temp; // NOLINT
     if (Lumen::VM::ToNumber(p1, &temp) == nullptr)
         p2 = p1;  /* first operand is wrong */
@@ -591,7 +591,7 @@ void Lumen::Debug::ArithError(lua_State *L, const Lumen::Value *p1, const Lumen:
 }
 
 
-int Lumen::Debug::OrderError(lua_State *L, const Lumen::Value *p1, const Lumen::Value *p2) {
+int Lumen::Debug::OrderError(Lumen::State *L, const Lumen::Value *p1, const Lumen::Value *p2) {
     const char *t1 = Lumen::TM::TypeNames[LumenTypeOf(p1)];
     const char *t2 = Lumen::TM::TypeNames[LumenTypeOf(p2)];
     if (t1[2] == t2[2])
@@ -602,7 +602,7 @@ int Lumen::Debug::OrderError(lua_State *L, const Lumen::Value *p1, const Lumen::
 }
 
 
-static void addInfo(lua_State *L, const char *msg) {
+static void addInfo(Lumen::State *L, const char *msg) {
     Lumen::CallInfo *ci = L->CallInfo;
     if (LumenFuncIsLua(ci)) {  /* is Lua code? */
         char buff[LUA_IDSIZE];  /* add file:line information */
@@ -613,7 +613,7 @@ static void addInfo(lua_State *L, const char *msg) {
 }
 
 
-void Lumen::Debug::ErrorMessage(lua_State *L) {
+void Lumen::Debug::ErrorMessage(Lumen::State *L) {
     if (L->ErrFunc != 0) {  /* is there an error handling function? */
         Lumen::StkId errFunc = LumenRestoreStack(L, L->ErrFunc);
         if (!LumenTypeIsFunction(errFunc)) Lumen::Do::Throw(L, LUA_ERRERR);
@@ -626,7 +626,7 @@ void Lumen::Debug::ErrorMessage(lua_State *L) {
 }
 
 
-void Lumen::Debug::RunError(lua_State *L, const char *fmt, ...) {
+void Lumen::Debug::RunError(Lumen::State *L, const char *fmt, ...) {
     va_list argP;
     va_start(argP, fmt);
     addInfo(L, Lumen::PushVFString(L, fmt, argP));

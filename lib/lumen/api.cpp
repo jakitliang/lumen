@@ -139,8 +139,8 @@ LUA_API lua_CFunction lua_atpanic(Lumen::State *L, lua_CFunction fPanic) {
 }
 
 
-LUA_API Lumen::State *lua_newthread(lua_State *L) {
-    lua_State *L1;
+LUA_API Lumen::State *lua_newthread(Lumen::State *L) {
+    Lumen::State *L1;
     LumenLock(L);
     LumenGCCheckGC(L);
     L1 = Lumen::State::NewThread(L);
@@ -157,12 +157,12 @@ LUA_API Lumen::State *lua_newthread(lua_State *L) {
 */
 
 
-LUA_API int lua_gettop(lua_State *L) {
+LUA_API int lua_gettop(Lumen::State *L) {
     return cast_int(L->Top - L->Base);
 }
 
 
-LUA_API void lua_settop(lua_State *L, int idx) {
+LUA_API void lua_settop(Lumen::State *L, int idx) {
     LumenLock(L);
     if (idx >= 0) {
         LumenApiCheck(L, idx <= L->StackLast - L->Base);
@@ -177,7 +177,7 @@ LUA_API void lua_settop(lua_State *L, int idx) {
 }
 
 
-LUA_API void lua_remove(lua_State *L, int idx) {
+LUA_API void lua_remove(Lumen::State *L, int idx) {
     Lumen::StkId p;
     LumenLock(L);
     p = index2addr(L, idx);
@@ -188,7 +188,7 @@ LUA_API void lua_remove(lua_State *L, int idx) {
 }
 
 
-LUA_API void lua_insert(lua_State *L, int idx) {
+LUA_API void lua_insert(Lumen::State *L, int idx) {
     Lumen::StkId p;
     Lumen::StkId q;
     LumenLock(L);
@@ -200,7 +200,7 @@ LUA_API void lua_insert(lua_State *L, int idx) {
 }
 
 
-LUA_API void lua_replace(lua_State *L, int idx) {
+LUA_API void lua_replace(Lumen::State *L, int idx) {
     Lumen::StkId o;
     LumenLock(L);
     /* explicit test for incompatible code */
@@ -224,7 +224,7 @@ LUA_API void lua_replace(lua_State *L, int idx) {
 }
 
 
-LUA_API void lua_pushvalue(lua_State *L, int idx) {
+LUA_API void lua_pushvalue(Lumen::State *L, int idx) {
     LumenLock(L);
     LumenSetObject2S(L, L->Top, index2addr(L, idx));
     apiIncrTop(L);
@@ -238,44 +238,44 @@ LUA_API void lua_pushvalue(lua_State *L, int idx) {
 */
 
 
-LUA_API int lua_type(lua_State *L, int idx) {
+LUA_API int lua_type(Lumen::State *L, int idx) {
     Lumen::StkId o = index2addr(L, idx);
     return (o == Lumen::NilObject) ? LUA_TNONE : LumenTypeOf(o);
 }
 
 
-LUA_API const char *lua_typename(lua_State *L, int t) {
+LUA_API const char *lua_typename(Lumen::State *L, int t) {
     UNUSED(L);
     return (t == LUA_TNONE) ? "no value" : Lumen::TM::TypeNames[t];
 }
 
 
-LUA_API int lua_iscfunction(lua_State *L, int idx) {
+LUA_API int lua_iscfunction(Lumen::State *L, int idx) {
     Lumen::StkId o = index2addr(L, idx);
     return LumenIsCFunction(o);
 }
 
 
-LUA_API int lua_isnumber(lua_State *L, int idx) {
+LUA_API int lua_isnumber(Lumen::State *L, int idx) {
     Lumen::Value n;
     const Lumen::Value *o = index2addr(L, idx);
     return LumenVMToNumber(o, &n);
 }
 
 
-LUA_API int lua_isstring(lua_State *L, int idx) {
+LUA_API int lua_isstring(Lumen::State *L, int idx) {
     int t = lua_type(L, idx);
     return (t == LUA_TSTRING || t == LUA_TNUMBER);
 }
 
 
-LUA_API int lua_isuserdata(lua_State *L, int idx) {
+LUA_API int lua_isuserdata(Lumen::State *L, int idx) {
     const Lumen::Value *o = index2addr(L, idx);
     return (LumenTypeIsUData(o) || LumenTypeIsLUData(o));
 }
 
 
-LUA_API int lua_rawequal(lua_State *L, int index1, int index2) {
+LUA_API int lua_rawequal(Lumen::State *L, int index1, int index2) {
     Lumen::StkId o1 = index2addr(L, index1);
     Lumen::StkId o2 = index2addr(L, index2);
     return (o1 == Lumen::NilObject || o2 == Lumen::NilObject) ? 0
@@ -283,7 +283,7 @@ LUA_API int lua_rawequal(lua_State *L, int index1, int index2) {
 }
 
 
-LUA_API int lua_equal(lua_State *L, int index1, int index2) {
+LUA_API int lua_equal(Lumen::State *L, int index1, int index2) {
     Lumen::StkId o1, o2;
     int i;
     LumenLock(L);  /* may call tag method */
@@ -295,7 +295,7 @@ LUA_API int lua_equal(lua_State *L, int index1, int index2) {
 }
 
 
-LUA_API int lua_lessthan(lua_State *L, int index1, int index2) {
+LUA_API int lua_lessthan(Lumen::State *L, int index1, int index2) {
     Lumen::StkId o1, o2;
     int i;
     LumenLock(L);  /* may call tag method */
@@ -309,7 +309,7 @@ LUA_API int lua_lessthan(lua_State *L, int index1, int index2) {
 
 
 
-LUA_API Lumen::Number lua_tonumber(lua_State *L, int idx) {
+LUA_API Lumen::Number lua_tonumber(Lumen::State *L, int idx) {
     Lumen::Value n;
     const Lumen::Value *o = index2addr(L, idx);
     if (LumenVMToNumber(o, &n))
@@ -319,7 +319,7 @@ LUA_API Lumen::Number lua_tonumber(lua_State *L, int idx) {
 }
 
 
-LUA_API lua_Integer lua_tointeger(lua_State *L, int idx) {
+LUA_API lua_Integer lua_tointeger(Lumen::State *L, int idx) {
     Lumen::Value n;
     const Lumen::Value *o = index2addr(L, idx);
     if (LumenVMToNumber(o, &n)) {
@@ -332,13 +332,13 @@ LUA_API lua_Integer lua_tointeger(lua_State *L, int idx) {
 }
 
 
-LUA_API int lua_toboolean(lua_State *L, int idx) {
+LUA_API int lua_toboolean(Lumen::State *L, int idx) {
     const Lumen::Value *o = index2addr(L, idx);
     return !LumenIsFalse(o);
 }
 
 
-LUA_API const char *lua_tolstring(lua_State *L, int idx, size_t *len) {
+LUA_API const char *lua_tolstring(Lumen::State *L, int idx, size_t *len) {
     Lumen::StkId o = index2addr(L, idx);
     if (!LumenTypeIsString(o)) {
         LumenLock(L);  /* `Lumen::VM::ToString' may create a new string */
@@ -356,7 +356,7 @@ LUA_API const char *lua_tolstring(lua_State *L, int idx, size_t *len) {
 }
 
 
-LUA_API size_t lua_objlen(lua_State *L, int idx) {
+LUA_API size_t lua_objlen(Lumen::State *L, int idx) {
     Lumen::StkId o = index2addr(L, idx);
     switch (LumenTypeOf(o)) {
         case LUA_TSTRING:
@@ -378,13 +378,13 @@ LUA_API size_t lua_objlen(lua_State *L, int idx) {
 }
 
 
-LUA_API lua_CFunction lua_tocfunction(lua_State *L, int idx) {
+LUA_API lua_CFunction lua_tocfunction(Lumen::State *L, int idx) {
     Lumen::StkId o = index2addr(L, idx);
     return (!LumenIsCFunction(o)) ? nullptr : LumenClosureValue(o)->AsC.Func;
 }
 
 
-LUA_API void *lua_touserdata(lua_State *L, int idx) {
+LUA_API void *lua_touserdata(Lumen::State *L, int idx) {
     Lumen::StkId o = index2addr(L, idx);
     switch (LumenTypeOf(o)) {
         case LUA_TUSERDATA:
@@ -397,13 +397,13 @@ LUA_API void *lua_touserdata(lua_State *L, int idx) {
 }
 
 
-LUA_API lua_State *lua_tothread(lua_State *L, int idx) {
+LUA_API Lumen::State *lua_tothread(Lumen::State *L, int idx) {
     Lumen::StkId o = index2addr(L, idx);
     return (!LumenTypeIsThread(o)) ? nullptr : LumenThreadValue(o);
 }
 
 
-LUA_API const void *lua_topointer(lua_State *L, int idx) {
+LUA_API const void *lua_topointer(Lumen::State *L, int idx) {
     Lumen::StkId o = index2addr(L, idx);
     switch (LumenTypeOf(o)) {
         case LUA_TTABLE:
@@ -427,7 +427,7 @@ LUA_API const void *lua_topointer(lua_State *L, int idx) {
 */
 
 
-LUA_API void lua_pushnil(lua_State *L) {
+LUA_API void lua_pushnil(Lumen::State *L) {
     LumenLock(L);
     LumenSetNilValue(L->Top);
     apiIncrTop(L);
@@ -435,7 +435,7 @@ LUA_API void lua_pushnil(lua_State *L) {
 }
 
 
-LUA_API void lua_pushnumber(lua_State *L, Lumen::Number n) {
+LUA_API void lua_pushnumber(Lumen::State *L, Lumen::Number n) {
     LumenLock(L);
     LumenSetNumberValue(L->Top, n);
     apiIncrTop(L);
@@ -443,7 +443,7 @@ LUA_API void lua_pushnumber(lua_State *L, Lumen::Number n) {
 }
 
 
-LUA_API void lua_pushinteger(lua_State *L, lua_Integer n) {
+LUA_API void lua_pushinteger(Lumen::State *L, lua_Integer n) {
     LumenLock(L);
     LumenSetNumberValue(L->Top, cast_num(n));
     apiIncrTop(L);
@@ -451,7 +451,7 @@ LUA_API void lua_pushinteger(lua_State *L, lua_Integer n) {
 }
 
 
-LUA_API void lua_pushlstring(lua_State *L, const char *s, size_t len) {
+LUA_API void lua_pushlstring(Lumen::State *L, const char *s, size_t len) {
     LumenLock(L);
     LumenGCCheckGC(L);
     LumenSetStringValue2S(L, L->Top, Lumen::String::New(L, s, len));
@@ -460,7 +460,7 @@ LUA_API void lua_pushlstring(lua_State *L, const char *s, size_t len) {
 }
 
 
-LUA_API void lua_pushstring(lua_State *L, const char *s) {
+LUA_API void lua_pushstring(Lumen::State *L, const char *s) {
     if (s == nullptr)
         lua_pushnil(L);
     else
@@ -468,7 +468,7 @@ LUA_API void lua_pushstring(lua_State *L, const char *s) {
 }
 
 
-LUA_API const char *lua_pushvfstring(lua_State *L, const char *fmt,
+LUA_API const char *lua_pushvfstring(Lumen::State *L, const char *fmt,
                                      va_list argP) {
     const char *ret;
     LumenLock(L);
@@ -479,7 +479,7 @@ LUA_API const char *lua_pushvfstring(lua_State *L, const char *fmt,
 }
 
 
-LUA_API const char *lua_pushfstring(lua_State *L, const char *fmt, ...) {
+LUA_API const char *lua_pushfstring(Lumen::State *L, const char *fmt, ...) {
     const char *ret;
     va_list argP;
     LumenLock(L);
@@ -492,7 +492,7 @@ LUA_API const char *lua_pushfstring(lua_State *L, const char *fmt, ...) {
 }
 
 
-LUA_API void lua_pushcclosure(lua_State *L, lua_CFunction fn, int n) {
+LUA_API void lua_pushcclosure(Lumen::State *L, lua_CFunction fn, int n) {
     Lumen::Closure *cl;
     LumenLock(L);
     LumenGCCheckGC(L);
@@ -509,7 +509,7 @@ LUA_API void lua_pushcclosure(lua_State *L, lua_CFunction fn, int n) {
 }
 
 
-LUA_API void lua_pushboolean(lua_State *L, int b) {
+LUA_API void lua_pushboolean(Lumen::State *L, int b) {
     LumenLock(L);
     LumenSetBoolValue(L->Top, (b != 0));  /* ensure that true is 1 */
     apiIncrTop(L);
@@ -517,7 +517,7 @@ LUA_API void lua_pushboolean(lua_State *L, int b) {
 }
 
 
-LUA_API void lua_pushlightuserdata(lua_State *L, void *p) {
+LUA_API void lua_pushlightuserdata(Lumen::State *L, void *p) {
     LumenLock(L);
     LumenSetLUDataValue(L->Top, p);
     apiIncrTop(L);
@@ -525,7 +525,7 @@ LUA_API void lua_pushlightuserdata(lua_State *L, void *p) {
 }
 
 
-LUA_API int lua_pushthread(lua_State *L) {
+LUA_API int lua_pushthread(Lumen::State *L) {
     LumenLock(L);
     LumenSetThreadValue(L, L->Top, L);
     apiIncrTop(L);
@@ -539,7 +539,7 @@ LUA_API int lua_pushthread(lua_State *L) {
 */
 
 
-LUA_API void lua_gettable(lua_State *L, int idx) {
+LUA_API void lua_gettable(Lumen::State *L, int idx) {
     Lumen::StkId t;
     LumenLock(L);
     t = index2addr(L, idx);
@@ -549,7 +549,7 @@ LUA_API void lua_gettable(lua_State *L, int idx) {
 }
 
 
-LUA_API void lua_getfield(lua_State *L, int idx, const char *k) {
+LUA_API void lua_getfield(Lumen::State *L, int idx, const char *k) {
     Lumen::StkId t;
     Lumen::Value key;
     LumenLock(L);
@@ -562,7 +562,7 @@ LUA_API void lua_getfield(lua_State *L, int idx, const char *k) {
 }
 
 
-LUA_API void lua_rawget(lua_State *L, int idx) {
+LUA_API void lua_rawget(Lumen::State *L, int idx) {
     Lumen::StkId t;
     LumenLock(L);
     t = index2addr(L, idx);
@@ -572,7 +572,7 @@ LUA_API void lua_rawget(lua_State *L, int idx) {
 }
 
 
-LUA_API void lua_rawgeti(lua_State *L, int idx, int n) {
+LUA_API void lua_rawgeti(Lumen::State *L, int idx, int n) {
     Lumen::StkId o;
     LumenLock(L);
     o = index2addr(L, idx);
@@ -583,7 +583,7 @@ LUA_API void lua_rawgeti(lua_State *L, int idx, int n) {
 }
 
 
-LUA_API void lua_createtable(lua_State *L, int nArray, int nRec) {
+LUA_API void lua_createtable(Lumen::State *L, int nArray, int nRec) {
     LumenLock(L);
     LumenGCCheckGC(L);
     LumenSetTableValue(L, L->Top, Lumen::Table::New(L, nArray, nRec));
@@ -592,7 +592,7 @@ LUA_API void lua_createtable(lua_State *L, int nArray, int nRec) {
 }
 
 
-LUA_API int lua_getmetatable(lua_State *L, int objIndex) {
+LUA_API int lua_getmetatable(Lumen::State *L, int objIndex) {
     const Lumen::Value *obj;
     Lumen::Table *mt = nullptr;
     int res;
@@ -621,7 +621,7 @@ LUA_API int lua_getmetatable(lua_State *L, int objIndex) {
 }
 
 
-LUA_API void lua_getfenv(lua_State *L, int idx) {
+LUA_API void lua_getfenv(Lumen::State *L, int idx) {
     Lumen::StkId o;
     LumenLock(L);
     o = index2addr(L, idx);
@@ -650,7 +650,7 @@ LUA_API void lua_getfenv(lua_State *L, int idx) {
 */
 
 
-LUA_API void lua_settable(lua_State *L, int idx) {
+LUA_API void lua_settable(Lumen::State *L, int idx) {
     Lumen::StkId t;
     LumenLock(L);
     apiCheckElementCount(L, 2);
@@ -662,7 +662,7 @@ LUA_API void lua_settable(lua_State *L, int idx) {
 }
 
 
-LUA_API void lua_setfield(lua_State *L, int idx, const char *k) {
+LUA_API void lua_setfield(Lumen::State *L, int idx, const char *k) {
     Lumen::StkId t;
     Lumen::Value key;
     LumenLock(L);
@@ -676,7 +676,7 @@ LUA_API void lua_setfield(lua_State *L, int idx, const char *k) {
 }
 
 
-LUA_API void lua_rawset(lua_State *L, int idx) {
+LUA_API void lua_rawset(Lumen::State *L, int idx) {
     Lumen::StkId t;
     LumenLock(L);
     apiCheckElementCount(L, 2);
@@ -689,7 +689,7 @@ LUA_API void lua_rawset(lua_State *L, int idx) {
 }
 
 
-LUA_API void lua_rawseti(lua_State *L, int idx, int n) {
+LUA_API void lua_rawseti(Lumen::State *L, int idx, int n) {
     Lumen::StkId o;
     LumenLock(L);
     apiCheckElementCount(L, 1);
@@ -702,7 +702,7 @@ LUA_API void lua_rawseti(lua_State *L, int idx, int n) {
 }
 
 
-LUA_API int lua_setmetatable(lua_State *L, int objIndex) {
+LUA_API int lua_setmetatable(Lumen::State *L, int objIndex) {
     Lumen::Value *obj;
     Lumen::Table *mt;
     LumenLock(L);
@@ -739,7 +739,7 @@ LUA_API int lua_setmetatable(lua_State *L, int objIndex) {
 }
 
 
-LUA_API int lua_setfenv(lua_State *L, int idx) {
+LUA_API int lua_setfenv(Lumen::State *L, int idx) {
     Lumen::StkId o;
     int res = 1;
     LumenLock(L);
@@ -784,7 +784,7 @@ LumenDo(                         \
      LumenApiCheck(L, (nr) == LUA_MULTRET || (L->CallInfo->Top - L->Top >= (nr) - (na)))
 
 
-LUA_API void lua_call(lua_State *L, int nargs, int nResults) {
+LUA_API void lua_call(Lumen::State *L, int nargs, int nResults) {
     Lumen::StkId func;
     LumenLock(L);
     apiCheckElementCount(L, nargs + 1);
@@ -803,15 +803,15 @@ struct ProtectedCall {
     Lumen::StkId Func;
     int NResults;
 
-    static void Call(lua_State *L, void *ud);
+    static void Call(Lumen::State *L, void *ud);
 };
 
-void ProtectedCall::Call(lua_State *L, void *ud) {
+void ProtectedCall::Call(Lumen::State *L, void *ud) {
     ProtectedCall *c = cast(ProtectedCall *, ud);
     Lumen::Do::Call(L, c->Func, c->NResults);
 }
 
-LUA_API int lua_pcall(lua_State *L, int nargs, int nResults, int errFunc) {
+LUA_API int lua_pcall(Lumen::State *L, int nargs, int nResults, int errFunc) {
     ProtectedCall c;
     int status;
     ptrdiff_t func;
@@ -841,7 +841,7 @@ struct ProtectedCCall {
     lua_CFunction func;
     void *ud;
 
-    static void Call(lua_State *L, void *ud) {
+    static void Call(Lumen::State *L, void *ud) {
         ProtectedCCall *c = cast(ProtectedCCall *, ud);
         Lumen::Closure *cl;
         cl = Lumen::CClosure::New(L, 0, getCurEnv(L));
@@ -855,7 +855,7 @@ struct ProtectedCCall {
 };
 
 
-LUA_API int lua_cpcall(lua_State *L, lua_CFunction func, void *ud) {
+LUA_API int lua_cpcall(Lumen::State *L, lua_CFunction func, void *ud) {
     ProtectedCCall c;
     int status;
     LumenLock(L);
@@ -867,7 +867,7 @@ LUA_API int lua_cpcall(lua_State *L, lua_CFunction func, void *ud) {
 }
 
 
-LUA_API int lua_load(lua_State *L, Lumen::Reader reader, void *data,
+LUA_API int lua_load(Lumen::State *L, Lumen::Reader reader, void *data,
                      const char *chunkName) {
     Lumen::ZIO z;
     int status;
@@ -880,7 +880,7 @@ LUA_API int lua_load(lua_State *L, Lumen::Reader reader, void *data,
 }
 
 
-LUA_API int lua_dump(lua_State *L, Lumen::Writer writer, void *data) {
+LUA_API int lua_dump(Lumen::State *L, Lumen::Writer writer, void *data) {
     int status;
     Lumen::Value *o;
     LumenLock(L);
@@ -895,7 +895,7 @@ LUA_API int lua_dump(lua_State *L, Lumen::Writer writer, void *data) {
 }
 
 
-LUA_API int lua_status(lua_State *L) {
+LUA_API int lua_status(Lumen::State *L) {
     return L->Status;
 }
 
@@ -904,7 +904,7 @@ LUA_API int lua_status(lua_State *L) {
 ** Garbage-collection function
 */
 
-LUA_API int lua_gc(lua_State *L, int what, int data) {
+LUA_API int lua_gc(Lumen::State *L, int what, int data) {
     int res = 0;
     Lumen::GlobalState *g;
     LumenLock(L);
@@ -970,7 +970,7 @@ LUA_API int lua_gc(lua_State *L, int what, int data) {
 */
 
 
-LUA_API int lua_error(lua_State *L) {
+LUA_API int lua_error(Lumen::State *L) {
     LumenLock(L);
     apiCheckElementCount(L, 1);
     Lumen::Debug::ErrorMessage(L);
@@ -979,7 +979,7 @@ LUA_API int lua_error(lua_State *L) {
 }
 
 
-LUA_API int lua_next(lua_State *L, int idx) {
+LUA_API int lua_next(Lumen::State *L, int idx) {
     Lumen::StkId t;
     int more;
     LumenLock(L);
@@ -995,7 +995,7 @@ LUA_API int lua_next(lua_State *L, int idx) {
 }
 
 
-LUA_API void lua_concat(lua_State *L, int n) {
+LUA_API void lua_concat(Lumen::State *L, int n) {
     LumenLock(L);
     apiCheckElementCount(L, n);
     if (n >= 2) {
@@ -1011,7 +1011,7 @@ LUA_API void lua_concat(lua_State *L, int n) {
 }
 
 
-LUA_API lua_Alloc lua_getallocf(lua_State *L, void **ud) {
+LUA_API lua_Alloc lua_getallocf(Lumen::State *L, void **ud) {
     lua_Alloc f;
     LumenLock(L);
     if (ud) *ud = LumenGlobal(L)->ReAllocatorUData;
@@ -1021,7 +1021,7 @@ LUA_API lua_Alloc lua_getallocf(lua_State *L, void **ud) {
 }
 
 
-LUA_API void lua_setallocf(lua_State *L, lua_Alloc f, void *ud) {
+LUA_API void lua_setallocf(Lumen::State *L, lua_Alloc f, void *ud) {
     LumenLock(L);
     LumenGlobal(L)->ReAllocatorUData = ud;
     LumenGlobal(L)->ReAllocator = f;
@@ -1029,7 +1029,7 @@ LUA_API void lua_setallocf(lua_State *L, lua_Alloc f, void *ud) {
 }
 
 
-LUA_API void *lua_newuserdata(lua_State *L, size_t size) {
+LUA_API void *lua_newuserdata(Lumen::State *L, size_t size) {
     Lumen::Userdata *u;
     LumenLock(L);
     LumenGCCheckGC(L);
@@ -1058,7 +1058,7 @@ static const char *aux_upvalue(Lumen::StkId fi, int n, Lumen::Value **val) {
 }
 
 
-LUA_API const char *lua_getupvalue(lua_State *L, int funcIndex, int n) {
+LUA_API const char *lua_getupvalue(Lumen::State *L, int funcIndex, int n) {
     const char *name;
     Lumen::Value *val;
     LumenLock(L);
@@ -1072,7 +1072,7 @@ LUA_API const char *lua_getupvalue(lua_State *L, int funcIndex, int n) {
 }
 
 
-LUA_API const char *lua_setupvalue(lua_State *L, int funcIndex, int n) {
+LUA_API const char *lua_setupvalue(Lumen::State *L, int funcIndex, int n) {
     const char *name;
     Lumen::Value *val;
     Lumen::StkId fi;
@@ -1089,7 +1089,7 @@ LUA_API const char *lua_setupvalue(lua_State *L, int funcIndex, int n) {
     return name;
 }
 
-LUA_API void *lua_upvalueid(lua_State *L, int idx, int n) {
+LUA_API void *lua_upvalueid(Lumen::State *L, int idx, int n) {
     Lumen::StkId func = index2addr(L, idx);
     if (!LumenTypeIsFunction(func)) return nullptr;
 
@@ -1105,7 +1105,7 @@ LUA_API void *lua_upvalueid(lua_State *L, int idx, int n) {
     }
 }
 
-LUA_API void lua_upvaluejoin(lua_State *L, int idx1, int n1, int idx2, int n2) {
+LUA_API void lua_upvaluejoin(Lumen::State *L, int idx1, int n1, int idx2, int n2) {
     auto o1 = index2addr(L, idx1);
     auto o2 = index2addr(L, idx2);
     lua_assert(LumenTypeIsFunction(o1) && LumenTypeIsFunction(o2));
@@ -1121,7 +1121,7 @@ LUA_API void lua_upvaluejoin(lua_State *L, int idx1, int n1, int idx2, int n2) {
     }
 }
 
-LUA_API int lua_loadx(lua_State *L, lua_Reader reader, void *data,
+LUA_API int lua_loadx(Lumen::State *L, lua_Reader reader, void *data,
                       const char *chunkName, const char *mode) {
     (void) mode;  /* Lua 5.1 Can't specify mode */
     return lua_load(L, reader, data, chunkName);
@@ -1129,12 +1129,12 @@ LUA_API int lua_loadx(lua_State *L, lua_Reader reader, void *data,
 
 static const lua_Number lua_version_number = 5.1;
 
-LUA_API const lua_Number *lua_version(lua_State *L) {
+LUA_API const lua_Number *lua_version(Lumen::State *L) {
     (void) L;
     return &lua_version_number;
 }
 
-LUA_API int lua_absindex(lua_State *L, int i) {
+LUA_API int lua_absindex(Lumen::State *L, int i) {
     if (i < 0 && i > LUA_REGISTRYINDEX)
         i += lua_gettop(L) + 1;
     return i;
@@ -1145,25 +1145,25 @@ LUA_API int lua_absindex(lua_State *L, int i) {
         Lumen::Debug::RunError(L, __VA_ARGS__); \
 } while (0)
 
-LUA_API void lua_copy(lua_State *L, int fromIdx, int toIdx) {
+LUA_API void lua_copy(Lumen::State *L, int fromIdx, int toIdx) {
     int absTo = lua_absindex(L, toIdx);
     checkStack(L, 1, "stack overflow (%s)", "not enough stack slots");
     lua_pushvalue(L, fromIdx);
     lua_replace(L, absTo);
 }
 
-LUA_API lua_Number lua_tonumberx(lua_State *L, int idx, int *isNum) {
+LUA_API lua_Number lua_tonumberx(Lumen::State *L, int idx, int *isNum) {
     lua_Number n = lua_tonumber(L, idx);
     if (isNum) *isNum = (n != 0 || lua_isnumber(L, idx));
     return n;
 }
 
-LUA_API lua_Integer lua_tointegerx(lua_State *L, int idx, int *isNum) {
+LUA_API lua_Integer lua_tointegerx(Lumen::State *L, int idx, int *isNum) {
     lua_Integer n = lua_tointeger(L, idx);
     if (isNum) *isNum = (n != 0 || lua_isnumber(L, idx));
     return n;
 }
 
-LUA_API int lua_isyieldable(lua_State *L) {
+LUA_API int lua_isyieldable(Lumen::State *L) {
     return (L->NCCalls == 0);
 }

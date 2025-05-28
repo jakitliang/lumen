@@ -618,8 +618,8 @@
 
 // MARK: State configuration
 
-#ifndef LUA_STATE
-#define LUA_STATE struct LuaState
+#ifndef LUAI_STATE
+#define LUAI_STATE struct LuaState
 #endif
 
 /*

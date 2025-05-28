@@ -14,7 +14,7 @@
 #include "lumen/object.h"
 
 namespace Lumen {
-    void PushObject (lua_State *L, const Lumen::Value *o);
+    void PushObject (Lumen::State *L, const Lumen::Value *o);
 }
 
 #endif

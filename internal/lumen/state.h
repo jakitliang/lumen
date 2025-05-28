@@ -61,7 +61,7 @@ namespace Lumen {
         int GCStepMul;  /* GC `granularity' */
         lua_CFunction Panic;  /* to be called in unprotected errors */
         Lumen::Value Registry;
-        lua_State *MainThread;
+        Lumen::State *MainThread;
         Lumen::UpValue UpValueHead;  /* head of double-linked list of all open upValues */
         Lumen::Table *Metatable[LUA_NUM_TAGS];  /* metatables for basic types */
         Lumen::String *MetatableName[Lumen::TM::NameN];  /* array with tag-method names */
@@ -112,7 +112,7 @@ struct Lumen::State : Lumen::Object {
 
     static Lumen::State *NewThread(Lumen::State *L);
 
-    static void FreeThread(lua_State *L, lua_State *L1);
+    static void FreeThread(Lumen::State *L, Lumen::State *L1);
 };
 
 namespace Lumen {

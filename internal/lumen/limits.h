@@ -15,7 +15,7 @@
 #include <cstddef>
 #include <limits>
 
-#define LUA_STATE Lumen::State
+#define LUAI_STATE Lumen::State
 
 #include "luaconf.h"
 
@@ -25,6 +25,8 @@ namespace Lumen {
     using UInt32 = LUAI_UINT32;
 
     using Number = LUA_NUMBER;
+    using Integer = LUA_INTEGER;
+
     using MemorySize = LUAI_UMEM;
     using MemoryDelta = LUAI_MEM;
 
