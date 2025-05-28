@@ -77,7 +77,7 @@ LUA_API int lua_gethookcount(Lumen::State *L) {
 }
 
 
-LUA_API int lua_getstack(Lumen::State *L, int level, lua_Debug *ar) {
+LUA_API int lua_getstack(Lumen::State *L, int level, Lumen::DebugInfo *ar) {
     int status;
     Lumen::CallInfo *ci;
     LumenLock(L);
@@ -118,7 +118,7 @@ static const char *findLocal(Lumen::State *L, Lumen::CallInfo *ci, int n) {
 }
 
 
-LUA_API const char *lua_getlocal(Lumen::State *L, const lua_Debug *ar, int n) {
+LUA_API const char *lua_getlocal(Lumen::State *L, const Lumen::DebugInfo *ar, int n) {
     Lumen::CallInfo *ci = L->BaseCI + ar->i_ci;
     const char *name = findLocal(L, ci, n);
     LumenLock(L);
@@ -129,7 +129,7 @@ LUA_API const char *lua_getlocal(Lumen::State *L, const lua_Debug *ar, int n) {
 }
 
 
-LUA_API const char *lua_setlocal(Lumen::State *L, const lua_Debug *ar, int n) {
+LUA_API const char *lua_setlocal(Lumen::State *L, const Lumen::DebugInfo *ar, int n) {
     Lumen::CallInfo *ci = L->BaseCI + ar->i_ci;
     const char *name = findLocal(L, ci, n);
     LumenLock(L);
@@ -141,7 +141,7 @@ LUA_API const char *lua_setlocal(Lumen::State *L, const lua_Debug *ar, int n) {
 }
 
 
-static void funcInfo(lua_Debug *ar, Lumen::Closure *cl) {
+static void funcInfo(Lumen::DebugInfo *ar, Lumen::Closure *cl) {
     if (cl->AsC.IsC) {
         ar->source = "=[C]";
         ar->linedefined = -1;
@@ -157,7 +157,7 @@ static void funcInfo(lua_Debug *ar, Lumen::Closure *cl) {
 }
 
 
-static void infoTailCall(lua_Debug *ar) {
+static void infoTailCall(Lumen::DebugInfo *ar) {
     ar->name = ar->namewhat = "";
     ar->what = "tail";
     ar->lastlinedefined = ar->linedefined = ar->currentline = -1;
@@ -181,7 +181,7 @@ static void collectValidLines(Lumen::State *L, Lumen::Closure *f) {
 }
 
 
-static int auxGetInfo(Lumen::State *L, const char *what, lua_Debug *ar,
+static int auxGetInfo(Lumen::State *L, const char *what, Lumen::DebugInfo *ar,
                       Lumen::Closure *f, Lumen::CallInfo *ci) {
     int status = 1;
     if (f == nullptr) {
@@ -221,7 +221,7 @@ static int auxGetInfo(Lumen::State *L, const char *what, lua_Debug *ar,
 }
 
 
-LUA_API int lua_getinfo(Lumen::State *L, const char *what, lua_Debug *ar) {
+LUA_API int lua_getinfo(Lumen::State *L, const char *what, Lumen::DebugInfo *ar) {
     int status;
     Lumen::Closure *f = nullptr;
     Lumen::CallInfo *ci = nullptr;

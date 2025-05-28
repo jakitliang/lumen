@@ -627,7 +627,28 @@
 #define LUAI_READER(name) const char *(*name)(LUAI_STATE *L, void *ud, size_t *sz)
 #define LUAI_WRITER(name) int (*name)(LUAI_STATE *L, const void *p, size_t sz, void *ud)
 
+#define LUAI_ALLOCATOR(name) void *(*name)(void *ud, void *ptr, size_t oldSize, size_t newSize)
 
+#ifndef LUAI_DEBUGINFO
+#define LUAI_DEBUGINFO_NAME lua_Debug
+#define LUAI_DEBUGINFO struct { \
+    int event;                  \
+    const char *name;           \
+    const char *namewhat;       \
+    const char *what;           \
+    const char *source;         \
+    int currentline;            \
+    int nups;                   \
+    int linedefined;            \
+    int lastlinedefined;        \
+    char short_src[LUA_IDSIZE]; \
+    int i_ci;                   \
+}
+#else
+#define LUAI_DEBUGINFO_NAME LUAI_DEBUGINFO
+#endif
+
+#define LUAI_HOOK(name) void (*name)(LUAI_STATE *L, LUAI_DEBUGINFO_NAME *ar)
 
 /*
 @@ LUAI_EXTRASPACE allows you to add user-specific data in a lua_State

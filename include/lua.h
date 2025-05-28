@@ -87,7 +87,7 @@ typedef LUAI_WRITER(lua_Writer);
 /*
 ** prototype for memory-allocation functions
 */
-typedef void *(*lua_Alloc)(void *ud, void *ptr, size_t oldSize, size_t newSize);
+typedef LUAI_ALLOCATOR(lua_Alloc);
 
 
 /*
@@ -399,11 +399,10 @@ enum {
 };
 
 
-typedef struct lua_Debug lua_Debug;  /* activation record */
-
+typedef LUAI_DEBUGINFO lua_Debug;  /* activation record */
 
 /* Functions to be called by the debuger in specific events */
-typedef void (*lua_Hook)(lua_State *L, lua_Debug *ar);
+typedef LUAI_HOOK(lua_Hook);
 
 
 LUA_API int lua_getstack(lua_State *L, int level, lua_Debug *ar);
@@ -446,21 +445,6 @@ LUA_API lua_Integer lua_tointegerx(lua_State *L, int idx, int *isNum);
 
 /* From Lua 5.3. */
 LUA_API int lua_isyieldable(lua_State *L);
-
-struct lua_Debug {
-    int event;
-    const char *name;    /* (n) */
-    const char *namewhat;    /* (n) `global', `local', `field', `method' */
-    const char *what;    /* (S) `Lua', `C', `main', `tail' */
-    const char *source;    /* (S) */
-    int currentline;    /* (l) */
-    int nups;        /* (u) number of upvalues */
-    int linedefined;    /* (S) */
-    int lastlinedefined;    /* (S) */
-    char short_src[LUA_IDSIZE]; /* (S) */
-    /* private part */
-    int i_ci;  /* active function */
-};
 
 /* }====================================================================== */
 

@@ -41,7 +41,7 @@ namespace Lumen {
      */
     struct GlobalState {
         Lumen::StringTable StringMap;  /* hash table for strings */
-        lua_Alloc ReAllocator;  /* function to reallocate memory */
+        Lumen::Allocator ReAllocator;  /* function to reallocate memory */
         void *ReAllocatorUData;         /* auxiliary data to `ReAllocator` */
         Lumen::Byte CurrentWhite;
         Lumen::Byte GCState;  /* state of garbage collector */

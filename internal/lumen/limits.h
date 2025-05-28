@@ -16,6 +16,7 @@
 #include <limits>
 
 #define LUAI_STATE Lumen::State
+#define LUAI_DEBUGINFO Lumen::DebugInfo
 
 #include "luaconf.h"
 
@@ -64,6 +65,23 @@ namespace Lumen {
      * must be an unsigned with (at least) 4 bytes (see details in lopcodes.h)
      */
     using Instruction = UInt32;
+
+    struct DebugInfo {
+        int event;
+        const char *name;    /* (n) */
+        const char *namewhat;    /* (n) `global', `local', `field', `method' */
+        const char *what;    /* (S) `Lua', `C', `main', `tail' */
+        const char *source;    /* (S) */
+        int currentline;    /* (l) */
+        int nups;        /* (u) number of upvalues */
+        int linedefined;    /* (S) */
+        int lastlinedefined;    /* (S) */
+        char short_src[LUA_IDSIZE]; /* (S) */
+        /* private part */
+        int i_ci;  /* active function */
+    };
+
+    typedef LUAI_HOOK(Hook);
 
     inline constexpr size_t MaxSize = std::numeric_limits<size_t>::max() - 2;
 

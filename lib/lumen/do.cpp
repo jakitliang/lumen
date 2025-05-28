@@ -180,7 +180,7 @@ void Lumen::Do::CallHook(Lumen::State *L, int event, int line) {
     if (hook && L->AllowHook) {
         ptrdiff_t top = LumenSaveStack(L, L->Top);
         ptrdiff_t ci_top = LumenSaveStack(L, L->CallInfo->Top);
-        lua_Debug ar;
+        Lumen::DebugInfo ar;
         ar.event = event;
         ar.currentline = line;
         if (event == LUA_HOOKTAILRET)

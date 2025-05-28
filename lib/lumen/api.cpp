@@ -1011,8 +1011,8 @@ LUA_API void lua_concat(Lumen::State *L, int n) {
 }
 
 
-LUA_API lua_Alloc lua_getallocf(Lumen::State *L, void **ud) {
-    lua_Alloc f;
+LUA_API Lumen::Allocator lua_getallocf(Lumen::State *L, void **ud) {
+    Lumen::Allocator f;
     LumenLock(L);
     if (ud) *ud = LumenGlobal(L)->ReAllocatorUData;
     f = LumenGlobal(L)->ReAllocator;
@@ -1021,7 +1021,7 @@ LUA_API lua_Alloc lua_getallocf(Lumen::State *L, void **ud) {
 }
 
 
-LUA_API void lua_setallocf(Lumen::State *L, lua_Alloc f, void *ud) {
+LUA_API void lua_setallocf(Lumen::State *L, Lumen::Allocator f, void *ud) {
     LumenLock(L);
     LumenGlobal(L)->ReAllocatorUData = ud;
     LumenGlobal(L)->ReAllocator = f;

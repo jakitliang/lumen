@@ -138,7 +138,7 @@ void Lumen::State::FreeThread(Lumen::State *L, Lumen::State *L1) {
 }
 
 
-LUA_API Lumen::State *lua_newstate(lua_Alloc f, void *ud) {
+LUA_API Lumen::State *lua_newstate(Lumen::Allocator f, void *ud) {
     int i;
     Lumen::State *L;
     Lumen::GlobalState *g;
