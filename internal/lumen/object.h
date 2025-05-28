@@ -41,8 +41,6 @@ enum {
 };
 
 namespace Lumen {
-    using State = lua_State;
-
     using Reader = lua_Reader;
     using Writer = lua_Writer;
 

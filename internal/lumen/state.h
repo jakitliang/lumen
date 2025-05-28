@@ -83,7 +83,7 @@ namespace Lumen {
 /*
 ** `per thread' state
 */
-struct lua_State : Lumen::Object {
+struct Lumen::State : Lumen::Object {
     Lumen::Byte Status;
     Lumen::StkId Top;  /* first free slot in the stack */
     Lumen::StkId Base;  /* base of current function */

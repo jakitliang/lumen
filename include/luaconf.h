@@ -726,8 +726,8 @@
 
 #endif
 
-#if defined(LUA_CORE)
-
+#ifndef LUA_STATE
+#define LUA_STATE struct lua_State
 #endif
 
 

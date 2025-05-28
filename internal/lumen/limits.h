@@ -15,6 +15,8 @@
 #include <cstddef>
 #include <limits>
 
+#define LUA_STATE Lumen::State
+
 #include "luaconf.h"
 
 namespace Lumen {
@@ -26,6 +28,8 @@ namespace Lumen {
     using UACNumber = LUAI_UACNUMBER; // Result of a `usual argument conversion' over lua_Number
 
     using Number = LUA_NUMBER;
+
+    struct State;
 
     struct BasicObject {
         int Type;
