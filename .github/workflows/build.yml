@@ -26,7 +26,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: 安装依赖 (Ubuntu)
       if: matrix.platform == 'linux'
       run: |
@@ -61,7 +61,23 @@ jobs:
         key: ${{ runner.os }}-cmake-${{ matrix.build_type }}-${{ hashFiles('**/CMakeLists.txt') }}
         restore-keys: |
           ${{ runner.os }}-cmake-${{ matrix.build_type }}-
-    
+
+    - name: 清理 CMake 构建目录 (Linux/macOS/Android)
+      if: matrix.platform != 'windows'
+      shell: bash
+      run: |
+        if [[ "${{ matrix.platform }}" == "android" ]]; then
+        rm -rf build-android
+        else
+        rm -rf build
+        fi
+
+    - name: 清理 CMake 构建目录 (Windows)
+      if: matrix.platform == 'windows'
+      shell: cmd
+      run: |
+        if exist build (rd /s /q build)
+
     - name: 配置和构建 (Linux)
       if: matrix.platform == 'linux'
       shell: bash
