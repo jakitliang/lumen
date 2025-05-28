@@ -11,11 +11,9 @@
 #ifndef LUMEN_MEM_H
 #define LUMEN_MEM_H
 
-
 #include <cstddef>
 
-#include "lumen/limits.h"
-#include "lua.h"
+#include "lumen/object.h"
 
 #define LUA_MEM_ERR_MSG    "not enough memory"
 
@@ -52,6 +50,7 @@
  */
 #define LumenMemoryReAllocVector(L, v, oldN, n, t) \
     ((v)=cast(t *, LumenMemoryReAllocBlock(L, v, oldN, n, sizeof(t))))
+
 
 namespace Lumen::Memory {
     void *ReAlloc(Lumen::State *L, void *block, size_t oldSize, size_t newSize);

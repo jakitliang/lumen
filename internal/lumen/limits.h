@@ -16,19 +16,19 @@
 #include <cstddef>
 #include <limits>
 
-#include "lua.h"
+#include "luaconf.h"
 
 namespace Lumen {
     using Byte = unsigned char;
     using UInt32 = LUAI_UINT32;
     using MemorySize = LUAI_UMEM;
     using MemoryDelta = LUAI_MEM;
-    using State = lua_State;
+
     using UserAlignment = LUAI_USER_ALIGNMENT_T;
     using UACNumber = LUAI_UACNUMBER; // Result of a `usual argument conversion' over lua_Number
-    using Reader = lua_Reader;
-    using Writer = lua_Writer;
-    using Number = lua_Number;
+
+    using Number = LUA_NUMBER;
+
     struct BasicObject {
         int Type;
     };

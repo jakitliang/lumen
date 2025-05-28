@@ -11,10 +11,7 @@
 #ifndef LUMEN_ZIO_H
 #define LUMEN_ZIO_H
 
-#include "lua.h"
-
 #include "lumen/mem.h"
-
 
 #define EOZ                        (-1)            /* end of stream */
 #define LumenChar2Int(c)             cast(int, cast(Lumen::Byte, (c)))

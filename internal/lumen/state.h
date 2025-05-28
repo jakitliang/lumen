@@ -11,12 +11,9 @@
 #ifndef LUMEN_STATE_H
 #define LUMEN_STATE_H
 
-#include "lua.h"
-
 #include "lumen/object.h"
 #include "lumen/tm.h"
 #include "lumen/zio.h"
-
 
 namespace Lumen {
     struct LongJump;  /* defined in ldo.c */

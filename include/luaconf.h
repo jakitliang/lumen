@@ -466,6 +466,8 @@
 */
 #define LUAI_MAXCSTACK	8000
 
+/* minimum Lua stack available to a C function */
+#define LUA_MINSTACK    20
 
 
 /*
@@ -728,7 +730,6 @@
 #define LUA_INTFRM_T		long
 
 #endif
-
 
 
 /* =================================================================== */

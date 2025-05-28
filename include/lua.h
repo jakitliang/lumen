@@ -109,10 +109,6 @@ enum {
 };
 
 
-/* minimum Lua stack available to a C function */
-#define LUA_MINSTACK    20
-
-
 /*
 ** generic extra include file
 */
