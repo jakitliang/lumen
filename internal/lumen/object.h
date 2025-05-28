@@ -11,11 +11,10 @@
 #ifndef LUMEN_OBJECT_H
 #define LUMEN_OBJECT_H
 
-
 #include <cstdarg>
 
-
 #include "lumen/limits.h"
+
 #include "lua.h"
 
 

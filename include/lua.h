@@ -13,7 +13,6 @@
 
 #include "luaconf.h"
 
-
 #ifdef LUA_CPP
 #include <cstdarg>
 #else

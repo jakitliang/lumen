@@ -16,8 +16,6 @@
 
 #define LUA_CORE
 
-#include "lua.h"
-
 #include "lumen/do.h"
 #include "lumen/mem.h"
 #include "lumen/object.h"

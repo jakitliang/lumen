@@ -15,8 +15,6 @@
 
 #define LUA_CORE
 
-#include "lua.h"
-
 #include "lumen/api.h"
 #include "lumen/debug.h"
 #include "lumen/do.h"
@@ -30,6 +28,7 @@
 #include "lumen/undump.h"
 #include "lumen/vm.h"
 
+#include "lua.h"
 
 const char lua_ident[] =
         "$Lua: " LUA_RELEASE " " LUA_COPYRIGHT " $\n"

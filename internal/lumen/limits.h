@@ -11,7 +11,6 @@
 #ifndef LUMEN_LIMITS_H
 #define LUMEN_LIMITS_H
 
-
 #include <climits>
 #include <cstddef>
 #include <limits>
@@ -24,7 +23,6 @@ namespace Lumen {
     using MemorySize = LUAI_UMEM;
     using MemoryDelta = LUAI_MEM;
 
-    using UserAlignment = LUAI_USER_ALIGNMENT_T;
     using UACNumber = LUAI_UACNUMBER; // Result of a `usual argument conversion' over lua_Number
 
     using Number = LUA_NUMBER;
@@ -110,9 +108,6 @@ namespace Lumen {
 ** cannot hold the whole pointer value
 */
 #define LumenIntPoint(p)  ((unsigned int)(Lumen::MemorySize)(p))
-
-/* type to ensure maximum alignment */
-typedef LUAI_USER_ALIGNMENT_T L_Umaxalign;
 
 /* internal assertions for in-house debugging */
 #ifdef lua_assert

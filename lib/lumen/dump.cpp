@@ -11,11 +11,11 @@
 
 #define LUA_CORE
 
-#include "lua.h"
-
 #include "lumen/object.h"
 #include "lumen/state.h"
 #include "lumen/undump.h"
+
+#include "lua.h"
 
 struct DumpState {
     Lumen::State *L;

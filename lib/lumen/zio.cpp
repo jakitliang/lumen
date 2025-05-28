@@ -12,13 +12,10 @@
 
 #define LUA_CORE
 
-#include "lua.h"
-
 #include "lumen/limits.h"
 #include "lumen/mem.h"
 #include "lumen/state.h"
 #include "lumen/zio.h"
-
 
 int Lumen::ZIO::Fill(Lumen::ZIO *z) {
     size_t size;

@@ -14,8 +14,6 @@
 
 #define LUA_CORE
 
-#include "lua.h"
-
 #include "lumen/do.h"
 #include "lumen/lex.h"
 #include "lumen/object.h"
@@ -25,7 +23,6 @@
 #include "lumen/table.h"
 #include "lumen/zio.h"
 #include "lumen/code.h"
-
 
 #define next(ls)             (ls->Current = LumenZIOGetCodePoint(ls->z))
 #define currIsNewline(ls)    (ls->Current == '\n' || ls->Current == '\r')

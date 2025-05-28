@@ -12,8 +12,6 @@
 
 #define LUA_CORE
 
-#include "lua.h"
-
 #include "lumen/object.h"
 #include "lumen/state.h"
 #include "lumen/string.h"

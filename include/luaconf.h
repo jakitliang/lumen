@@ -165,7 +165,6 @@
 */
 #define LUA_INTEGER	ptrdiff_t
 
-
 /*
 @@ LUA_API is a mark for all core API functions.
 @@ LUALIB_API is a mark for all standard library functions.
@@ -552,11 +551,7 @@
 @@ The luai_num* macros define the primitive operations over numbers.
 */
 #if defined(LUA_CORE)
-#ifdef LUA_CPP
 #include <cmath>
-#else
-#include <math.h>
-#endif
 #define luai_numadd(a,b)	((a)+(b))
 #define luai_numsub(a,b)	((a)-(b))
 #define luai_nummul(a,b)	((a)*(b))
@@ -586,9 +581,9 @@
 
 
 /*
-@@ LUAI_USER_ALIGNMENT_T is a type that requires maximum alignment.
+@@ LUAI_USER_ALIGNMENT_T is a *deprecated* type that requires maximum alignment.
 ** CHANGE it if your system requires alignments larger than double. (For
-** instance, if your system supports long doubles and they must be
+** instance, if your system supports `long double` and they must be
 ** aligned in 16-byte boundaries, then you should add long double in the
 ** union.) Probably you do not need to change this.
 */
@@ -728,6 +723,10 @@
 
 #define LUA_INTFRMLEN		"l"
 #define LUA_INTFRM_T		long
+
+#endif
+
+#if defined(LUA_CORE)
 
 #endif
 

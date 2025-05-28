@@ -11,10 +11,7 @@
 #include <cstdarg>
 #include <cstring>
 
-
 #define LUA_CORE
-
-#include "lua.h"
 
 #include "lumen/api.h"
 #include "lumen/code.h"
