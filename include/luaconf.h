@@ -37,6 +37,7 @@
 ** ===================================================================
 */
 
+// MARK: Platform configuration
 
 /*
 @@ LUA_ANSI controls the use of non-ansi features.
@@ -157,13 +158,7 @@
 #define LUA_EXECDIR	"!"
 #define LUA_IGMARK	"-"
 
-
-/*
-@@ LUA_INTEGER is the integral type used by lua_pushinteger/lua_tointeger.
-** CHANGE that if ptrdiff_t is not adequate on your machine. (On most
-** machines, ptrdiff_t gives a good choice between int or long.)
-*/
-#define LUA_INTEGER	ptrdiff_t
+// MARK: Linkage configuration
 
 /*
 @@ LUA_API is a mark for all core API functions.
@@ -210,8 +205,6 @@
 #define LUAI_DATA	LUA_C
 #endif
 
-
-
 /*
 @@ LUA_QL describes how error messages quote program elements.
 ** CHANGE it if you want a different appearance.
@@ -230,29 +223,11 @@
 
 /*
 ** {==================================================================
-** Stand-alone configuration
+** MARK: Stand-alone configuration
 ** ===================================================================
 */
 
 #if defined(lumen_c)
-
-/*
-@@ lua_stdin_is_tty detects whether the standard input is a 'tty' (that
-@* is, whether we're running lua interactively).
-** CHANGE it if you have a better definition for non-POSIX/non-Windows
-** systems.
-*/
-#if defined(LUA_USE_ISATTY)
-#include <unistd.h>
-#define lua_stdin_is_tty()	isatty(0)
-#elif defined(LUA_WIN)
-#include <io.h>
-#include <stdio.h>
-#define lua_stdin_is_tty()	_isatty(_fileno(stdin))
-#else
-#define lua_stdin_is_tty()	1  /* assume stdin is a tty */
-#endif
-
 
 /*
 @@ LUA_PROMPT is the default prompt used by stand-alone Lua.
@@ -279,36 +254,11 @@
 */
 #define LUA_MAXINPUT	512
 
-
-/*
-@@ lua_readline defines how to show a prompt and then read a line from
-@* the standard input.
-@@ lua_saveline defines how to "save" a read line in a "history".
-@@ lua_freeline defines how to free a line read by lua_readline.
-** CHANGE them if you want to improve this functionality (e.g., by using
-** GNU readline and history facilities).
-*/
-#if defined(LUA_USE_READLINE)
-#include <stdio.h>
-#include <readline/readline.h>
-#include <readline/history.h>
-#define lua_readline(L,b,p)	((void)L, ((b)=readline(p)) != NULL)
-#define lua_saveline(L,idx) \
-	if (lua_strlen(L,idx) > 0)  /* non-empty line? */ \
-	  add_history(lua_tostring(L, idx));  /* add it to history */
-#define lua_freeline(L,b)	((void)L, free(b))
-#else
-#define lua_readline(L,b,p)	\
-	((void)L, fputs(p, stdout), fflush(stdout),  /* show prompt */ \
-	fgets(b, LUA_MAXINPUT, stdin) != NULL)  /* get line */
-#define lua_saveline(L,idx)	do { (void)L; (void)idx; } while (0)
-#define lua_freeline(L,b)	do { (void)L; (void)b; } while (0)
-#endif
-
 #endif
 
 /* }================================================================== */
 
+// MARK: GC configuration
 
 /*
 @@ LUAI_GCPAUSE defines the default pause between garbage-collector cycles
@@ -330,7 +280,7 @@
 */
 #define LUAI_GCMUL	200 /* GC runs 'twice the speed' of memory allocation */
 
-
+// MARK: Compat configuration
 
 /*
 @@ LUA_COMPAT_GETN controls compatibility with old getn behavior.
@@ -401,6 +351,14 @@
 #define luai_apicheck(L,o)	do { (void)L; } while(0)
 #endif
 
+// MARK: Integer configuration
+
+/*
+@@ LUA_INTEGER is the integral type used by lua_pushinteger/lua_tointeger.
+** CHANGE that if ptrdiff_t is not adequate on your machine. (On most
+** machines, ptrdiff_t gives a good choice between int or long.)
+*/
+#define LUA_INTEGER	ptrdiff_t
 
 /*
 @@ LUAI_BITSINT defines the number of bits in an int.
@@ -428,6 +386,7 @@
 #define LUAI_UMEM	size_t
 #define LUAI_MEM	ptrdiff_t
 
+// MARK: VM configuration
 
 /*
 @@ LUAI_MAXCALLS limits the number of nested calls.
@@ -495,7 +454,7 @@
 /* }================================================================== */
 
 
-
+// MARK: Numeric configuration
 
 /*
 ** {==================================================================
@@ -572,6 +531,7 @@
 */
 #define LUAI_USER_ALIGNMENT_T	union { double u; void *s; long l; }
 
+// MARK: Exception configuration
 
 /*
 @@ LUAI_THROW/LUAI_TRY define how Lua does exception handling.
@@ -594,32 +554,20 @@
 #define LUA_MAXCAPTURES		32
 
 
+// MARK: Library OS configuration
+
+
+#if defined(loslib_c)
 /*
-@@ lua_tmpnam is the function that the OS library uses to create a
-@* temporary name.
 @@ LUA_TMPNAMBUFSIZE is the maximum size of a name created by lua_tmpnam.
 ** CHANGE them if you have an alternative to tmpnam (which is considered
 ** insecure) or if you want the original tmpnam anyway.  By default, Lua
 ** uses tmpnam except when POSIX is available, where it uses mkstemp.
 */
-#if defined(loslib_c)
-
-#if defined(LUA_USE_MKSTEMP)
-#include <unistd.h>
-#define LUA_TMPNAMBUFSIZE	32
-#define lua_tmpnam(b,e)	do { \
-	strcpy(b, "/tmp/lua_XXXXXX"); \
-	e = mkstemp(b); \
-	if (e != -1) close(e); \
-	e = (e == -1); } while (0)
-
-#else
 #define LUA_TMPNAMBUFSIZE	L_tmpnam
-#define lua_tmpnam(b,e)		do { e = (tmpnam(b) == NULL); } while (0)
 #endif
 
-#endif
-
+// MARK: Library IO configuration
 
 /*
 @@ lua_popen spawns a new process connected to the current one through
@@ -644,6 +592,8 @@
 
 #endif
 
+// MARK: Library Load configuration
+
 /*
 @@ LUA_DL_* define which dynamic-library system Lua should use.
 ** CHANGE here if Lua has problems choosing the appropriate
@@ -666,6 +616,11 @@
 #define LUA_DL_DLL
 #endif
 
+// MARK: State configuration
+
+#ifndef LUA_STATE
+#define LUA_STATE struct LuaState
+#endif
 
 /*
 @@ LUAI_EXTRASPACE allows you to add user-specific data in a lua_State
@@ -674,7 +629,6 @@
 ** a multiple of the maximum alignment required for your machine.
 */
 #define LUAI_EXTRASPACE		0
-
 
 /*
 @@ luai_userstate* allow user-specific actions on threads.
@@ -688,13 +642,14 @@
 #define luai_userstateresume(L,n)	((void)L)
 #define luai_userstateyield(L,n)	((void)L)
 
+// MARK: Library String configuration
 
 /*
 @@ LUA_INTFRMLEN is the length modifier for integer conversions
 @* in 'string.format'.
-@@ LUA_INTFRM_T is the integer type correspoding to the previous length
+@@ LUA_INTFRM_T is the integer type corresponding to the previous length
 @* modifier.
-** CHANGE them if your system supports long long or does not support long.
+** CHANGE them if your system supports `long long` or does not support long.
 */
 
 #if defined(LUA_USELONGLONG)
@@ -709,19 +664,11 @@
 
 #endif
 
-#ifndef LUA_STATE
-#define LUA_STATE struct lua_State
-#endif
-
-
-/* =================================================================== */
 
 /*
 ** Local configuration. You can use this space to add your redefinitions
 ** without modifying the main part of the file.
 */
-
-
 
 #endif
 

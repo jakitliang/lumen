@@ -45,7 +45,19 @@ namespace Lumen {
     typedef int (*Writer)(lua_State *L, const void *p, size_t sz, void *ud);
 
     struct Object : BasicObject {
-        Lumen::GC::Mark Marked;
+        /**
+         * Layout for bit use in `marked' field:\n
+         * bit 0 - object is white (type 0)\n
+         * bit 1 - object is white (type 1)\n
+         * bit 2 - object is black\n
+         * bit 3 - for userdata: has been finalized\n
+         * bit 3 - for tables: has weak keys\n
+         * bit 4 - for tables: has weak values\n
+         * bit 5 - object is fixed (should not be collected)\n
+         * bit 6 - object is "super" fixed (only the main thread)
+         * grep "ORDER Mark"
+         */
+        Lumen::Byte Marked;
         Lumen::GCObject *GCNext;
     };
 

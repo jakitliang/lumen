@@ -21,6 +21,7 @@
 
 namespace Lumen {
     using Byte = unsigned char;
+    using Int32 = LUAI_INT32;
     using UInt32 = LUAI_UINT32;
 
     using Number = LUA_NUMBER;
@@ -32,7 +33,7 @@ namespace Lumen {
     struct State;
 
     struct BasicObject {
-        int Type;
+        Lumen::Byte Type;
     };
 
     /*
@@ -55,22 +56,6 @@ namespace Lumen {
     };
 
     typedef Lumen::Value *StkId;  /* index to stack elements */
-
-    namespace GC {
-        /**
-         * Layout for bit use in `marked' field:\n
-         * bit 0 - object is white (type 0)\n
-         * bit 1 - object is white (type 1)\n
-         * bit 2 - object is black\n
-         * bit 3 - for userdata: has been finalized\n
-         * bit 3 - for tables: has weak keys\n
-         * bit 4 - for tables: has weak values\n
-         * bit 5 - object is fixed (should not be collected)\n
-         * bit 6 - object is "super" fixed (only the main thread)
-         * grep "ORDER Mark"
-         */
-        typedef Lumen::Byte Mark;
-    }
 
     /**
      * Type for virtual-machine instructions

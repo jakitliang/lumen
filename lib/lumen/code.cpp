@@ -14,23 +14,18 @@
 
 #include "lumen/code.h"
 #include "lumen/debug.h"
-#include "lumen/do.h"
 #include "lumen/gc.h"
 #include "lumen/lex.h"
 #include "lumen/mem.h"
 #include "lumen/object.h"
 #include "lumen/opcodes.h"
 #include "lumen/parser.h"
-#include "lumen/table.h"
-
 
 #define hasJumps(e)    ((e)->t != (e)->f)
 
-
-static int isNumeric(Lumen::ExpDesc *e) {
+static inline bool isNumeric(Lumen::ExpDesc *e) {
     return (e->k == Lumen::ExpDesc::KindKNum && e->t == NO_JUMP && e->f == NO_JUMP);
 }
-
 
 void Lumen::FuncState::Nil(Lumen::FuncState *fs, int from, int n) {
     Lumen::Instruction *previous;
@@ -246,28 +241,28 @@ static int addK(Lumen::FuncState *fs, Lumen::Value *k, Lumen::Value *v) {
 
 
 int Lumen::FuncState::StringK(Lumen::FuncState *fs, Lumen::String *s) {
-    Lumen::Value o;
+    Lumen::Value o; // NOLINT
     LumenSetStringValue(fs->L, &o, s);
     return addK(fs, &o, &o);
 }
 
 
 int Lumen::FuncState::NumberK(Lumen::FuncState *fs, Lumen::Number r) {
-    Lumen::Value o;
+    Lumen::Value o; // NOLINT
     LumenSetNumberValue(&o, r);
     return addK(fs, &o, &o);
 }
 
 
 static int boolK(Lumen::FuncState *fs, int b) {
-    Lumen::Value o;
+    Lumen::Value o; // NOLINT
     LumenSetBoolValue(&o, b);
     return addK(fs, &o, &o);
 }
 
 
 static int nilK(Lumen::FuncState *fs) {
-    Lumen::Value k, v;
+    Lumen::Value k, v; // NOLINT
     LumenSetNilValue(&v);
     /* cannot use nil as key; instead use table itself to represent nil */
     LumenSetTableValue(fs->L, &k, fs->Constants);
@@ -712,7 +707,7 @@ static void codeComp(Lumen::FuncState *fs, Lumen::OpCode op, int cond, Lumen::Ex
 
 
 void Lumen::FuncState::Prefix(Lumen::FuncState *fs, Lumen::UnOpr op, Lumen::ExpDesc *e) {
-    Lumen::ExpDesc e2;
+    Lumen::ExpDesc e2; // NOLINT
     e2.t = e2.f = NO_JUMP;
     e2.k = Lumen::ExpDesc::KindKNum;
     e2.NumberValue = 0;

@@ -22,6 +22,21 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+/*
+ * lua_tmpnam is the function that the OS library uses to create a
+ * temporary name.
+ */
+#if defined(LUA_USE_MKSTEMP)
+#include <unistd.h>
+#define lua_tmpnam(b,e)	do { \
+	strcpy(b, "/tmp/lua_XXXXXX"); \
+	e = mkstemp(b); \
+	if (e != -1) close(e); \
+	e = (e == -1); } while (0)
+
+#else
+#define lua_tmpnam(b,e)		do { e = (tmpnam(b) == NULL); } while (0)
+#endif
 
 static int os_pushresult(lua_State *L, int i, const char *filename) {
     int en = errno;  /* calls to Lua API may change this value */
