@@ -10,6 +10,14 @@
 #include "lua.hpp"
 
 int main() {
+    auto L = Lua::Open();
+    L->OpenLibs();
+    L->PushLiteral("my_value");
+    L->SetGlobal("my_key");
+    L->DoString(R"(
+print(my_key);
+)");
+    L->Close();
 
     return 0;
 }

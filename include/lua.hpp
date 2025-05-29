@@ -104,9 +104,7 @@ namespace Lua {
             return lua_checkstack(this, size);
         }
 
-        static inline void XMove(State *from, State *to, int n) {
-            lua_xmove(from, to, n);
-        }
+
 
         // MARK: access functions (stack -> C)
 
@@ -429,21 +427,12 @@ namespace Lua {
 
         // MARK: compatibility macros and functions
 
-        static inline State *open() {
-            return luaL_newstate();
-        }
-
         inline void GetRegistry() {
             lua_pushvalue(this, LUA_REGISTRYINDEX);
         }
 
         inline int GetGCCount() {
             return lua_gc(this, LUA_GCCOUNT, 0);
-        }
-
-        /* hack */
-        static inline void SetLevel(State *from, State *to) {
-            lua_setlevel(from, to);
         }
 
         // MARK: debug
@@ -602,7 +591,7 @@ namespace Lua {
             return luaL_loadstring(this, s);
         }
 
-        static inline State *NewState() {
+        static inline State *New() {
             return luaL_newstate();
         }
 
@@ -666,7 +655,62 @@ namespace Lua {
         inline T Opt(D f, int arg, T d) {
             return lua_isnoneornil(this, arg) ? d : D(this, arg);
         }
+
+        // MARK: Library export
+
+        inline int OpenBase() {
+            return luaopen_base(this);
+        }
+
+        inline int OpenTable() {
+            return luaopen_table(this);
+        }
+
+        inline int OpenIO() {
+            return luaopen_io(this);
+        }
+
+        inline int OpenOS() {
+            return luaopen_os(this);
+        }
+
+        inline int OpenString() {
+            return luaopen_string(this);
+        }
+
+        inline int OpenMath() {
+            return luaopen_math(this);
+        }
+
+        inline int OpenDebug() {
+            return luaopen_debug(this);
+        }
+
+        inline int OpenBit() {
+            return luaopen_bit(this);
+        }
+
+        inline int OpenPackage() {
+            return luaopen_package(this);
+        }
+
+        inline void OpenLibs() {
+            luaL_openlibs(this);
+        }
     };
+
+    inline State *Open() {
+        return luaL_newstate();
+    }
+
+    inline void XMove(State *from, State *to, int n) {
+        lua_xmove(from, to, n);
+    }
+
+    /* hack */
+    inline void SetLevel(State *from, State *to) {
+        lua_setlevel(from, to);
+    }
 
     struct Buffer : luaL_Buffer {
         inline explicit Buffer(State *L) : luaL_Buffer{} {
