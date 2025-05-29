@@ -173,15 +173,13 @@ static int pMain(lua_State *L) {
 
 int main(int argc, char *argv[]) {
     lua_State *L;
-    MainArgs s;
     int i = doargs(argc, argv);
     argc -= i;
     argv += i;
     if (argc <= 0) usage("no input files given");
     L = lua_open();
     if (L == nullptr) fatal("not enough memory for state");
-    s.argc = argc;
-    s.argv = argv;
+    MainArgs s{argc, argv};
     if (lua_cpcall(L, pMain, &s) != 0) fatal(lua_tostring(L, -1));
     lua_close(L);
     return EXIT_SUCCESS;
