@@ -30,6 +30,7 @@
 #include <stddef.h>
 #endif
 
+#define LUA_ENUM(_type, _name) _type _name; enum
 
 /*
 ** ==================================================================
