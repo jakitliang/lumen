@@ -50,6 +50,7 @@ The [/src/lightc](/src/lightc) is the implementation for the Compiler entry of `
 
 - Some of Lua 5.2, 5.3 APIs and Aux APIs are added
 - Bitwise library is included by default.
+- Modern C++ APis are added
 
 ## License
 
