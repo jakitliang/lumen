@@ -41,13 +41,6 @@ enum {
 };
 
 namespace Lumen {
-    typedef LUAI_DELEGATE(Delegate);
-
-    typedef LUAI_READER(Reader);
-    typedef LUAI_WRITER(Writer);
-
-    typedef LUAI_ALLOCATOR(Allocator);
-
     struct Object : BasicObject {
         /**
          * Layout for bit use in `marked' field:\n

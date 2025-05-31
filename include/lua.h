@@ -74,20 +74,36 @@ enum {
 
 typedef LUAI_STATE lua_State;
 
-typedef LUAI_DELEGATE(lua_CFunction);
+#ifndef LUAI_DELEGATE
+typedef int (*lua_CFunction)(LUAI_STATE *L);
+#else
+typedef LUAI_DELEGATE lua_CFunction;
+#endif
 
 
 /*
 ** functions that read/write blocks when loading/dumping Lua chunks
 */
-typedef LUAI_READER(lua_Reader);
+#ifndef LUAI_READER
+typedef const char *(*lua_Reader)(LUAI_STATE *L, void *ud, size_t *sz);
+#else
+typedef LUAI_READER lua_Reader;
+#endif
 
-typedef LUAI_WRITER(lua_Writer);
+#ifndef LUAI_WRITER
+typedef int (*lua_Writer)(LUAI_STATE *L, const void *p, size_t sz, void *ud);
+#else
+typedef LUAI_WRITER lua_Writer;
+#endif
 
 /*
 ** prototype for memory-allocation functions
 */
-typedef LUAI_ALLOCATOR(lua_Alloc);
+#ifndef LUAI_ALLOCATOR
+typedef void *(*lua_Alloc)(void *ud, void *ptr, size_t oldSize, size_t newSize);
+#else
+typedef LUAI_ALLOCATOR lua_Alloc;
+#endif
 
 
 /*
@@ -402,16 +418,20 @@ enum {
 typedef LUAI_DEBUGINFO lua_Debug;  /* activation record */
 
 /* Functions to be called by the debuger in specific events */
-typedef LUAI_HOOK(lua_Hook);
+#ifndef LUAI_HOOK
+typedef void (*lua_Hook)(LUAI_STATE *L, LUAI_DEBUGINFO_NAME *ar);
+#else
+typedef LUAI_HOOK lua_Hook;
+#endif
 
 
-LUA_API int lua_getstack(lua_State *L, int level, lua_Debug *ar);
+LUA_API int lua_getstack(lua_State *L, int level, LUAI_DEBUGINFO_NAME *ar);
 
-LUA_API int lua_getinfo(lua_State *L, const char *what, lua_Debug *ar);
+LUA_API int lua_getinfo(lua_State *L, const char *what, LUAI_DEBUGINFO_NAME *ar);
 
-LUA_API const char *lua_getlocal(lua_State *L, const lua_Debug *ar, int n);
+LUA_API const char *lua_getlocal(lua_State *L, const LUAI_DEBUGINFO_NAME *ar, int n);
 
-LUA_API const char *lua_setlocal(lua_State *L, const lua_Debug *ar, int n);
+LUA_API const char *lua_setlocal(lua_State *L, const LUAI_DEBUGINFO_NAME *ar, int n);
 
 LUA_API const char *lua_getupvalue(lua_State *L, int funcIndex, int n);
 

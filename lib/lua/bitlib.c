@@ -127,7 +127,7 @@ static int bit_tohex(lua_State *L) {
     return 1;
 }
 
-static const struct luaL_Reg bit_funcs[] = {
+static const luaL_Reg bit_funcs[] = {
         {"tobit",   bit_tobit},
         {"bnot",    bit_bnot},
         {"band",    bit_band},

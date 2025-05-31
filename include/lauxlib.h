@@ -40,10 +40,7 @@ enum {
 };
 
 
-typedef struct luaL_Reg {
-    const char *name;
-    lua_CFunction func;
-} luaL_Reg;
+typedef LUAI_INTERFACE luaL_Reg;
 
 
 LUALIB_API void (luaI_openlib)(lua_State *L, const char *libname,

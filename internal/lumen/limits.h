@@ -16,7 +16,12 @@
 #include <limits>
 
 #define LUAI_STATE Lumen::State
+#define LUAI_DELEGATE Lumen::Delegate
+#define LUAI_READER Lumen::Reader
+#define LUAI_WRITER Lumen::Writer
+#define LUAI_ALLOCATOR Lumen::Allocator
 #define LUAI_DEBUGINFO Lumen::DebugInfo
+#define LUAI_HOOK Lumen::Hook
 
 #include "luaconf.h"
 
@@ -66,6 +71,14 @@ namespace Lumen {
      */
     using Instruction = UInt32;
 
+    typedef int (*Delegate)(LUAI_STATE *L);
+
+    typedef const char *(*Reader)(LUAI_STATE *L, void *ud, size_t *sz);
+
+    typedef int (*Writer)(LUAI_STATE *L, const void *p, size_t sz, void *ud);
+
+    typedef void *(*Allocator)(void *ud, void *ptr, size_t oldSize, size_t newSize);
+
     struct DebugInfo {
         int Event;
         const char *Name;    /* (n) */
@@ -80,7 +93,7 @@ namespace Lumen {
         int CurrentCI;  /* active function */
     };
 
-    typedef LUAI_HOOK(Hook);
+    typedef void (*Hook)(LUAI_STATE *L, LUAI_DEBUGINFO_NAME *ar);
 
     inline constexpr size_t MaxSize = std::numeric_limits<size_t>::max() - 2;
 

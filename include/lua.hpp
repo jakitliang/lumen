@@ -16,11 +16,51 @@
 #include <type_traits>
 
 #define LUAI_STATE Lua::State
+#define LUAI_DELEGATE Lua::Delegate
+#define LUAI_READER Lua::Reader
+#define LUAI_WRITER Lua::Writer
+#define LUAI_ALLOCATOR Lua::Allocator
+#define LUAI_DEBUGINFO Lua::DebugInfo
+#define LUAI_HOOK Lua::Hook
+#define LUAI_INTERFACE Lua::Interface
 
 #include "luaconf.h"
 
 namespace Lua {
+    using Byte = unsigned char;
+    using Number = LUA_NUMBER;
+    using Integer = LUA_INTEGER;
+
     struct State;
+
+    typedef int (*Delegate)(LUAI_STATE *L);
+
+    typedef const char *(*Reader)(LUAI_STATE *L, void *ud, size_t *sz);
+
+    typedef int (*Writer)(LUAI_STATE *L, const void *p, size_t sz, void *ud);
+
+    typedef void *(*Allocator)(void *ud, void *ptr, size_t oldSize, size_t newSize);
+
+    struct DebugInfo {
+        int Event;
+        const char *Name;    /* (n) */
+        const char *NameSpace;    /* (n) `global', `local', `field', `method' */
+        const char *Space;    /* (S) `Lua', `C', `main', `tail' */
+        const char *Source;    /* (S) */
+        int CurrentLine;    /* (l) */
+        int NUpValues;        /* (u) number of upvalues */
+        int LineDefined;    /* (S) */
+        int LastLineDefined;    /* (S) */
+        char SourceHint[LUA_IDSIZE]; /* (S) */
+        int CurrentCI;  /* active function */
+    };
+
+    typedef void (*Hook)(LUAI_STATE *L, LUAI_DEBUGINFO_NAME *ar);
+
+    struct Interface {
+        const char *Name;
+        Delegate Invoke;
+    };
 }
 
 #include "lua.h"
@@ -39,22 +79,6 @@ namespace Lua {
         return LUA_GLOBALSINDEX - (i);
     }
 
-    using Byte = unsigned char;
-    using Number = lua_Number;
-    using Integer = lua_Integer;
-
-    using Delegate = lua_CFunction;
-    using Allocator = lua_Alloc;
-
-    using Reader = lua_Reader;
-    using Writer = lua_Writer;
-
-    using DebugInfo = lua_Debug;
-    using Hook = lua_Hook;
-
-    using Interface = luaL_Reg;
-
-
     struct State {
         // MARK: state manipulation
 
@@ -70,8 +94,8 @@ namespace Lua {
             return lua_newthread(this);
         }
 
-        inline Delegate AtPanic(Delegate fPanic) {
-            return lua_atpanic(this, fPanic);
+        inline Delegate AtPanic(Delegate pInvoke) {
+            return lua_atpanic(this, pInvoke);
         }
 
         // MARK: basic stack manipulation
@@ -103,8 +127,6 @@ namespace Lua {
         inline int CheckStack(int size) {
             return lua_checkstack(this, size);
         }
-
-
 
         // MARK: access functions (stack -> C)
 
@@ -209,14 +231,14 @@ namespace Lua {
 
         inline const char *PushFString(const char *fmt, ...) {
             va_list args;
-                    va_start(args, fmt);
+                va_start(args, fmt);
             auto ret = lua_pushvfstring(this, fmt, args);
-                    va_end(args);
+                va_end(args);
             return ret;
         }
 
-        inline void PushCClosure(Delegate fn, int n) {
-            lua_pushcclosure(this, fn, n);
+        inline void PushCClosure(Delegate invoke, int n) {
+            lua_pushcclosure(this, invoke, n);
         }
 
         inline void PushBoolean(int b) {
@@ -301,8 +323,8 @@ namespace Lua {
             return lua_pcall(this, nargs, nResults, errFunc);
         }
 
-        inline int CPCall(Delegate func, void *userdata) {
-            return lua_cpcall(this, func, userdata);
+        inline int CPCall(Delegate invoke, void *userdata) {
+            return lua_cpcall(this, invoke, userdata);
         }
 
         inline int Load(Reader reader, void *dt, const char *chunkName) {
@@ -363,13 +385,13 @@ namespace Lua {
             lua_createtable(this, 0, 0);
         }
 
-        inline void Register(const char *name, Delegate f) {
-            lua_pushcfunction(this, f);
+        inline void Register(const char *name, Delegate invoke) {
+            lua_pushcfunction(this, invoke);
             lua_setglobal(this, name);
         }
 
-        inline void PushCFunction(Delegate f) {
-            lua_pushcclosure(this, f, 0);
+        inline void PushCFunction(Delegate invoke) {
+            lua_pushcclosure(this, invoke, 0);
         }
 
         inline size_t StringLength(int idx) {
@@ -553,9 +575,9 @@ namespace Lua {
 
         inline int Error(const char *fmt, ...) {
             va_list args;
-                    va_start(args, fmt);
+                va_start(args, fmt);
             auto ret = luaL_error(this, fmt, args);
-                    va_end(args);
+                va_end(args);
             return ret;
         }
 
@@ -711,63 +733,6 @@ namespace Lua {
     inline void SetLevel(State *from, State *to) {
         lua_setlevel(from, to);
     }
-
-    struct Buffer : luaL_Buffer {
-        inline explicit Buffer(State *L) : luaL_Buffer{} {
-            luaL_buffinit(L, this);
-        }
-
-        inline Buffer(State *L, size_t size) : luaL_Buffer{} {
-            luaL_buffinit(L, this);
-        }
-
-        char *CString() {
-            return p;
-        }
-
-        Byte *CBuffer() {
-            return reinterpret_cast<Byte *>(p);
-        }
-
-        inline void Push(const char *cString, size_t length) {
-            luaL_addlstring(this, cString, length);
-        }
-
-        inline void Push(const char *cString) {
-            luaL_addstring(this, cString);
-        }
-
-        inline void Push(const char c) {
-            luaL_addchar(this, c);
-        }
-
-        inline void PushFormat(const char *fmt, ...) {
-            va_list args;
-                    va_start(args, fmt);
-
-            va_list args_copy;
-            va_copy(args_copy, args);
-
-            int len = std::vsnprintf(nullptr, 0, fmt, args_copy);
-                    va_end(args_copy);
-
-            if (len <= 0) {
-                        va_end(args);
-                return;
-            }
-
-            auto buf = new char[len + 1];
-            std::vsnprintf(buf, len + 1, fmt, args);
-
-                    va_end(args);
-
-            luaL_addlstring(this, buf, len);
-        }
-
-        inline void PushResult() {
-            luaL_pushresult(this);
-        }
-    };
 }
 
 

@@ -34,3 +34,6 @@
 
 .idea
 cmake-*
+external
+internal/cc
+lib/cc
