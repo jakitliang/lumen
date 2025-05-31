@@ -28,7 +28,9 @@
 #define LUA_VERSION    "Lua 5.1"
 #define LUA_RELEASE    "Lua 5.1.4"
 #define LUMEN_VERSION  "Lumen 1.0"
+#ifndef LUMEN_RELEASE
 #define LUMEN_RELEASE  "Lumen 1.0.0"
+#endif
 
 #define LUA_VERSION_MAJOR_N      5
 #define LUA_VERSION_MINOR_N      1

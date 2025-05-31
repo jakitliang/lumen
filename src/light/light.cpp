@@ -152,7 +152,7 @@ static int doCall(lua_State *L, int nArg, int clear) {
 
 
 static void printVersion() {
-    luaMessage(nullptr, LUMEN_RELEASE "  " LUMEN_COPYRIGHT);
+    luaMessage(nullptr, LUMEN_RELEASE " -- " LUMEN_COPYRIGHT);
 }
 
 
