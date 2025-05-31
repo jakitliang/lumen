@@ -377,7 +377,7 @@ namespace Lua {
             lua_setallocf(this, f, ud);
         }
 
-        inline void pop(int n) {
+        inline void Pop(int n) {
             lua_settop(this, -(n) - 1);
         }
 
@@ -569,7 +569,7 @@ namespace Lua {
             return luaL_checkudata(this, ud, tName);
         }
 
-        inline void where(int lvl) {
+        inline void Where(int lvl) {
             luaL_where(this, lvl);
         }
 
