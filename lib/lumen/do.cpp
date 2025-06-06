@@ -371,7 +371,7 @@ void Lumen::Do::Call(Lumen::State *L, Lumen::StkId func, int nResults) {
     LumenGCCheckGC(L);
 }
 
-static void resume(Lumen::State *L, void *ud) {
+void Lumen::Do::Resume(Lumen::State *L, void *ud) {
     Lumen::StkId firstArg = cast(Lumen::StkId, ud);
     Lumen::CallInfo *ci = L->CallInfo;
     if (L->Status == 0) {  /* start coroutine? */
@@ -393,47 +393,12 @@ static void resume(Lumen::State *L, void *ud) {
     Lumen::VM::Execute(L, cast_int(L->CallInfo - L->BaseCI));
 }
 
-static int resumeError(Lumen::State *L, const char *msg) {
+int Lumen::Do::ResumeError(Lumen::State *L, const char *msg) {
     L->Top = L->CallInfo->Base;
     LumenSetStringValue2S(L, L->Top, Lumen::String::New(L, msg));
     LumenIncrTop(L);
     LumenUnlock(L);
     return LUA_ERRRUN;
-}
-
-LUA_API int lua_resume(Lumen::State *L, int nArgs) {
-    int status;
-    LumenLock(L);
-    if (L->Status != LUA_YIELD && (L->Status != 0 || L->CallInfo != L->BaseCI))
-        return resumeError(L, "cannot resume non-suspended coroutine");
-    if (L->NCCalls >= LUAI_MAXCCALLS)
-        return resumeError(L, "C stack overflow");
-    luai_userstateresume(L, nArgs);
-    LumenAssert(L->ErrFunc == 0);
-    L->BaseCCalls = ++L->NCCalls;
-    status = Lumen::Do::RawRunProtected(L, resume, L->Top - nArgs);
-    if (status != 0) {  /* error? */
-        L->Status = cast_byte(status);  /* mark thread as `dead' */
-        Lumen::Do::SetErrorObject(L, status, L->Top);
-        L->CallInfo->Top = L->Top;
-    } else {
-        LumenAssert(L->NCCalls == L->BaseCCalls);
-        status = L->Status;
-    }
-    --L->NCCalls;
-    LumenUnlock(L);
-    return status;
-}
-
-LUA_API int lua_yield(Lumen::State *L, int nResults) {
-    luai_userstateyield(L, nResults);
-    LumenLock(L);
-    if (L->NCCalls > L->BaseCCalls)
-        Lumen::Debug::RunError(L, "attempt to yield across metaMethod/C-call boundary");
-    L->Base = L->Top - nResults;  /* protect stack slots below */
-    L->Status = LUA_YIELD;
-    LumenUnlock(L);
-    return -1;
 }
 
 int Lumen::Do::PCall(Lumen::State *L, Lumen::Do::PFunc func, void *u,

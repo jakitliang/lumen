@@ -38,6 +38,11 @@ namespace Lumen::Debug {
     int CheckCode(const Lumen::Proto *pt);
 
     int CheckOpenOP(Lumen::Instruction i);
+
+    int GetInfo(Lumen::State *L, const char *what, Lumen::DebugInfo *ar,
+                Lumen::Closure *f, Lumen::CallInfo *ci);
+
+    void CollectValidLines(Lumen::State *L, Lumen::Closure *f);
 }
 
 #endif

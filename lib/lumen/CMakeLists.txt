@@ -23,6 +23,7 @@ add_library(
     undump.cpp
     vm.cpp
     zio.cpp
+    protected_call.cpp
 )
 if (LUA_BUILD_TYPE MATCHES "SHARED")
     if (CMAKE_SYSTEM_NAME MATCHES "Windows")

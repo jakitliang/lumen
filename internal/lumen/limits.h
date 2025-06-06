@@ -15,7 +15,8 @@
 #include <cstddef>
 #include <limits>
 
-#define LUAI_STATE Lumen::State
+struct LumenState;
+
 #define LUAI_DELEGATE Lumen::Delegate
 #define LUAI_READER Lumen::Reader
 #define LUAI_WRITER Lumen::Writer
@@ -38,7 +39,7 @@ namespace Lumen {
 
     using UACNumber = LUAI_UACNUMBER; // Result of a `usual argument conversion' over lua_Number
 
-    struct State;
+    using State = LumenState;
 
     struct BasicObject {
         Lumen::Byte Type;
@@ -71,11 +72,11 @@ namespace Lumen {
      */
     using Instruction = UInt32;
 
-    typedef int (*Delegate)(LUAI_STATE *L);
+    typedef int (*Delegate)(Lumen::State *L);
 
-    typedef const char *(*Reader)(LUAI_STATE *L, void *ud, size_t *sz);
+    typedef const char *(*Reader)(Lumen::State *L, void *ud, size_t *sz);
 
-    typedef int (*Writer)(LUAI_STATE *L, const void *p, size_t sz, void *ud);
+    typedef int (*Writer)(Lumen::State *L, const void *p, size_t sz, void *ud);
 
     typedef void *(*Allocator)(void *ud, void *ptr, size_t oldSize, size_t newSize);
 
@@ -93,7 +94,7 @@ namespace Lumen {
         int CurrentCI;  /* active function */
     };
 
-    typedef void (*Hook)(LUAI_STATE *L, LUAI_DEBUGINFO_NAME *ar);
+    typedef void (*Hook)(Lumen::State *L, Lumen::DebugInfo *ar);
 
     inline constexpr size_t MaxSize = std::numeric_limits<size_t>::max() - 2;
 

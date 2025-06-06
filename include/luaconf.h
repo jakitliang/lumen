@@ -190,13 +190,16 @@
 
 #if defined(LUA_CORE) || defined(LUA_LIB)
 #define LUA_API LUA_C LUA_EXPORT
+#define LPP_API LUA_EXPORT
 #else
 #define LUA_API LUA_C LUA_IMPORT
+#define LPP_API LUA_IMPORT
 #endif
 
 #else
 
 #define LUA_API		LUA_C
+#define LPP_API
 
 #endif
 
@@ -628,39 +631,6 @@
 #endif
 
 // MARK: State configuration
-
-#ifndef LUAI_STATE
-#define LUAI_STATE struct LuaState
-#endif
-
-#ifndef LUAI_DEBUGINFO
-#define LUAI_DEBUGINFO_NAME lua_Debug
-#define LUAI_DEBUGINFO struct { \
-    int event;                  \
-    const char *name;           \
-    const char *namewhat;       \
-    const char *what;           \
-    const char *source;         \
-    int currentline;            \
-    int nups;                   \
-    int linedefined;            \
-    int lastlinedefined;        \
-    char short_src[LUA_IDSIZE]; \
-    int i_ci;                   \
-}
-#else
-#define LUAI_DEBUGINFO_NAME LUAI_DEBUGINFO
-#endif
-
-#ifndef LUAI_INTERFACE
-#define LUAI_INTERFACE_NAME luaL_Reg
-#define LUAI_INTERFACE struct { \
-    const char *name;           \
-    lua_CFunction func;         \
-}
-#else
-#define LUAI_INTERFACE_NAME LUAI_INTERFACE
-#endif
 
 /*
 @@ LUAI_EXTRASPACE allows you to add user-specific data in a lua_State

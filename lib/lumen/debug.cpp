@@ -46,98 +46,23 @@ static int currentLine(Lumen::State *L, Lumen::CallInfo *ci) {
 }
 
 
-/*
-** this function can be called asynchronous (e.g. during a signal)
-*/
-LUA_API int lua_sethook(Lumen::State *L, Lumen::Hook func, int mask, int count) {
-    if (func == nullptr || mask == 0) {  /* turn off hooks? */
-        mask = 0;
-        func = nullptr;
-    }
-    L->Hook = func;
-    L->BaseHookCount = count;
-    LumenDebugResetHookCount(L);
-    L->HookMask = cast_byte(mask);
-    return 1;
-}
-
-
-LUA_API Lumen::Hook lua_gethook(Lumen::State *L) {
-    return L->Hook;
-}
-
-
-LUA_API int lua_gethookmask(Lumen::State *L) {
-    return L->HookMask;
-}
-
-
-LUA_API int lua_gethookcount(Lumen::State *L) {
-    return L->BaseHookCount;
-}
-
-
-LUA_API int lua_getstack(Lumen::State *L, int level, Lumen::DebugInfo *ar) {
-    int status;
-    Lumen::CallInfo *ci;
-    LumenLock(L);
-    for (ci = L->CallInfo; level > 0 && ci > L->BaseCI; ci--) {
-        level--;
-        if (LumenCIFuncIsLua(ci))  /* Lua function? */
-            level -= ci->NTailCalls;  /* skip lost tail calls */
-    }
-    if (level == 0 && ci > L->BaseCI) {  /* level found? */
-        status = 1;
-        ar->CurrentCI = cast_int(ci - L->BaseCI);
-    } else if (level < 0) {  /* level is of a lost tail call? */
-        status = 1;
-        ar->CurrentCI = 0;
-    } else status = 0;  /* no such level */
-    LumenUnlock(L);
-    return status;
-}
-
-
 static Lumen::Proto *getLuaProto(Lumen::CallInfo *ci) {
     return (LumenFuncIsLua(ci) ? LumenCIFunc(ci)->AsLua.Func : nullptr);
 }
 
 
-static const char *findLocal(Lumen::State *L, Lumen::CallInfo *ci, int n) {
+const char *Lumen::State::FindLocal(Lumen::CallInfo *ci, int n) {
     const char *name;
     Lumen::Proto *fp = getLuaProto(ci);
-    if (fp && (name = Lumen::Proto::GetLocalName(fp, n, currentPC(L, ci))) != nullptr)
+    if (fp && (name = Lumen::Proto::GetLocalName(fp, n, currentPC(this, ci))) != nullptr)
         return name;  /* is a local variable in a Lua function */
     else {
-        Lumen::StkId limit = (ci == L->CallInfo) ? L->Top : (ci + 1)->Func;
+        Lumen::StkId limit = (ci == CallInfo) ? Top : (ci + 1)->Func;
         if (limit - ci->Base >= n && n > 0)  /* is 'n' inside 'ci' stack? */
             return "(*temporary)";
         else
             return nullptr;
     }
-}
-
-
-LUA_API const char *lua_getlocal(Lumen::State *L, const Lumen::DebugInfo *ar, int n) {
-    Lumen::CallInfo *ci = L->BaseCI + ar->CurrentCI;
-    const char *name = findLocal(L, ci, n);
-    LumenLock(L);
-    if (name)
-        lua_PushObject(L, ci->Base + (n - 1));
-    LumenUnlock(L);
-    return name;
-}
-
-
-LUA_API const char *lua_setlocal(Lumen::State *L, const Lumen::DebugInfo *ar, int n) {
-    Lumen::CallInfo *ci = L->BaseCI + ar->CurrentCI;
-    const char *name = findLocal(L, ci, n);
-    LumenLock(L);
-    if (name)
-        LumenSetObjectS2S (L, ci->Base + (n - 1), L->Top - 1);
-    L->Top--;  /* pop value */
-    LumenUnlock(L);
-    return name;
 }
 
 
@@ -167,22 +92,23 @@ static void infoTailCall(Lumen::DebugInfo *ar) {
 }
 
 
-static void collectValidLines(Lumen::State *L, Lumen::Closure *f) {
+void Lumen::Debug::CollectValidLines(Lumen::State *L, Lumen::Closure *f) {
     if (f == nullptr || f->AsC.IsC) {
         LumenSetNilValue(L->Top);
     } else {
         Lumen::Table *t = Lumen::Table::New(L, 0, 0);
         int *lineinfo = f->AsLua.Func->LineInfo;
         int i;
-        for (i = 0; i < f->AsLua.Func->LineInfoCount; i++) LumenSetBoolValue(Lumen::Table::SetNum(L, t, lineinfo[i]), 1);
+        for (i = 0; i < f->AsLua.Func->LineInfoCount; i++)
+            LumenSetBoolValue(Lumen::Table::SetNum(L, t, lineinfo[i]), 1);
         LumenSetTableValue(L, L->Top, t);
     }
     LumenIncrTop(L);
 }
 
 
-static int auxGetInfo(Lumen::State *L, const char *what, Lumen::DebugInfo *ar,
-                      Lumen::Closure *f, Lumen::CallInfo *ci) {
+int Lumen::Debug::GetInfo(Lumen::State *L, const char *what, Lumen::DebugInfo *ar,
+                          Lumen::Closure *f, Lumen::CallInfo *ci) {
     int status = 1;
     if (f == nullptr) {
         infoTailCall(ar);
@@ -217,36 +143,6 @@ static int auxGetInfo(Lumen::State *L, const char *what, Lumen::DebugInfo *ar,
                 status = 0;  /* invalid option */
         }
     }
-    return status;
-}
-
-
-LUA_API int lua_getinfo(Lumen::State *L, const char *what, Lumen::DebugInfo *ar) {
-    int status;
-    Lumen::Closure *f = nullptr;
-    Lumen::CallInfo *ci = nullptr;
-    LumenLock(L);
-    if (*what == '>') {
-        Lumen::StkId func = L->Top - 1;
-        LumenApiCheck(L, LumenTypeIsFunction(func));
-        what++;  /* skip the '>' */
-        f = LumenClosureValue(func);
-        L->Top--;  /* pop function */
-    } else if (ar->CurrentCI != 0) {  /* no tail call? */
-        ci = L->BaseCI + ar->CurrentCI;
-        LumenAssert(LumenTypeIsFunction(ci->Func));
-        f = LumenClosureValue(ci->Func);
-    }
-    status = auxGetInfo(L, what, ar, f, ci);
-    if (strchr(what, 'f')) {
-        if (f == nullptr) LumenSetNilValue(L->Top);
-        else
-            LumenSetClosureValue(L, L->Top, f);
-        LumenIncrTop(L);
-    }
-    if (strchr(what, 'L'))
-        collectValidLines(L, f);
-    LumenUnlock(L);
     return status;
 }
 
@@ -570,7 +466,7 @@ void Lumen::Debug::TypeError(Lumen::State *L, const Lumen::Value *o, const char 
                        nullptr;
     if (kind)
         Lumen::Debug::RunError(L, "attempt to %s %s " LUA_QS " (a %s value)",
-                             op, kind, name, t);
+                               op, kind, name, t);
     else
         Lumen::Debug::RunError(L, "attempt to %s a %s value", op, t);
 }

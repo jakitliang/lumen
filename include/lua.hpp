@@ -15,31 +15,28 @@
 #include <limits>
 #include <type_traits>
 
-#define LUAI_STATE Lua::State
-#define LUAI_DELEGATE Lua::Delegate
-#define LUAI_READER Lua::Reader
-#define LUAI_WRITER Lua::Writer
-#define LUAI_ALLOCATOR Lua::Allocator
-#define LUAI_DEBUGINFO Lua::DebugInfo
-#define LUAI_HOOK Lua::Hook
-#define LUAI_INTERFACE Lua::Interface
-
-#include "luaconf.h"
+#include "lua.h"
+#include "lualib.h"
 
 namespace Lua {
     using Byte = unsigned char;
     using Number = LUA_NUMBER;
     using Integer = LUA_INTEGER;
 
+    using Allocator = lua_Alloc;
+
+    using Reader = lua_Reader;
+
+    using Writer = lua_Writer;
+
+    using Function = lua_CFunction;
+
+    using BasicState = lua_State;
+
     struct State;
 
-    typedef int (*Delegate)(LUAI_STATE *L);
-
-    typedef const char *(*Reader)(LUAI_STATE *L, void *ud, size_t *sz);
-
-    typedef int (*Writer)(LUAI_STATE *L, const void *p, size_t sz, void *ud);
-
-    typedef void *(*Allocator)(void *ud, void *ptr, size_t oldSize, size_t newSize);
+//    using Delegate = lua_CFunction;
+    typedef int (*Delegate)(Lua::State *L);
 
     struct DebugInfo {
         int Event;
@@ -55,24 +52,40 @@ namespace Lua {
         int CurrentCI;  /* active function */
     };
 
-    typedef void (*Hook)(LUAI_STATE *L, LUAI_DEBUGINFO_NAME *ar);
+    using Hook = lua_Hook;
 
     struct Interface {
         const char *Name;
         Delegate Invoke;
     };
-}
 
-#include "lua.h"
+    struct Registry {
+        const char *Name;
+        Function Invoke;
+    };
 
-#include "lauxlib.h"
-#include "lualib.h"
+    typedef LUA_ENUM(int, Ret) {
+        RetOK = LUA_OK,
+        RetYield = LUA_YIELD,
+        RetErrRun = LUA_ERRRUN,
+        RetErrSyntax = LUA_ERRSYNTAX,
+        RetErrMem = LUA_ERRMEM,
+        RetErr = LUA_ERRERR
+    };
 
-namespace Lua {
+    enum {
+        RetErrFile = LUA_ERRERR + 1
+    };
+
     typedef LUA_ENUM(int, Index) {
         IndexRegistry = LUA_GLOBALSINDEX,
         IndexEnv = LUA_ENVIRONINDEX,
         IndexGlobal = LUA_GLOBALSINDEX
+    };
+
+    typedef LUA_ENUM(int, Ref) {
+        RefNothing = -2,
+        RefNil = -1
     };
 
     inline int IndexUpValue(Index i) {
@@ -82,657 +95,446 @@ namespace Lua {
     struct State {
         // MARK: state manipulation
 
-        static inline State *New(Allocator allocator, void *userdata) {
-            return lua_newstate(allocator, userdata);
-        }
+        LPP_API static State *New(Allocator allocator, void *userdata);
 
-        inline void Close() {
-            lua_close(this);
-        }
+        LPP_API State *NewThread();
 
-        inline State *NewThread() {
-            return lua_newthread(this);
-        }
-
-        inline Delegate AtPanic(Delegate pInvoke) {
-            return lua_atpanic(this, pInvoke);
-        }
+        LPP_API Delegate AtPanic(Delegate pInvoke);
 
         // MARK: basic stack manipulation
 
-        inline int GetTop() {
-            return lua_gettop(this);
-        }
+        LPP_API int GetTop();
 
-        inline void SetTop(int idx) {
-            lua_settop(this, idx);
-        }
+        LPP_API void SetTop(int idx);
 
-        inline void PushValue(int idx) {
-            lua_pushvalue(this, idx);
-        }
+        LPP_API void PushValue(int idx);
 
-        inline void Remove(int idx) {
-            lua_remove(this, idx);
-        }
+        LPP_API void Remove(int idx);
 
-        inline void Insert(int idx) {
-            lua_insert(this, idx);
-        }
+        LPP_API void Insert(int idx);
 
-        inline void Replace(int idx) {
-            lua_replace(this, idx);
-        }
+        LPP_API void Replace(int idx);
 
-        inline int CheckStack(int size) {
-            return lua_checkstack(this, size);
-        }
+        LPP_API int CheckStack(int size);
 
         // MARK: access functions (stack -> C)
 
-        inline int IsNumber(int idx) {
-            return lua_isnumber(this, idx);
-        }
+        LPP_API int IsNumber(int idx);
 
-        inline int IsString(int idx) {
-            return lua_isstring(this, idx);
-        }
+        LPP_API int IsString(int idx);
 
-        inline int IsCFunction(int idx) {
-            return lua_iscfunction(this, idx);
-        }
+        LPP_API int IsDelegate(int idx);
 
-        inline int IsUserdata(int idx) {
-            return lua_isuserdata(this, idx);
-        }
+        LPP_API int IsUserdata(int idx);
 
-        inline int Type(int idx) {
-            return lua_type(this, idx);
-        }
+        LPP_API int Type(int idx);
 
-        inline const char *TypeName(int t) {
-            return lua_typename(this, t);
-        }
+        LPP_API const char *TypeName(int t);
 
-        inline int Equal(int idx1, int idx2) {
-            return lua_equal(this, idx1, idx2);
-        }
+        LPP_API int Equal(int idx1, int idx2);
 
-        inline int RawEqual(int idx1, int idx2) {
-            return lua_rawequal(this, idx1, idx2);
-        }
+        LPP_API int RawEqual(int idx1, int idx2);
 
-        inline int LessThan(int idx1, int idx2) {
-            return lua_lessthan(this, idx1, idx2);
-        }
+        LPP_API int LessThan(int idx1, int idx2);
 
-        inline Number ToNumber(int idx) {
-            return lua_tonumber(this, idx);
-        }
+        LPP_API Number ToNumber(int idx);
 
-        inline Integer ToInteger(int idx) {
-            return lua_tointeger(this, idx);
-        }
+        LPP_API Integer ToInteger(int idx);
 
-        inline bool ToBoolean(int idx) {
-            return lua_toboolean(this, idx);
-        }
+        LPP_API bool ToBoolean(int idx);
 
-        inline const char *ToString(int idx, size_t *len) {
-            return lua_tolstring(this, idx, len);
-        }
+        LPP_API const char *ToString(int idx, size_t *len);
 
-        inline size_t ObjectLength(int idx) {
-            return lua_objlen(this, idx);
-        }
+        LPP_API size_t ObjectLength(int idx);
 
-        inline Delegate ToCFunction(int idx) {
-            return lua_tocfunction(this, idx);
-        }
+        LPP_API Delegate ToDelegate(int idx);
 
-        inline void *ToUserdata(int idx) {
-            return lua_touserdata(this, idx);
-        }
+        LPP_API Function ToFunction(int idx);
 
-        inline State *ToThread(int idx) {
-            return lua_tothread(this, idx);
-        }
+        LPP_API void *ToUserdata(int idx);
 
-        inline const void *ToPointer(int idx) {
-            return lua_topointer(this, idx);
-        }
+        LPP_API State ToThread(int idx);
+
+        LPP_API const void *ToPointer(int idx);
 
         // MARK: push functions (C -> stack)
 
-        inline void PushNil() {
-            lua_pushnil(this);
-        }
+        LPP_API void PushNil();
 
-        inline void PushNumber(Number n) {
-            lua_pushnumber(this, n);
-        }
+        LPP_API void PushNumber(Number n);
 
-        inline void PushInteger(Integer n) {
-            lua_pushinteger(this, n);
-        }
+        LPP_API void PushInteger(Integer n);
 
-        inline void PushString(const char *s, size_t length) {
-            lua_pushlstring(this, s, length);
-        }
+        LPP_API void PushString(const char *s, size_t length);
 
-        inline void PushString(const char *s) {
-            lua_pushstring(this, s);
-        }
+        LPP_API void PushString(const char *s);
 
-        inline const char *PushVFString(const char *fmt,
-                                        va_list argP) {
-            return lua_pushvfstring(this, fmt, argP);
-        }
+        LPP_API const char *PushVFString(const char *fmt, va_list argP);
 
-        inline const char *PushFString(const char *fmt, ...) {
-            va_list args;
-                va_start(args, fmt);
-            auto ret = lua_pushvfstring(this, fmt, args);
-                va_end(args);
-            return ret;
-        }
+        LPP_API const char *PushFString(const char *fmt, ...);
 
-        inline void PushCClosure(Delegate invoke, int n) {
-            lua_pushcclosure(this, invoke, n);
-        }
+        LPP_API void PushDelegate(Delegate invoke, int n);
 
-        inline void PushBoolean(int b) {
-            lua_pushboolean(this, b);
-        }
+        LPP_API void PushFunction(Function invoke, int n);
 
-        inline void PushLightUserdata(void *p) {
-            lua_pushlightuserdata(this, p);
-        }
+        LPP_API void PushBoolean(int b);
 
-        inline int PushThread() {
-            return lua_pushthread(this);
-        }
+        LPP_API void PushLightUserdata(void *p);
 
-        // MARK: get functions (Lua -> stack)
+        LPP_API int PushThread();
 
-        inline void GetTable(int idx) {
-            lua_gettable(this, idx);
-        }
+        // MARK: get functions (LuaToState(this)ua -> stack)
 
-        inline void GetField(int idx, const char *k) {
-            lua_getfield(this, idx, k);
-        }
+        LPP_API void GetTable(int idx);
 
-        inline void RawGet(int idx) {
-            lua_rawget(this, idx);
-        }
+        LPP_API void GetField(int idx, const char *k);
 
-        inline void RawGetIndex(int idx, int n) {
-            lua_rawgeti(this, idx, n);
-        }
+        LPP_API void RawGet(int idx);
 
-        inline void CreateTable(int nArray, int nRec) {
-            lua_createtable(this, nArray, nRec);
-        }
+        LPP_API void RawGetAt(int idx, int n);
 
-        inline void *NewUserdata(size_t size) {
-            return lua_newuserdata(this, size);
-        }
+        LPP_API void CreateTable(int nArray, int nRec);
 
-        inline int GetMetatable(int objIndex) {
-            return lua_getmetatable(this, objIndex);
-        }
+        LPP_API void *NewUserdata(size_t size);
 
-        inline void GetFEnv(int idx) {
-            lua_getfenv(this, idx);
-        }
+        LPP_API int GetMetatable(int objIndex);
+
+        LPP_API void GetFEnv(int idx);
 
         // MARK: set functions (stack -> Lua)
 
-        inline void SetTable(int idx) {
-            lua_settable(this, idx);
-        }
+        LPP_API void SetTable(int idx);
 
-        inline void SetField(int idx, const char *k) {
-            lua_setfield(this, idx, k);
-        }
+        LPP_API void SetField(int idx, const char *k);
 
-        inline void RawSet(int idx) {
-            lua_rawset(this, idx);
-        }
+        LPP_API void RawSet(int idx);
 
-        inline void RawSetIndex(int idx, int n) {
-            lua_rawseti(this, idx, n);
-        }
+        LPP_API void RawSetAt(int idx, int n);
 
-        inline int SetMetatable(int objIndex) {
-            return lua_setmetatable(this, objIndex);
-        }
+        LPP_API int SetMetatable(int objIndex);
 
-        inline int SetFEnv(int idx) {
-            return lua_setfenv(this, idx);
-        }
+        LPP_API int SetFEnv(int idx);
 
         // MARK: `load' and `call' functions (load and run Lua code)
 
-        inline void Call(int nargs, int nResults) {
-            lua_call(this, nargs, nResults);
-        }
+        LPP_API void Call(int nargs, int nResults);
 
-        inline int PCall(int nargs, int nResults, int errFunc) {
-            return lua_pcall(this, nargs, nResults, errFunc);
-        }
+        LPP_API int TryCall(int nargs, int nResults, int errFunc);
 
-        inline int CPCall(Delegate invoke, void *userdata) {
-            return lua_cpcall(this, invoke, userdata);
-        }
+        // Try C Call
+        LPP_API int TryCall(Delegate invoke, void *userdata);
 
-        inline int Load(Reader reader, void *dt, const char *chunkName) {
-            return lua_load(this, reader, dt, chunkName);
-        }
+        // Try C Call
+        LPP_API int TryCall(Function invoke, void *userdata);
 
-        inline int Dump(Writer writer, void *data) {
-            return lua_dump(this, writer, data);
-        }
+        LPP_API int Load(Reader reader, void *data, const char *chunkName);
+
+        LPP_API int Dump(Writer writer, void *data);
 
         // MARK: coroutine functions
 
-        inline int Yield(int nResults) {
-            return lua_yield(this, nResults);
-        }
+        LPP_API int Yield(int nResults);
 
-        inline int Resume(int nArgs) {
-            return lua_resume(this, nArgs);
-        }
+        LPP_API int Resume(int nArgs);
 
-        inline int Status() {
-            return lua_status(this);
-        }
+        LPP_API int Status();
 
         // MARK: garbage-collection function and options
 
-        inline int GC(int what, int data) {
-            return lua_gc(this, what, data);
-        }
+        LPP_API int GC(int what, int data);
 
         // MARK: miscellaneous functions
 
-        inline int Error() {
-            return lua_error(this);
-        }
+        LPP_API int Error();
 
-        inline int Next(int idx) {
-            return lua_next(this, idx);
-        }
+        LPP_API int Next(int idx);
 
-        inline void Concat(int n) {
-            lua_concat(this, n);
-        }
+        LPP_API void Concat(int n);
 
-        inline Allocator GetAllocator(void **ud) {
-            return lua_getallocf(this, ud);
-        }
+        LPP_API Allocator GetAllocator(void **ud);
 
-        inline void SetAllocator(Allocator f, void *ud) {
-            lua_setallocf(this, f, ud);
-        }
+        LPP_API void SetAllocator(Allocator f, void *ud);
 
         inline void Pop(int n) {
-            lua_settop(this, -(n) - 1);
+            SetTop(-(n) - 1);
         }
 
         inline void NewTable() {
-            lua_createtable(this, 0, 0);
+            CreateTable(0, 0);
         }
 
         inline void Register(const char *name, Delegate invoke) {
-            lua_pushcfunction(this, invoke);
-            lua_setglobal(this, name);
+            PushDelegate(invoke);
+            SetGlobal(name);
         }
 
-        inline void PushCFunction(Delegate invoke) {
-            lua_pushcclosure(this, invoke, 0);
+        inline void Register(const char *name, Function invoke) {
+            PushFunction(invoke);
+            SetGlobal(name);
+        }
+
+        inline void PushDelegate(Delegate invoke) {
+            PushDelegate(invoke, 0);
+        }
+
+        inline void PushFunction(Function invoke) {
+            PushFunction(invoke, 0);
         }
 
         inline size_t StringLength(int idx) {
-            return lua_objlen(this, idx);
+            return ObjectLength(idx);
         }
 
         inline bool IsFunction(int idx) {
-            return lua_type(this, idx) == LUA_TFUNCTION;
+            return Type(idx) == LUA_TFUNCTION;
         }
 
         inline bool IsTable(int idx) {
-            return lua_type(this, idx) == LUA_TTABLE;
+            return Type(idx) == LUA_TTABLE;
         }
 
         inline bool IsLightUserdata(int idx) {
-            return lua_type(this, idx) == LUA_TLIGHTUSERDATA;
+            return Type(idx) == LUA_TLIGHTUSERDATA;
         }
 
         inline bool IsNil(int idx) {
-            return lua_type(this, idx) == LUA_TNIL;
+            return Type(idx) == LUA_TNIL;
         }
 
         inline bool IsBoolean(int idx) {
-            return lua_type(this, idx) == LUA_TBOOLEAN;
+            return Type(idx) == LUA_TBOOLEAN;
         }
 
         inline bool IsThread(int idx) {
-            return lua_type(this, idx) == LUA_TTHREAD;
+            return Type(idx) == LUA_TTHREAD;
         }
 
         inline bool IsNone(int idx) {
-            return lua_type(this, idx) == LUA_TNONE;
+            return Type(idx) == LUA_TNONE;
         }
 
         inline bool IsNoneOrNil(int idx) {
-            return lua_type(this, idx) <= 0;
+            return Type(idx) <= 0;
         }
 
         template<size_t S>
         inline void PushLiteral(const char (&s)[S]) {
-            lua_pushlstring(this, s, (S / sizeof(char)) - 1);
+            PushString(s, S - 1);
         }
 
         inline void SetGlobal(const char *key) {
-            lua_setfield(this, LUA_GLOBALSINDEX, key);
+            SetField(LUA_GLOBALSINDEX, key);
         }
 
         inline void GetGlobal(const char *key) {
-            lua_getfield(this, LUA_GLOBALSINDEX, key);
+            GetField(LUA_GLOBALSINDEX, key);
         }
 
-        inline const char *ToString(int idx) {
-            return lua_tolstring(this, idx, nullptr);
+        const char *ToString(int idx) {
+            return ToString(idx, nullptr);
         }
 
         // MARK: compatibility macros and functions
 
         inline void GetRegistry() {
-            lua_pushvalue(this, LUA_REGISTRYINDEX);
+            PushValue(LUA_REGISTRYINDEX);
         }
 
         inline int GetGCCount() {
-            return lua_gc(this, LUA_GCCOUNT, 0);
+            return GC(LUA_GCCOUNT, 0);
         }
 
         // MARK: debug
 
-        inline int GetStack(int level, DebugInfo *ar) {
-            return lua_getstack(this, level, ar);
-        }
+        LPP_API int GetStack(int level, DebugInfo *ar);
 
-        inline int GetInfo(const char *what, DebugInfo *ar) {
-            return lua_getinfo(this, what, ar);
-        }
+        LPP_API int GetInfo(const char *what, DebugInfo *ar);
 
-        inline const char *GetLocal(const DebugInfo *ar, int n) {
-            return lua_getlocal(this, ar, n);
-        }
+        LPP_API const char *GetLocal(const DebugInfo *ar, int n);
 
-        inline const char *SetLocal(const DebugInfo *ar, int n) {
-            return lua_setlocal(this, ar, n);
-        }
+        LPP_API const char *SetLocal(const DebugInfo *ar, int n);
 
-        inline const char *GetUpValue(int funcIndex, int n) {
-            return lua_getupvalue(this, funcIndex, n);
-        }
+        LPP_API const char *GetUpValue(int funcIndex, int n);
 
-        inline const char *SetUpValue(int funcIndex, int n) {
-            return lua_setupvalue(this, funcIndex, n);
-        }
+        LPP_API const char *SetUpValue(int funcIndex, int n);
 
-        inline int SetHook(Hook func, int mask, int count) {
-            return lua_sethook(this, func, mask, count);
-        }
+        LPP_API int SetHook(Hook func, int mask, int count);
 
-        inline Hook GetHook() {
-            return lua_gethook(this);
-        }
+        LPP_API Hook GetHook();
 
-        inline int GetHookMask() {
-            return lua_gethookmask(this);
-        }
+        LPP_API int GetHookMask();
 
-        inline int GetHookCount() {
-            return lua_gethookcount(this);
-        }
+        LPP_API int GetHookCount();
 
         // MARK: Auxiliary basic APIs
 
-        inline void OpenLib(const char *name, const Interface *i, int nUpValue) {
-            luaL_openlib(this, name, i, nUpValue);
-        }
+        LPP_API void OpenLib(const char *name, const Interface *i, int nUpValue);
 
         inline void Register(const char *name, const Interface *i) {
-            luaL_register(this, name, i);
+            OpenLib(name, i, 0);
         }
 
-        inline int GetMetaField(int obj, const char *e) {
-            return luaL_getmetafield(this, obj, e);
-        }
+        LPP_API int GetMetaField(int obj, const char *e);
 
-        inline int CallMeta(int obj, const char *e) {
-            return luaL_callmeta(this, obj, e);
-        }
+        LPP_API int CallMeta(int obj, const char *e);
 
-        inline int TypeError(int nArg, const char *tName) {
-            return luaL_typerror(this, nArg, tName);
-        }
+        LPP_API int TypeError(int nArg, const char *tName);
 
-        inline int ArgError(int nArg, const char *extraMsg) {
-            return luaL_argerror(this, nArg, extraMsg);
-        }
+        LPP_API int ArgError(int nArg, const char *extraMsg);
 
-        inline const char *CheckString(int nArg, size_t *length) {
-            return luaL_checklstring(this, nArg, length);
-        }
+        LPP_API const char *CheckString(int nArg, size_t *length);
 
-        inline const char *OptString(int nArg, const char *def, size_t *length) {
-            return luaL_optlstring(this, nArg, def, length);
-        }
+        LPP_API const char *OptString(int nArg, const char *def, size_t *length);
 
-        inline Number CheckNumber(int nArg) {
-            return luaL_checknumber(this, nArg);
-        }
+        LPP_API Number CheckNumber(int nArg);
 
-        inline Number OptNumber(int nArg, Number def) {
-            return luaL_optnumber(this, nArg, def);
-        }
+        LPP_API Number OptNumber(int nArg, Number def);
 
-        inline Integer CheckInteger(int nArg) {
-            return luaL_checkinteger(this, nArg);
-        }
+        LPP_API Integer CheckInteger(int nArg);
 
-        inline Integer OptInteger(int nArg, Integer def) {
-            return luaL_optinteger(this, nArg, def);
-        }
+        LPP_API Integer OptInteger(int nArg, Integer def);
 
-        inline void CheckStack(int sz, const char *msg) {
-            luaL_checkstack(this, sz, msg);
-        }
+        LPP_API void CheckStack(int sz, const char *msg);
 
-        inline void CheckType(int nArg, int t) {
-            luaL_checktype(this, nArg, t);
-        }
+        LPP_API void CheckType(int nArg, int t);
 
-        inline void CheckAny(int nArg) {
-            luaL_checkany(this, nArg);
-        }
+        LPP_API void CheckAny(int nArg);
 
-        inline int NewMetatable(const char *tName) {
-            return luaL_newmetatable(this, tName);
-        }
+        LPP_API int NewMetatable(const char *tName);
 
-        inline void *CheckUserdata(int ud, const char *tName) {
-            return luaL_checkudata(this, ud, tName);
-        }
+        LPP_API void *CheckUserdata(int ud, const char *tName);
 
-        inline void Where(int lvl) {
-            luaL_where(this, lvl);
-        }
+        LPP_API void Where(int lvl);
 
-        inline int Error(const char *fmt, ...) {
-            va_list args;
-                va_start(args, fmt);
-            auto ret = luaL_error(this, fmt, args);
-                va_end(args);
-            return ret;
-        }
+        LPP_API int Error(const char *fmt, ...);
 
-        inline int CheckOption(int nArg, const char *def, const char *const lst[]) {
-            return luaL_checkoption(this, nArg, def, lst);
-        }
+        LPP_API int CheckOption(int nArg, const char *def, const char *const lst[]);
 
-        inline int Ref(int t) {
-            return luaL_ref(this, t);
-        }
+        LPP_API int Ref(int t);
 
-        inline int Ref() {
-            return luaL_ref(this, LUA_REGISTRYINDEX);
-        }
+        LPP_API void Unref(int t, int ref);
 
-        inline void Unref(int t, int ref) {
-            luaL_unref(this, t, ref);
-        }
+//        void Unref(int ref);
 
-        inline void Unref(int ref) {
-            luaL_unref(this, LUA_REGISTRYINDEX, ref);
-        }
+        LPP_API int LoadFile(const char *filename);
 
-        inline int LoadFile(const char *filename) {
-            return luaL_loadfile(this, filename);
-        }
+        LPP_API int LoadBuffer(const char *buff, size_t size, const char *name);
 
-        inline int LoadBuffer(const char *buff, size_t size, const char *name) {
-            return luaL_loadbuffer(this, buff, size, name);
-        }
+        LPP_API int LoadString(const char *s);
 
-        inline int LoadString(const char *s) {
-            return luaL_loadstring(this, s);
-        }
+        LPP_API static State *New();
 
-        static inline State *New() {
-            return luaL_newstate();
-        }
+        LPP_API const char *GSub(const char *s, const char *p, const char *r);
 
-        inline const char *GSub(const char *s, const char *p, const char *r) {
-            return luaL_gsub(this, s, p, r);
-        }
-
-        inline const char *FindTable(int idx, const char *name, int hintSize) {
-            return luaL_findtable(this, idx, name, hintSize);
-        }
+        LPP_API const char *FindTable(int idx, const char *name, int hintSize);
 
         // MARK: Auxiliary miscellaneous functions
 
         inline void ArgCheck(int cond, int numArg, const char *extraMsg) {
-            cond || luaL_argerror(this, numArg, extraMsg);
+            (cond) || ArgError(numArg, extraMsg);
         }
 
         inline const char *CheckString(int arg) {
-            return luaL_checklstring(this, arg, nullptr);
+            return CheckString(arg, nullptr);
         }
 
         inline const char *OptString(int arg, const char *d) {
-            return luaL_optlstring(this, arg, d, nullptr);
+            return OptString(arg, d, nullptr);
         }
 
         inline int CheckInt(int arg) {
-            return static_cast<int>(luaL_checkinteger(this, arg));
+            return static_cast<int>(CheckInteger(arg));
         }
 
         inline int OptInt(int arg, int d) {
-            return static_cast<int>(luaL_optinteger(this, arg, d));
+            return static_cast<int>(OptInteger(arg, d));
         }
 
         inline long CheckLong(int arg) {
-            return static_cast<long>(luaL_checkinteger(this, arg));
+            return static_cast<long>(CheckInteger(arg));
         }
 
         inline long OptLong(int arg, long d) {
-            return static_cast<long>(luaL_optinteger(this, arg, d));
+            return static_cast<long>(OptInteger(arg, d));
         }
 
         inline const char *CheckTypeName(int idx) {
-            return lua_typename(this, lua_type(this, idx));
+            return TypeName(Type(idx));
         }
 
         template<int R = LUA_MULTRET>
         inline int DoFile(const char *filename) {
-            return luaL_loadfile(this, filename) || lua_pcall(this, 0, R, 0);
+            return LoadFile(filename) || TryCall(0, R, 0);
         }
 
         template<int R = LUA_MULTRET>
         inline int DoString(const char *s) {
-            return luaL_loadstring(this, s) || lua_pcall(this, 0, R, 0);
+            return LoadString(s) || TryCall(0, R, 0);
         }
 
         inline void GetMetatable(const char *tName) {
-            lua_getfield(this, LUA_REGISTRYINDEX, tName);
+            GetField(LUA_REGISTRYINDEX, tName);
         }
 
-        template<typename T, typename D>
-        inline T Opt(D f, int arg, T d) {
-            return lua_isnoneornil(this, arg) ? d : D(this, arg);
+        template<typename T>
+        inline T Opt(T (Lua::State::*f)(int), int nArg, T def) {
+            if (IsNoneOrNil(nArg)) {
+                return def;
+            }
+            return (this->*f)(nArg);
         }
 
         // MARK: Library export
 
         inline int OpenBase() {
-            return luaopen_base(this);
+            return luaopen_base(L);
         }
 
         inline int OpenTable() {
-            return luaopen_table(this);
+            return luaopen_table(L);
         }
 
         inline int OpenIO() {
-            return luaopen_io(this);
+            return luaopen_io(L);
         }
 
         inline int OpenOS() {
-            return luaopen_os(this);
+            return luaopen_os(L);
         }
 
         inline int OpenString() {
-            return luaopen_string(this);
+            return luaopen_string(L);
         }
 
         inline int OpenMath() {
-            return luaopen_math(this);
+            return luaopen_math(L);
         }
 
         inline int OpenDebug() {
-            return luaopen_debug(this);
+            return luaopen_debug(L);
         }
 
         inline int OpenBit() {
-            return luaopen_bit(this);
+            return luaopen_bit(L);
         }
 
         inline int OpenPackage() {
-            return luaopen_package(this);
+            return luaopen_package(L);
         }
 
-        inline void OpenLibs() {
-            luaL_openlibs(this);
-        }
+        LPP_API void OpenLibs();
+
+        BasicState *L;
     };
 
-    inline State *Open() {
-        return luaL_newstate();
-    }
+    LPP_API State *Open();
 
-    inline void XMove(State *from, State *to, int n) {
-        lua_xmove(from, to, n);
-    }
+    LPP_API void Close(State *(&L));
+
+    LPP_API void XMove(State *from, State *to, int n);
 
     /* hack */
-    inline void SetLevel(State *from, State *to) {
-        lua_setlevel(from, to);
-    }
+    LPP_API void SetLevel(State *from, State *to);
 }
 
 

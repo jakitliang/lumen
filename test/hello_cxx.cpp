@@ -8,6 +8,7 @@
  */
 
 #include "lua.hpp"
+#include <iostream>
 
 int main() {
     auto L = Lua::Open();
@@ -17,7 +18,13 @@ int main() {
     L->DoString(R"(
 print(my_key);
 )");
-    L->Close();
+
+    L->PushDelegate([](Lua::State *l) {
+        std::cout << "Try call" << std::endl;
+        return 0;
+    });
+    L->Call(0, 0);
+    Lua::Close(L);
 
     return 0;
 }

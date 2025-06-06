@@ -83,7 +83,7 @@ namespace Lumen {
 /*
 ** `per thread' state
 */
-struct Lumen::State : Lumen::Object {
+struct LumenState : Lumen::Object {
     Lumen::Byte Status;
     Lumen::StkId Top;  /* first free slot in the stack */
     Lumen::StkId Base;  /* base of current function */
@@ -110,9 +110,19 @@ struct Lumen::State : Lumen::Object {
     Lumen::LongJump *ErrorJmp;  /* current error recover point */
     ptrdiff_t ErrFunc;  /* current error handling function (stack index) */
 
+    // MARK: Debug
+
+    const char *FindLocal(Lumen::CallInfo *ci, int n);
+
+    // MARK: Static
+
     static Lumen::State *NewThread(Lumen::State *L);
 
     static void FreeThread(Lumen::State *L, Lumen::State *L1);
+
+    static Lumen::State *New(Lumen::Allocator allocator, void *userData);
+
+    static void Close(Lumen::State *L);
 };
 
 namespace Lumen {

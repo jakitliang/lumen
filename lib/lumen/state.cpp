@@ -138,11 +138,11 @@ void Lumen::State::FreeThread(Lumen::State *L, Lumen::State *L1) {
 }
 
 
-LUA_API Lumen::State *lua_newstate(Lumen::Allocator f, void *ud) {
+Lumen::State *Lumen::State::New(Lumen::Allocator allocator, void *userData) {
     int i;
     Lumen::State *L;
     Lumen::GlobalState *g;
-    void *l = (*f)(ud, nullptr, 0, sizeOfState(LG));
+    void *l = (*allocator)(userData, nullptr, 0, sizeOfState(LG));
     if (l == nullptr) return nullptr;
     L = toState(l);
     g = &((LG *) L)->g;
@@ -152,8 +152,8 @@ LUA_API Lumen::State *lua_newstate(Lumen::Allocator f, void *ud) {
     L->Marked = LumenGCWhite(g);
     LumenGCSet2Bits(L->Marked, Lumen::GC::MarkFixedBit, Lumen::GC::MarkSFixedBit);
     LuaStatePreInit(L, g);
-    g->ReAllocator = f;
-    g->ReAllocatorUData = ud;
+    g->ReAllocator = allocator;
+    g->ReAllocatorUData = userData;
     g->MainThread = L;
     g->UpValueHead.Prev = &g->UpValueHead;
     g->UpValueHead.Next = &g->UpValueHead;
@@ -187,13 +187,14 @@ LUA_API Lumen::State *lua_newstate(Lumen::Allocator f, void *ud) {
 }
 
 
+
+
 static void LuaStateCallAllGcTM(Lumen::State *L, void *ud) {
     UNUSED(ud);
     Lumen::GC::CallGCTM(L);  /* call GC metaMethods for all uData */
 }
 
-
-LUA_API void lua_close(Lumen::State *L) {
+void Lumen::State::Close(Lumen::State *L) {
     L = LumenGlobal(L)->MainThread;  /* only the main thread can be closed */
     LumenLock(L);
     Lumen::UpValue::Close(L, L->Stack);  /* close all upvalues for this thread */
@@ -208,4 +209,3 @@ LUA_API void lua_close(Lumen::State *L) {
     luai_userstateclose(L);
     LuaStateClose(L);
 }
-

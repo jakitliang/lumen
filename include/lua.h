@@ -73,11 +73,12 @@ enum {
     LUA_ERRERR = 5
 };
 
-
-typedef LUAI_STATE lua_State;
+typedef struct LumenState lua_State;
 
 #ifndef LUAI_DELEGATE
-typedef int (*lua_CFunction)(LUAI_STATE *L);
+
+typedef int (*lua_CFunction)(lua_State *L);
+
 #else
 typedef LUAI_DELEGATE lua_CFunction;
 #endif
@@ -87,13 +88,17 @@ typedef LUAI_DELEGATE lua_CFunction;
 ** functions that read/write blocks when loading/dumping Lua chunks
 */
 #ifndef LUAI_READER
-typedef const char *(*lua_Reader)(LUAI_STATE *L, void *ud, size_t *sz);
+
+typedef const char *(*lua_Reader)(lua_State *L, void *ud, size_t *sz);
+
 #else
 typedef LUAI_READER lua_Reader;
 #endif
 
 #ifndef LUAI_WRITER
-typedef int (*lua_Writer)(LUAI_STATE *L, const void *p, size_t sz, void *ud);
+
+typedef int (*lua_Writer)(lua_State *L, const void *p, size_t sz, void *ud);
+
 #else
 typedef LUAI_WRITER lua_Writer;
 #endif
@@ -102,7 +107,9 @@ typedef LUAI_WRITER lua_Writer;
 ** prototype for memory-allocation functions
 */
 #ifndef LUAI_ALLOCATOR
+
 typedef void *(*lua_Alloc)(void *ud, void *ptr, size_t oldSize, size_t newSize);
+
 #else
 typedef LUAI_ALLOCATOR lua_Alloc;
 #endif
@@ -416,24 +423,41 @@ enum {
     LUA_MASKCOUNT = (1 << LUA_HOOKCOUNT)
 };
 
-
-typedef LUAI_DEBUGINFO lua_Debug;  /* activation record */
+#ifndef LUAI_DEBUGINFO
+typedef struct {
+    int event;
+    const char *name;
+    const char *namewhat;
+    const char *what;
+    const char *source;
+    int currentline;
+    int nups;
+    int linedefined;
+    int lastlinedefined;
+    char short_src[LUA_IDSIZE];
+    int i_ci;
+} lua_Debug;  /* activation record */
+#else
+typedef LUAI_DEBUGINFO lua_Debug;
+#endif
 
 /* Functions to be called by the debuger in specific events */
 #ifndef LUAI_HOOK
-typedef void (*lua_Hook)(LUAI_STATE *L, LUAI_DEBUGINFO_NAME *ar);
+
+typedef void (*lua_Hook)(lua_State *L, lua_Debug *ar);
+
 #else
 typedef LUAI_HOOK lua_Hook;
 #endif
 
 
-LUA_API int lua_getstack(lua_State *L, int level, LUAI_DEBUGINFO_NAME *ar);
+LUA_API int lua_getstack(lua_State *L, int level, lua_Debug *ar);
 
-LUA_API int lua_getinfo(lua_State *L, const char *what, LUAI_DEBUGINFO_NAME *ar);
+LUA_API int lua_getinfo(lua_State *L, const char *what, lua_Debug *ar);
 
-LUA_API const char *lua_getlocal(lua_State *L, const LUAI_DEBUGINFO_NAME *ar, int n);
+LUA_API const char *lua_getlocal(lua_State *L, const lua_Debug *ar, int n);
 
-LUA_API const char *lua_setlocal(lua_State *L, const LUAI_DEBUGINFO_NAME *ar, int n);
+LUA_API const char *lua_setlocal(lua_State *L, const lua_Debug *ar, int n);
 
 LUA_API const char *lua_getupvalue(lua_State *L, int funcIndex, int n);
 

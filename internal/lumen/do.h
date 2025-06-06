@@ -65,6 +65,10 @@ namespace Lumen::Do {
     int RawRunProtected(Lumen::State *L, Lumen::Do::PFunc f, void *ud);
 
     void SetErrorObject(Lumen::State *L, int errcode, Lumen::StkId oldTop);
+
+    void Resume(Lumen::State *L, void *ud);
+
+    int ResumeError(Lumen::State *L, const char *msg);
 }
 
 #endif
