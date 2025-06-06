@@ -5,7 +5,6 @@ endif ()
 
 add_library(
     lumen-core OBJECT
-    api.cpp
     code.cpp
     debug.cpp
     do.cpp

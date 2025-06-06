@@ -13,7 +13,6 @@
 
 #define LUA_CORE
 
-#include "lumen/api.h"
 #include "lumen/code.h"
 #include "lumen/debug.h"
 #include "lumen/do.h"
@@ -28,6 +27,7 @@
 
 static const char *getFuncName(Lumen::State *L, Lumen::CallInfo *ci, const char **name);
 
+void lua_PushObject(Lumen::State *L, const Lumen::Value *o);
 
 static int currentPC(Lumen::State *L, Lumen::CallInfo *ci) {
     if (!LumenFuncIsLua(ci)) return -1;  /* function is not a Lua function? */
@@ -123,7 +123,7 @@ LUA_API const char *lua_getlocal(Lumen::State *L, const Lumen::DebugInfo *ar, in
     const char *name = findLocal(L, ci, n);
     LumenLock(L);
     if (name)
-        Lumen::PushObject(L, ci->Base + (n - 1));
+        lua_PushObject(L, ci->Base + (n - 1));
     LumenUnlock(L);
     return name;
 }

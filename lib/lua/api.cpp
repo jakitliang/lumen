@@ -15,7 +15,6 @@
 
 #define LUA_CORE
 
-#include "lumen/api.h"
 #include "lumen/debug.h"
 #include "lumen/do.h"
 #include "lumen/gc.h"
@@ -88,7 +87,7 @@ static Lumen::Table *getCurEnv(Lumen::State *L) {
 }
 
 
-void Lumen::PushObject(Lumen::State *L, const Lumen::Value *o) {
+void lua_PushObject(Lumen::State *L, const Lumen::Value *o) {
     LumenSetObject2S(L, L->Top, o);
     apiIncrTop(L);
 }
