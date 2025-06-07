@@ -28,6 +28,19 @@ print(my_key);
     L->DoString<0>(R"(
 TestNumber(555);
 )");
+
+
+    L->DoString<0>(R"(
+Super = {a = 123}
+Super.__index = Super
+)");
+    L->GetGlobal("Super");
+    L->PushLightUserdata(new int{1});
+    L->GetGlobal("Super");
+    L->SetMetatable(-2);
+
+    std::cout << L->InstanceOf(-1, -2) << std::endl;
+
     Lua::Close(L);
 
     return 0;

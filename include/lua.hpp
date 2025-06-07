@@ -391,6 +391,8 @@ namespace Lua {
             return ToString(idx, nullptr);
         }
 
+        LPP_API bool InstanceOf(int idxChild, int idxSuper);
+
         // MARK: compatibility fast call functions
 
         inline void GetRegistry() {

@@ -38,6 +38,9 @@ LumenDo(                \
     L->Top++;         \
 )
 
+/* limit for table tag-method chains (to avoid loops) */
+#define LumenMaxTagLoop    100
+
 #define LuaToLumen(L) reinterpret_cast<Lumen::State *>(L)
 #define LumenToLua(L) reinterpret_cast<Lua::State *>(L)
 
@@ -319,6 +322,30 @@ const char *Lua::State::ToString(int idx, Lua::UInteger *len) {
     }
     if (len != nullptr) *len = LumenStringValue(o)->Length;
     return LumenStringValue2CString(o);
+}
+
+bool Lua::State::InstanceOf(int idxChild, int idxSuper) {
+    auto L = LuaToLumen(this);
+    const Lumen::Value *oChild = index2addr(L, idxChild);
+    const Lumen::Value *oSuper = index2addr(L, idxSuper);
+    if (oChild == Lumen::NilObject || oSuper == Lumen::NilObject) return false;
+    int loop;
+    for (loop = 0; loop < LumenMaxTagLoop; loop++) {
+        if (LumenTypeIsTable(oChild)) {  /* `t` is a table? */
+            Lumen::Table *h = LumenTableValue(oChild);
+            if (Lumen::RawEqualObject(oChild, oSuper)) {
+                return true;
+            }
+            if ((oChild = LumenTMGetFast(L, h->Metatable, Lumen::TM::NameIndex)) == nullptr) { /* no TM? */
+                return false;
+            }
+            /* else will try the tag method */
+        } else if (LumenTypeIsNil(oChild = Lumen::TM::GetByObject(L, oChild, Lumen::TM::NameIndex))) {
+            Lumen::Debug::TypeError(L, oChild, "index");
+        }
+    }
+    Lumen::Debug::RunError(L, "loop in gettable");
+    return false;
 }
 
 Lua::UInteger Lua::State::ObjectLength(int idx) {
