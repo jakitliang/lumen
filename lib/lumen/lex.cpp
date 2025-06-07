@@ -41,7 +41,7 @@ const char *const Lumen::Token::Names[] = {
 
 #define saveAndNext(ls) (save(ls, ls->Current), next(ls))
 
-static void save(Lumen::LexState *ls, int c) {
+static inline void save(Lumen::LexState *ls, int c) {
     Lumen::ZBuffer *b = ls->buff;
     if (b->n + 1 > b->buffsize) {
         size_t newSize;
@@ -53,32 +53,9 @@ static void save(Lumen::LexState *ls, int c) {
     b->buffer[b->n++] = cast(char, c);
 }
 
-
-void Lumen::LexState::Init(Lumen::State *L) {
-    int i;
-    for (i = 0; i < Lumen::Token::ReservedCount; i++) {
-        Lumen::String *ts = Lumen::String::New(L, Lumen::Token::Names[i]);
-        LumenStringFix(ts);  /* reserved words are never collected */
-        LumenAssert(strlen(Lumen::Token::Names[i]) + 1 <= Lumen::LexState::TokenLength);
-        ts->Reserved = cast_byte(i + 1);  /* reserved word */
-    }
-}
-
-
 #define LUA_MAX_SRC          80
 
-
-const char *Lumen::LexState::Token2CString(Lumen::LexState *ls, int token) {
-    if (token < LUA_LEX_STATE_FIRST_RESERVED) {
-        LumenAssert(token == cast(unsigned char, token));
-        return (iscntrl(token)) ? Lumen::PushFString(ls->L, "char(%d)", token) :
-               Lumen::PushFString(ls->L, "%c", token);
-    } else
-        return Lumen::Token::Names[token - LUA_LEX_STATE_FIRST_RESERVED];
-}
-
-
-static const char *txtToken(Lumen::LexState *ls, int token) {
+static inline const char *txtToken(Lumen::LexState *ls, int token) {
     switch (token) {
         case Lumen::Token::SymbolName:
         case Lumen::Token::SymbolString:
@@ -100,12 +77,6 @@ void Lumen::LexState::LexError(Lumen::LexState *ls, const char *msg, int token) 
     Lumen::Do::Throw(ls->L, LUA_ERRSYNTAX);
 }
 
-
-void Lumen::LexState::SyntaxError(Lumen::LexState *ls, const char *msg) {
-    Lumen::LexState::LexError(ls, msg, ls->CurToken.Kind);
-}
-
-
 Lumen::String *Lumen::LexState::NewString(Lumen::LexState *ls, const char *str, size_t l) {
     Lumen::State *L = ls->L;
     Lumen::String *ts = Lumen::String::New(L, str, l);
@@ -118,7 +89,7 @@ Lumen::String *Lumen::LexState::NewString(Lumen::LexState *ls, const char *str, 
 }
 
 
-static void inclineNumber(Lumen::LexState *ls) {
+static inline void inclineNumber(Lumen::LexState *ls) {
     int old = ls->Current;
     LumenAssert(currIsNewline(ls));
     next(ls);  /* skip `\n' or `\r' */
@@ -151,7 +122,7 @@ void Lumen::LexState::SetInput(Lumen::State *L, Lumen::LexState *ls, Lumen::ZIO 
 
 
 
-static int checkNext(Lumen::LexState *ls, const char *set) {
+static inline int checkNext(Lumen::LexState *ls, const char *set) {
     if (!strchr(set, ls->Current))
         return 0;
     saveAndNext(ls);
@@ -159,7 +130,7 @@ static int checkNext(Lumen::LexState *ls, const char *set) {
 }
 
 
-static void bufferReplace(Lumen::LexState *ls, char from, char to) {
+static inline void bufferReplace(Lumen::LexState *ls, char from, char to) {
     size_t n = LumenZBufferLength(ls->buff);
     char *p = LumenZBufferGet(ls->buff);
     while (n--)
@@ -198,7 +169,7 @@ static void readNumeral(Lumen::LexState *ls, Lumen::SemInfo *semInfo) {
 }
 
 
-static int skipSep(Lumen::LexState *ls) {
+static inline int skipSep(Lumen::LexState *ls) {
     int count = 0;
     int s = ls->Current;
     LumenAssert(s == '[' || s == ']');

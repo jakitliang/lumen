@@ -30,30 +30,6 @@ int Lumen::ZIO::Fill(Lumen::ZIO *z) {
     return LumenChar2Int(*(z->p++));
 }
 
-
-int Lumen::ZIO::LookAhead(Lumen::ZIO *z) {
-    if (z->n == 0) {
-        if (Lumen::ZIO::Fill(z) == EOZ)
-            return EOZ;
-        else {
-            z->n++;  /* Lumen::ZIO::Fill removed first byte; put back it */
-            z->p--;
-        }
-    }
-    return LumenChar2Int(*z->p);
-}
-
-
-void Lumen::ZIO::Init(Lumen::State *L, Lumen::ZIO *z, Lumen::Reader reader, void *data) {
-    z->L = L;
-    z->reader = reader;
-    z->data = data;
-    z->n = 0;
-    z->p = nullptr;
-}
-
-
-/* --------------------------------------------------------------- read --- */
 size_t Lumen::ZIO::Read(Lumen::ZIO *z, void *b, size_t n) {
     while (n) {
         size_t m;
@@ -69,13 +45,5 @@ size_t Lumen::ZIO::Read(Lumen::ZIO *z, void *b, size_t n) {
     return 0;
 }
 
-/* ------------------------------------------------------------------------ */
-char *Lumen::ZBuffer::OpenSpace(Lumen::State *L, Lumen::ZBuffer *buff, size_t n) {
-    if (n > buff->buffsize) {
-        if (n < Lumen::MinBufferSize) n = Lumen::MinBufferSize;
-        LumenZBufferResize(L, buff, n);
-    }
-    return buff->buffer;
-}
 
 

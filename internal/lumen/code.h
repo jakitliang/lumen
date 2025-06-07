@@ -129,5 +129,42 @@ namespace Lumen {
 
 #define LumenFuncStateSetMulRet(fs, e)    Lumen::FuncState::SetReturns(fs, e, LUA_MULTRET)
 
+inline void Lumen::FuncState::FixLine(Lumen::FuncState *fs, int line) {
+    fs->Func->LineInfo[fs->PC - 1] = line;
+}
+
+inline void Lumen::FuncState::ReserveRegs(Lumen::FuncState *fs, int n) {
+    Lumen::FuncState::CheckStack(fs, n);
+    fs->FreeReg += n;
+}
+
+inline void Lumen::FuncState::CheckStack(Lumen::FuncState *fs, int n) {
+    int newStack = fs->FreeReg + n;
+    if (newStack > fs->Func->MaxStackSize) {
+        if (newStack >= Lumen::MaxStack)
+            Lumen::LexState::SyntaxError(fs->Lexer, "function or expression too complex");
+        fs->Func->MaxStackSize = cast_byte(newStack);
+    }
+}
+
+inline void Lumen::FuncState::Indexed(Lumen::FuncState *fs, Lumen::ExpDesc *t, Lumen::ExpDesc *k) {
+    t->Aux = Lumen::FuncState::Exp2RK(fs, k);
+    t->k = Lumen::ExpDesc::KindIndexed;
+}
+
+inline void Lumen::FuncState::Ret(Lumen::FuncState *fs, int first, int nRet) {
+    Lumen::FuncState::CodeABC(fs, Lumen::OpCodeReturn, first, nRet + 1, 0);
+}
+
+/*
+** returns current `pc` and marks it as a jump target (to avoid wrong
+** optimizations with consecutive instructions not in the same basic block).
+*/
+inline int Lumen::FuncState::GetLabel(Lumen::FuncState *fs) {
+    fs->LastPC = fs->PC;
+    return fs->PC;
+}
+
+
 
 #endif

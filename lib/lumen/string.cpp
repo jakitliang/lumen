@@ -9,6 +9,8 @@
 
 
 #include <cstring>
+#include <cstdint>
+#include <string_view>
 
 #define LUA_CORE
 
@@ -47,7 +49,7 @@ void Lumen::String::Resize(Lumen::State *L, int newSize) {
 
 
 static Lumen::String *newStringWithLength(Lumen::State *L, const char *str, size_t l,
-                                        unsigned int h) {
+                                          unsigned int h) {
     Lumen::String *ts;
     Lumen::StringTable *tb;
     if (l + 1 > (Lumen::MaxSize - sizeof(Lumen::String)) / sizeof(char))
@@ -70,14 +72,55 @@ static Lumen::String *newStringWithLength(Lumen::State *L, const char *str, size
     return ts;
 }
 
+static inline uint32_t murmur32(const uint8_t *key, size_t len, uint32_t seed) {
+    static const uint32_t c1 = 0xcc9e2d51;
+    static const uint32_t c2 = 0x1b873593;
+    static const uint32_t r1 = 15;
+    static const uint32_t r2 = 13;
+    static const uint32_t m = 5;
+    static const uint32_t n = 0xe6546b64;
+    uint32_t hash = seed;
+
+    const size_t nBlocks = len / 4;
+    auto blocks = (const uint32_t *) key;
+    for (size_t i = 0; i < nBlocks; i++) {
+        uint32_t k = blocks[i];
+        k *= c1;
+        k = (k << r1) | (k >> (32 - r1));
+        k *= c2;
+
+        hash ^= k;
+        hash = ((hash << r2) | (hash >> (32 - r2))) * m + n;
+    }
+
+    auto tail = (const uint8_t *) (key + nBlocks * 4);
+    uint32_t k1 = 0;
+    switch (len & 3) {
+        case 3:
+            k1 ^= tail[2] << 16;
+        case 2:
+            k1 ^= tail[1] << 8;
+        case 1:
+            k1 ^= tail[0];
+            k1 *= c1;
+            k1 = (k1 << r1) | (k1 >> (32 - r1));
+            k1 *= c2;
+            hash ^= k1;
+    }
+
+    hash ^= len;
+    hash ^= (hash >> 16);
+    hash *= 0x85ebca6b;
+    hash ^= (hash >> 13);
+    hash *= 0xc2b2ae35;
+    hash ^= (hash >> 16);
+
+    return hash;
+}
 
 Lumen::String *Lumen::String::New(Lumen::State *L, const char *str, size_t l) {
     Lumen::GCObject *o;
-    unsigned int h = cast(unsigned int, l);  /* seed */
-    size_t step = (l >> 5) + 1;  /* if string is too long, don't hash all its chars */
-    size_t l1;
-    for (l1 = l; l1 >= step; l1 -= step)  /* compute hash */
-        h = h ^ ((h << 5) + (h >> 2) + cast(unsigned char, str[l1 - 1]));
+    unsigned int h = murmur32((uint8_t *) str, l, (uint32_t) l);
     for (o = LumenGlobal(L)->StringMap.HashTable[LumenLogMod(h, LumenGlobal(L)->StringMap.Capacity)];
          o != nullptr;
          o = o->AsObject.GCNext) {
@@ -93,12 +136,8 @@ Lumen::String *Lumen::String::New(Lumen::State *L, const char *str, size_t l) {
 
 Lumen::String *Lumen::String::New(Lumen::State *L, const char *str) {
     Lumen::GCObject *o;
-    size_t l = strlen(str);
-    unsigned int h = cast(unsigned int, l);  /* seed */
-    size_t step = (l >> 5) + 1;  /* if string is too long, don't hash all its chars */
-    size_t l1;
-    for (l1 = l; l1 >= step; l1 -= step)  /* compute hash */
-        h = h ^ ((h << 5) + (h >> 2) + cast(unsigned char, str[l1 - 1]));
+    size_t l = LengthOf(str);
+    unsigned int h = murmur32((uint8_t *) str, l, (uint32_t) l);
     for (o = LumenGlobal(L)->StringMap.HashTable[LumenLogMod(h, LumenGlobal(L)->StringMap.Capacity)];
          o != nullptr;
          o = o->AsObject.GCNext) {
@@ -110,6 +149,10 @@ Lumen::String *Lumen::String::New(Lumen::State *L, const char *str) {
         }
     }
     return newStringWithLength(L, str, l, h);  /* not found */
+}
+
+size_t Lumen::String::LengthOf(const char *cStr) {
+    return std::string_view(cStr).length();
 }
 
 Lumen::Userdata *Lumen::Userdata::New(Lumen::State *L, size_t s, Lumen::Table *e) {

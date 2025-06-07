@@ -30,31 +30,6 @@
 /* limit for table tag-method chains (to avoid loops) */
 #define LUA_VM_MAX_TAG_LOOP    100
 
-
-const Lumen::Value *Lumen::VM::ToNumber(const Lumen::Value *obj, Lumen::Value *n) {
-    Lumen::Number num;
-    if (LumenTypeIsNumber(obj)) return obj;
-    if (LumenTypeIsString(obj) && Lumen::String2Decimal(LumenStringValue2CString(obj), &num)) {
-        LumenSetNumberValue(n, num);
-        return n;
-    } else
-        return nullptr;
-}
-
-
-int Lumen::VM::ToString(Lumen::State *L, Lumen::StkId obj) {
-    if (!LumenTypeIsNumber(obj))
-        return 0;
-    else {
-        char s[LUAI_MAXNUMBER2STR];
-        Lumen::Number n = LumenNumberValue(obj);
-        lua_number2str(s, n);
-        LumenSetStringValue2S(L, obj, Lumen::String::New(L, s));
-        return 1;
-    }
-}
-
-
 static void traceExec(Lumen::State *L, const Lumen::Instruction *pc) {
     Lumen::Byte mask = L->HookMask;
     const Lumen::Instruction *oldpc = L->SavedPC;
@@ -75,7 +50,7 @@ static void traceExec(Lumen::State *L, const Lumen::Instruction *pc) {
 }
 
 
-static void callTMRes(Lumen::State *L, Lumen::StkId res, const Lumen::Value *f,
+static inline void callTMRes(Lumen::State *L, Lumen::StkId res, const Lumen::Value *f,
                       const Lumen::Value *p1, const Lumen::Value *p2) {
     ptrdiff_t result = LumenSaveStack(L, res);
     LumenSetObject2S(L, L->Top, f);  /* push function */
@@ -90,7 +65,7 @@ static void callTMRes(Lumen::State *L, Lumen::StkId res, const Lumen::Value *f,
 }
 
 
-static void callTM(Lumen::State *L, const Lumen::Value *f, const Lumen::Value *p1,
+static inline void callTM(Lumen::State *L, const Lumen::Value *f, const Lumen::Value *p1,
                    const Lumen::Value *p2, const Lumen::Value *p3) {
     LumenSetObject2S(L, L->Top, f);  /* push function */
     LumenSetObject2S(L, L->Top + 1, p1);  /* 1st argument */
@@ -157,7 +132,7 @@ void Lumen::VM::SetTable(Lumen::State *L, const Lumen::Value *t, Lumen::Value *k
 }
 
 
-static int call_binTM(Lumen::State *L, const Lumen::Value *p1, const Lumen::Value *p2,
+static inline int call_binTM(Lumen::State *L, const Lumen::Value *p1, const Lumen::Value *p2,
                       Lumen::StkId res, Lumen::TM::Name event) {
     const Lumen::Value *tm = Lumen::TM::GetByObject(L, p1, event);  /* try first operand */
     if (LumenTypeIsNil(tm))
@@ -168,7 +143,7 @@ static int call_binTM(Lumen::State *L, const Lumen::Value *p1, const Lumen::Valu
 }
 
 
-static const Lumen::Value *get_compTM(Lumen::State *L, Lumen::Table *mt1, Lumen::Table *mt2,
+static inline const Lumen::Value *get_compTM(Lumen::State *L, Lumen::Table *mt1, Lumen::Table *mt2,
                                     Lumen::TM::Name event) {
     const Lumen::Value *tm1 = LumenTMGetFast(L, mt1, event);
     const Lumen::Value *tm2;
@@ -182,7 +157,7 @@ static const Lumen::Value *get_compTM(Lumen::State *L, Lumen::Table *mt1, Lumen:
 }
 
 
-static int callOrderTM(Lumen::State *L, const Lumen::Value *p1, const Lumen::Value *p2,
+static inline int callOrderTM(Lumen::State *L, const Lumen::Value *p1, const Lumen::Value *p2,
                        Lumen::TM::Name event) {
     const Lumen::Value *tm1 = Lumen::TM::GetByObject(L, p1, event);
     const Lumen::Value *tm2;
@@ -204,7 +179,7 @@ static int luaStrCmp(const Lumen::String *ls, const Lumen::String *rs) {
         int temp = strcoll(l, r);
         if (temp != 0) return temp;
         else {  /* strings are equal up to a `\0' */
-            size_t len = strlen(l);  /* index of first `\0' in both strings */
+            size_t len = Lumen::String::LengthOf(l);  /* index of first `\0' in both strings */
             if (len == lr)  /* r is finished? */
                 return (len == ll) ? 0 : 1;
             else if (len == ll)  /* l is finished? */
@@ -234,7 +209,7 @@ int Lumen::VM::LessThan(Lumen::State *L, const Lumen::Value *l, const Lumen::Val
 }
 
 
-static int lessEqual(Lumen::State *L, const Lumen::Value *l, const Lumen::Value *r) {
+static inline int lessEqual(Lumen::State *L, const Lumen::Value *l, const Lumen::Value *r) {
     int res;
     if (LumenTypeOf(l) != LumenTypeOf(r))
         return Lumen::Debug::OrderError(L, l, r);

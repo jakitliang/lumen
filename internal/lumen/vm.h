@@ -43,4 +43,26 @@ namespace Lumen::VM {
 
 #define LumenVMEqualObj(L, o1, o2)    (LumenTypeOf(o1) == LumenTypeOf(o2) && Lumen::VM::EqualVal(L, o1, o2))
 
+inline const Lumen::Value *Lumen::VM::ToNumber(const Lumen::Value *obj, Lumen::Value *n) {
+    Lumen::Number num;
+    if (LumenTypeIsNumber(obj)) return obj;
+    if (LumenTypeIsString(obj) && Lumen::String2Decimal(LumenStringValue2CString(obj), &num)) {
+        LumenSetNumberValue(n, num);
+        return n;
+    } else
+        return nullptr;
+}
+
+inline int Lumen::VM::ToString(Lumen::State *L, Lumen::StkId obj) {
+    if (!LumenTypeIsNumber(obj))
+        return 0;
+    else {
+        char s[LUAI_MAXNUMBER2STR];
+        Lumen::Number n = LumenNumberValue(obj);
+        lua_number2str(s, n);
+        LumenSetStringValue2S(L, obj, Lumen::String::New(L, s));
+        return 1;
+    }
+}
+
 #endif

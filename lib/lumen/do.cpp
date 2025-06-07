@@ -66,7 +66,7 @@ void Lumen::Do::SetErrorObject(Lumen::State *L, int errcode, Lumen::StkId oldTop
 }
 
 
-static void restoreStackLimit(Lumen::State *L) {
+static inline void restoreStackLimit(Lumen::State *L) {
     LumenAssert(L->StackLast - L->Stack == L->StackCount - Lumen::ExtraStack - 1);
     if (L->BaseCICount > LUAI_MAXCALLS) {  /* there was an overflow? */
         int inuse = cast_int(L->CallInfo - L->BaseCI);
@@ -270,7 +270,8 @@ int Lumen::Do::PreCall(Lumen::State *L, Lumen::StkId func, int nResults) {
         Lumen::CallInfo *ci;
         Lumen::StkId st, base;
         Lumen::Proto *p = cl->Func;
-        LumenDoCheckStack(L, p->MaxStackSize);
+//        LumenDoCheckStack(L, p->MaxStackSize);
+        LumenDoCheckStack(L, p->MaxStackSize + p->NUmParams);
         func = LumenRestoreStack(L, funcR);
         if (!p->IsVararg) {  /* no varargs? */
             base = func + 1;

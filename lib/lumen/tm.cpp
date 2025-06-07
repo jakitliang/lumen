@@ -41,21 +41,6 @@ void Lumen::TM::Init(Lumen::State *L) {
     }
 }
 
-
-/*
-** function to be used with macro "LumenTMGetFast": optimized for absence of
-** tag methods
-*/
-const Lumen::Value *Lumen::TM::Get(Lumen::Table *events, Lumen::TM::Name event, Lumen::String *ename) {
-    const Lumen::Value *tm = Lumen::Table::GetString(events, ename);
-    LumenAssert(event <= Lumen::TM::NameEQ);
-    if (LumenTypeIsNil(tm)) {  /* no tag method? */
-        events->Flags |= cast_byte(1u << event);  /* cache this fact */
-        return nullptr;
-    } else return tm;
-}
-
-
 const Lumen::Value *Lumen::TM::GetByObject(Lumen::State *L, const Lumen::Value *o, Lumen::TM::Name event) {
     Lumen::Table *mt;
     switch (LumenTypeOf(o)) {

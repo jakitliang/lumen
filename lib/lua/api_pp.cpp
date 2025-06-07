@@ -433,7 +433,7 @@ void Lua::State::PushString(const char *s) {
     if (s == nullptr)
         lua_pushnil(L);
     else
-        lua_pushlstring(L, s, strlen(s));
+        lua_pushlstring(L, s, Lumen::String::LengthOf(s));
 }
 
 const char *Lua::State::PushVFString(const char *fmt, va_list argP) {

@@ -59,19 +59,12 @@ int Lumen::FuncState::Jump(Lumen::FuncState *fs) {
     return j;
 }
 
-
-void Lumen::FuncState::Ret(Lumen::FuncState *fs, int first, int nRet) {
-    Lumen::FuncState::CodeABC(fs, Lumen::OpCodeReturn, first, nRet + 1, 0);
-}
-
-
-static int condJump(Lumen::FuncState *fs, Lumen::OpCode op, int A, int B, int C) {
+static inline int condJump(Lumen::FuncState *fs, Lumen::OpCode op, int A, int B, int C) {
     Lumen::FuncState::CodeABC(fs, op, A, B, C);
     return Lumen::FuncState::Jump(fs);
 }
 
-
-static void fixJump(Lumen::FuncState *fs, int pc, int dest) {
+static inline void fixJump(Lumen::FuncState *fs, int pc, int dest) {
     Lumen::Instruction *jmp = &fs->Func->Code[pc];
     int offset = dest - (pc + 1);
     LumenAssert(dest != NO_JUMP);
@@ -80,18 +73,7 @@ static void fixJump(Lumen::FuncState *fs, int pc, int dest) {
     LumenOpCodeSetArgsBx(*jmp, offset);
 }
 
-
-/*
-** returns current `pc` and marks it as a jump target (to avoid wrong
-** optimizations with consecutive instructions not in the same basic block).
-*/
-int Lumen::FuncState::GetLabel(Lumen::FuncState *fs) {
-    fs->LastPC = fs->PC;
-    return fs->PC;
-}
-
-
-static int getJump(Lumen::FuncState *fs, int pc) {
+static inline int getJump(Lumen::FuncState *fs, int pc) {
     int offset = LumenOpCodeGetArgsBx(fs->Func->Code[pc]);
     if (offset == NO_JUMP)  /* point to itself represents end of list */
         return NO_JUMP;  /* end of list */
@@ -100,7 +82,7 @@ static int getJump(Lumen::FuncState *fs, int pc) {
 }
 
 
-static Lumen::Instruction *getJumpControl(Lumen::FuncState *fs, int pc) {
+static inline Lumen::Instruction *getJumpControl(Lumen::FuncState *fs, int pc) {
     Lumen::Instruction *pi = &fs->Func->Code[pc];
     if (pc >= 1 && LumenTestTMode(LumenOpCodeGet(*(pi - 1))))
         return pi - 1;
@@ -113,7 +95,7 @@ static Lumen::Instruction *getJumpControl(Lumen::FuncState *fs, int pc) {
 ** check whether list has any jump that do not produce a value
 ** (or produce an inverted value)
 */
-static int needValue(Lumen::FuncState *fs, int list) {
+static inline int needValue(Lumen::FuncState *fs, int list) {
     for (; list != NO_JUMP; list = getJump(fs, list)) {
         Lumen::Instruction i = *getJumpControl(fs, list);
         if (LumenOpCodeGet(i) != Lumen::OpCodeTestTest) return 1;
@@ -122,7 +104,7 @@ static int needValue(Lumen::FuncState *fs, int list) {
 }
 
 
-static int patchTestReg(Lumen::FuncState *fs, int node, int reg) {
+static inline int patchTestReg(Lumen::FuncState *fs, int node, int reg) {
     Lumen::Instruction *i = getJumpControl(fs, node);
     if (LumenOpCodeGet(*i) != Lumen::OpCodeTestTest)
         return 0;  /* cannot patch other instructions */
@@ -135,13 +117,13 @@ static int patchTestReg(Lumen::FuncState *fs, int node, int reg) {
 }
 
 
-static void removeValues(Lumen::FuncState *fs, int list) {
+static inline void removeValues(Lumen::FuncState *fs, int list) {
     for (; list != NO_JUMP; list = getJump(fs, list))
         patchTestReg(fs, list, NO_REG);
 }
 
 
-static void patchListAux(Lumen::FuncState *fs, int list, int vTarget, int reg,
+static inline void patchListAux(Lumen::FuncState *fs, int list, int vTarget, int reg,
                          int dTarget) {
     while (list != NO_JUMP) {
         int next = getJump(fs, list);
@@ -154,7 +136,7 @@ static void patchListAux(Lumen::FuncState *fs, int list, int vTarget, int reg,
 }
 
 
-static void dischargeJumpPC(Lumen::FuncState *fs) {
+static inline void dischargeJumpPC(Lumen::FuncState *fs) {
     patchListAux(fs, fs->JumpPC, fs->PC, NO_REG, fs->PC);
     fs->JumpPC = NO_JUMP;
 }
@@ -189,24 +171,7 @@ void Lumen::FuncState::Concat(Lumen::FuncState *fs, int *l1, int l2) {
     }
 }
 
-
-void Lumen::FuncState::CheckStack(Lumen::FuncState *fs, int n) {
-    int newStack = fs->FreeReg + n;
-    if (newStack > fs->Func->MaxStackSize) {
-        if (newStack >= Lumen::MaxStack)
-            Lumen::LexState::SyntaxError(fs->Lexer, "function or expression too complex");
-        fs->Func->MaxStackSize = cast_byte(newStack);
-    }
-}
-
-
-void Lumen::FuncState::ReserveRegs(Lumen::FuncState *fs, int n) {
-    Lumen::FuncState::CheckStack(fs, n);
-    fs->FreeReg += n;
-}
-
-
-static void freeReg(Lumen::FuncState *fs, int reg) {
+static inline void freeReg(Lumen::FuncState *fs, int reg) {
     if (!LumenOpCodeIsK(reg) && reg >= fs->ActiveVarsCount) {
         fs->FreeReg--;
         LumenAssert(reg == fs->FreeReg);
@@ -214,7 +179,7 @@ static void freeReg(Lumen::FuncState *fs, int reg) {
 }
 
 
-static void freeExp(Lumen::FuncState *fs, Lumen::ExpDesc *e) {
+static inline void freeExp(Lumen::FuncState *fs, Lumen::ExpDesc *e) {
     if (e->k == Lumen::ExpDesc::KindNonRelocatable)
         freeReg(fs, e->Info);
 }
@@ -254,14 +219,14 @@ int Lumen::FuncState::NumberK(Lumen::FuncState *fs, Lumen::Number r) {
 }
 
 
-static int boolK(Lumen::FuncState *fs, int b) {
+static inline int boolK(Lumen::FuncState *fs, int b) {
     Lumen::Value o; // NOLINT
     LumenSetBoolValue(&o, b);
     return addK(fs, &o, &o);
 }
 
 
-static int nilK(Lumen::FuncState *fs) {
+static inline int nilK(Lumen::FuncState *fs) {
     Lumen::Value k, v; // NOLINT
     LumenSetNilValue(&v);
     /* cannot use nil as key; instead use table itself to represent nil */
@@ -326,7 +291,7 @@ void Lumen::FuncState::DischargeVars(Lumen::FuncState *fs, Lumen::ExpDesc *e) {
 }
 
 
-static int codeLabel(Lumen::FuncState *fs, int A, int b, int jump) {
+static inline int codeLabel(Lumen::FuncState *fs, int A, int b, int jump) {
     Lumen::FuncState::GetLabel(fs);  /* those instructions may be jump targets */
     return Lumen::FuncState::CodeABC(fs, Lumen::OpCodeLoadBool, A, b, jump);
 }
@@ -372,7 +337,7 @@ static void discharge2reg(Lumen::FuncState *fs, Lumen::ExpDesc *e, int reg) {
 }
 
 
-static void discharge2AnyReg(Lumen::FuncState *fs, Lumen::ExpDesc *e) {
+static inline void discharge2AnyReg(Lumen::FuncState *fs, Lumen::ExpDesc *e) {
     if (e->k != Lumen::ExpDesc::KindNonRelocatable) {
         Lumen::FuncState::ReserveRegs(fs, 1);
         discharge2reg(fs, e, fs->FreeReg - 1);
@@ -506,7 +471,7 @@ void Lumen::FuncState::Self(Lumen::FuncState *fs, Lumen::ExpDesc *e, Lumen::ExpD
 }
 
 
-static void invertJump(Lumen::FuncState *fs, Lumen::ExpDesc *e) {
+static inline void invertJump(Lumen::FuncState *fs, Lumen::ExpDesc *e) {
     Lumen::Instruction *pc = getJumpControl(fs, e->Info);
     LumenAssert(LumenTestTMode(LumenOpCodeGet(*pc)) && LumenOpCodeGet(*pc) != Lumen::OpCodeTestTest &&
                LumenOpCodeGet(*pc) != Lumen::OpCodeTest);
@@ -619,13 +584,6 @@ static void codeNot(Lumen::FuncState *fs, Lumen::ExpDesc *e) {
     removeValues(fs, e->f);
     removeValues(fs, e->t);
 }
-
-
-void Lumen::FuncState::Indexed(Lumen::FuncState *fs, Lumen::ExpDesc *t, Lumen::ExpDesc *k) {
-    t->Aux = Lumen::FuncState::Exp2RK(fs, k);
-    t->k = Lumen::ExpDesc::KindIndexed;
-}
-
 
 static int constFolding(Lumen::OpCode op, Lumen::ExpDesc *e1, Lumen::ExpDesc *e2) {
     Lumen::Number v1, v2, r;
@@ -833,12 +791,6 @@ void Lumen::FuncState::PosFix(Lumen::FuncState *fs, Lumen::BinOpr op, Lumen::Exp
             LumenAssert(0);
     }
 }
-
-
-void Lumen::FuncState::FixLine(Lumen::FuncState *fs, int line) {
-    fs->Func->LineInfo[fs->PC - 1] = line;
-}
-
 
 static int LuaFuncStateCode(Lumen::FuncState *fs, Lumen::Instruction i, int line) {
     Lumen::Proto *f = fs->Func;

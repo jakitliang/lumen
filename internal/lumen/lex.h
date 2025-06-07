@@ -13,6 +13,7 @@
 
 #include "lumen/object.h"
 #include "lumen/zio.h"
+#include "lumen/string.h"
 
 
 #define LUA_LEX_STATE_FIRST_RESERVED    257
@@ -112,6 +113,29 @@ namespace Lumen {
 
         static const char *Token2CString(Lumen::LexState *ls, int token);
     };
+}
+
+inline void Lumen::LexState::Init(Lumen::State *L) {
+    int i;
+    for (i = 0; i < Lumen::Token::ReservedCount; i++) {
+        Lumen::String *ts = Lumen::String::New(L, Lumen::Token::Names[i]);
+        LumenStringFix(ts);  /* reserved words are never collected */
+        LumenAssert(Lumen::String::LengthOf(Lumen::Token::Names[i]) + 1 <= Lumen::LexState::TokenLength);
+        ts->Reserved = cast_byte(i + 1);  /* reserved word */
+    }
+}
+
+inline void Lumen::LexState::SyntaxError(Lumen::LexState *ls, const char *s) {
+    Lumen::LexState::LexError(ls, s, ls->CurToken.Kind);
+}
+
+inline const char *Lumen::LexState::Token2CString(Lumen::LexState *ls, int token) {
+    if (token < LUA_LEX_STATE_FIRST_RESERVED) {
+        LumenAssert(token == cast(unsigned char, token));
+        return (iscntrl(token)) ? Lumen::PushFString(ls->L, "char(%d)", token) :
+               Lumen::PushFString(ls->L, "%c", token);
+    } else
+        return Lumen::Token::Names[token - LUA_LEX_STATE_FIRST_RESERVED];
 }
 
 #endif

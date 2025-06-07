@@ -55,4 +55,32 @@ namespace Lumen {
     };
 }
 
+inline char *Lumen::ZBuffer::OpenSpace(Lumen::State *L, Lumen::ZBuffer *buff, size_t n) {
+    if (n > buff->buffsize) {
+        if (n < Lumen::MinBufferSize) n = Lumen::MinBufferSize;
+        LumenZBufferResize(L, buff, n);
+    }
+    return buff->buffer;
+}
+
+inline void Lumen::ZIO::Init(Lumen::State *L, Lumen::ZIO *z, Lumen::Reader reader, void *data) {
+    z->L = L;
+    z->reader = reader;
+    z->data = data;
+    z->n = 0;
+    z->p = nullptr;
+}
+
+inline int Lumen::ZIO::LookAhead(Lumen::ZIO *z) {
+    if (z->n == 0) {
+        if (Lumen::ZIO::Fill(z) == EOZ)
+            return EOZ;
+        else {
+            z->n++;  /* Lumen::ZIO::Fill removed first byte; put back it */
+            z->p--;
+        }
+    }
+    return LumenChar2Int(*z->p);
+}
+
 #endif

@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string_view>
 
 #define LUA_LIB
 
@@ -26,7 +27,7 @@
 /* macro to `unsigned` a character */
 #define uchar(c) static_cast<unsigned char>(c)
 
-namespace Lumen::Std::String {
+namespace Lua::String {
     static int Byte(lua_State *L);
 
     static int Char(lua_State *L);
@@ -58,7 +59,7 @@ namespace Lumen::Std::String {
     static int Upper(lua_State *L);
 }
 
-static int Lumen::Std::String::Length(lua_State *L) {
+static int Lua::String::Length(lua_State *L) {
     size_t l;
     luaL_checklstring(L, 1, &l);
     lua_pushinteger(L, l);
@@ -73,7 +74,7 @@ static ptrdiff_t relStringPos(ptrdiff_t pos, size_t len) {
 }
 
 
-static int Lumen::Std::String::Sub(lua_State *L) {
+static int Lua::String::Sub(lua_State *L) {
     size_t l;
     const char *s = luaL_checklstring(L, 1, &l);
     ptrdiff_t start = relStringPos(luaL_checkinteger(L, 2), l);
@@ -88,7 +89,7 @@ static int Lumen::Std::String::Sub(lua_State *L) {
 }
 
 
-static int Lumen::Std::String::Reverse(lua_State *L) {
+static int Lua::String::Reverse(lua_State *L) {
     size_t l;
     luaL_Buffer b;
     const char *s = luaL_checklstring(L, 1, &l);
@@ -99,7 +100,7 @@ static int Lumen::Std::String::Reverse(lua_State *L) {
 }
 
 
-static int Lumen::Std::String::Lower(lua_State *L) {
+static int Lua::String::Lower(lua_State *L) {
     size_t l;
     size_t i;
     luaL_Buffer b;
@@ -112,7 +113,7 @@ static int Lumen::Std::String::Lower(lua_State *L) {
 }
 
 
-static int Lumen::Std::String::Upper(lua_State *L) {
+static int Lua::String::Upper(lua_State *L) {
     size_t l;
     size_t i;
     luaL_Buffer b;
@@ -124,7 +125,7 @@ static int Lumen::Std::String::Upper(lua_State *L) {
     return 1;
 }
 
-static int Lumen::Std::String::Rep(lua_State *L) {
+static int Lua::String::Rep(lua_State *L) {
     size_t l;
     luaL_Buffer b;
     const char *s = luaL_checklstring(L, 1, &l);
@@ -137,7 +138,7 @@ static int Lumen::Std::String::Rep(lua_State *L) {
 }
 
 
-static int Lumen::Std::String::Byte(lua_State *L) {
+static int Lua::String::Byte(lua_State *L) {
     size_t l;
     const char *s = luaL_checklstring(L, 1, &l);
     ptrdiff_t posI = relStringPos(luaL_optinteger(L, 2, 1), l);
@@ -156,7 +157,7 @@ static int Lumen::Std::String::Byte(lua_State *L) {
 }
 
 
-static int Lumen::Std::String::Char(lua_State *L) {
+static int Lua::String::Char(lua_State *L) {
     int n = lua_gettop(L);  /* number of arguments */
     int i;
     luaL_Buffer b;
@@ -178,7 +179,7 @@ static int writer(lua_State *L, const void *b, size_t size, void *B) {
 }
 
 
-static int Lumen::Std::String::Dump(lua_State *L) {
+static int Lua::String::Dump(lua_State *L) {
     luaL_Buffer b;
     luaL_checktype(L, 1, LUA_TFUNCTION);
     lua_settop(L, 1);
@@ -538,10 +539,12 @@ static int strFindAux(lua_State *L, int find) {
     const char *s = luaL_checklstring(L, 1, &l1);
     const char *p = luaL_checklstring(L, 2, &l2);
     ptrdiff_t init = relStringPos(luaL_optinteger(L, 3, 1), l1) - 1;
+    constexpr std::string_view specials(SPECIALS);
+    std::string_view pView(p);
     if (init < 0) init = 0;
     else if ((size_t) (init) > l1) init = (ptrdiff_t) l1;
     if (find && (lua_toboolean(L, 4) ||  /* explicit request? */
-                 strpbrk(p, SPECIALS) == nullptr)) {  /* or no special characters? */
+                 pView.find_first_of(specials) == std::string_view::npos)) {  /* or no special characters? */
         /* do a plain search */
         const char *s2 = Lumen::Memory::Find(s + init, l1 - init, p, l2);
         if (s2) {
@@ -574,12 +577,12 @@ static int strFindAux(lua_State *L, int find) {
 }
 
 
-static int Lumen::Std::String::Find(lua_State *L) {
+static int Lua::String::Find(lua_State *L) {
     return strFindAux(L, 1);
 }
 
 
-static int Lumen::Std::String::Match(lua_State *L) {
+static int Lua::String::Match(lua_State *L) {
     return strFindAux(L, 0);
 }
 
@@ -610,7 +613,7 @@ static int GMatchAux(lua_State *L) {
 }
 
 
-static int Lumen::Std::String::GMatch(lua_State *L) {
+static int Lua::String::GMatch(lua_State *L) {
     luaL_checkstring(L, 1);
     luaL_checkstring(L, 2);
     lua_settop(L, 2);
@@ -620,7 +623,7 @@ static int Lumen::Std::String::GMatch(lua_State *L) {
 }
 
 
-static int Lumen::Std::String::GFindNodeF(lua_State *L) {
+static int Lua::String::GFindNodeF(lua_State *L) {
     return luaL_error(L, LUA_QL("string.gfind") " was renamed to "
                          LUA_QL("string.gmatch"));
 }
@@ -679,7 +682,7 @@ static void addValue(MatchState *ms, luaL_Buffer *b, const char *s,
 }
 
 
-static int Lumen::Std::String::GSub(lua_State *L) {
+static int Lua::String::GSub(lua_State *L) {
     size_t srcLength;
     const char *src = luaL_checklstring(L, 1, &srcLength);
     const char *p = luaL_checkstring(L, 2);
@@ -785,7 +788,7 @@ static const char *scanFormat(lua_State *L, const char *strFormat, char *form) {
 
 
 static void addIntLength(char *form) {
-    size_t l = strlen(form);
+    size_t l = std::string_view(form).length();
     char spec = form[l - 1];
     strcpy(form + l - 1, LUA_INTFRMLEN);
     form[l + sizeof(LUA_INTFRMLEN) - 2] = spec;
@@ -793,7 +796,7 @@ static void addIntLength(char *form) {
 }
 
 
-static int Lumen::Std::String::Format(lua_State *L) {
+static int Lua::String::Format(lua_State *L) {
     int top = lua_gettop(L);
     int arg = 1;
     size_t sfl;
@@ -846,7 +849,7 @@ static int Lumen::Std::String::Format(lua_State *L) {
                 case 's': {
                     size_t l;
                     const char *s = luaL_checklstring(L, arg, &l);
-                    if (!strchr(form, '.') && l >= 100) {
+                    if (std::string_view(form).find('.') == std::string_view::npos && l >= 100) {
                         /* no precision and string is too long to be formatted;
                            keep original string */
                         lua_pushvalue(L, arg);
@@ -862,7 +865,7 @@ static int Lumen::Std::String::Format(lua_State *L) {
                                          LUA_QL("format"), *(strFormat - 1));
                 }
             }
-            luaL_addlstring(&b, buff, strlen(buff));
+            luaL_addlstring(&b, buff, std::string_view(buff).length());
         }
     }
     luaL_pushresult(&b);
@@ -871,22 +874,22 @@ static int Lumen::Std::String::Format(lua_State *L) {
 
 
 static const luaL_Reg strlib[] = {
-        {"byte",    Lumen::Std::String::Byte},
-        {"char",    Lumen::Std::String::Char},
-        {"dump",    Lumen::Std::String::Dump},
-        {"find",    Lumen::Std::String::Find},
-        {"format",  Lumen::Std::String::Format},
-        {"gfind",   Lumen::Std::String::GFindNodeF},
-        {"gmatch",  Lumen::Std::String::GMatch},
-        {"gsub",    Lumen::Std::String::GSub},
-        {"len",     Lumen::Std::String::Length},
-        {"lower",   Lumen::Std::String::Lower},
-        {"match",   Lumen::Std::String::Match},
-        {"rep",     Lumen::Std::String::Rep},
-        {"reverse", Lumen::Std::String::Reverse},
-        {"sub",     Lumen::Std::String::Sub},
-        {"upper",   Lumen::Std::String::Upper},
-        {nullptr,   nullptr}
+    {"byte",    Lua::String::Byte},
+    {"char",    Lua::String::Char},
+    {"dump",    Lua::String::Dump},
+    {"find",    Lua::String::Find},
+    {"format",  Lua::String::Format},
+    {"gfind",   Lua::String::GFindNodeF},
+    {"gmatch",  Lua::String::GMatch},
+    {"gsub",    Lua::String::GSub},
+    {"len",     Lua::String::Length},
+    {"lower",   Lua::String::Lower},
+    {"match",   Lua::String::Match},
+    {"rep",     Lua::String::Rep},
+    {"reverse", Lua::String::Reverse},
+    {"sub",     Lua::String::Sub},
+    {"upper",   Lua::String::Upper},
+    {nullptr,   nullptr}
 };
 
 

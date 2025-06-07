@@ -77,7 +77,7 @@ Lumen::UpValue *Lumen::UpValue::Find(Lumen::State *L, Lumen::StkId level) {
 }
 
 
-static void unlinkUpValue(Lumen::UpValue *uv) {
+static inline void unlinkUpValue(Lumen::UpValue *uv) {
     LumenAssert(uv->Next->Prev == uv && uv->Prev->Next == uv);
     uv->Next->Prev = uv->Prev;  /* remove from `uvhead' list */
     uv->Prev->Next = uv->Next;

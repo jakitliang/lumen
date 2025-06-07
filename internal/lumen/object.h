@@ -12,6 +12,8 @@
 #define LUMEN_OBJECT_H
 
 #include <cstdarg>
+#include <cstring>
+#include <cctype>
 
 #include "lumen/limits.h"
 
@@ -68,6 +70,8 @@ namespace Lumen {
         static Lumen::String *New(Lumen::State *L, const char *str, size_t l);
 
         static Lumen::String *New(Lumen::State *L, const char *str);
+
+        static size_t LengthOf(const char *cStr);
     };
 
     union Key {
@@ -228,6 +232,11 @@ namespace Lumen {
 
     int Log2(unsigned int x);
 
+    /**
+     * converts an integer to a "floating point byte", represented as
+     * (eeeeexxx), where the real value is (1xxx) * 2^(eeeee - 1) if
+     * eeeee != 0 and (xxx) otherwise.
+     */
     int Int2FB(unsigned int x);
 
     int FB2Int(int x);
@@ -400,6 +409,53 @@ LumenDo(                              \
 #define LumenTableNodeCount(t)    (LumenTableTwoTo((t)->NodeCount))
 
 #define LumenTableCeilLog2(x)    (Lumen::Log2((x) - 1) + 1)
+
+inline int Lumen::Int2FB(unsigned int x) {
+    int e = 0;  /* exponent */
+    while (x >= 16) {
+        x = (x + 1) >> 1;
+        e++;
+    }
+    if (x < 8) return static_cast<int>(x);
+    else return ((e + 1) << 3) | (static_cast<int>(x) - 8);
+}
+
+inline int Lumen::FB2Int(int x) {
+    int e = (x >> 3) & 31;
+    if (e == 0) return x;
+    else return ((x & 7) + 8) << (e - 1);
+}
+
+inline int Lumen::RawEqualObject(const Lumen::Value *t1, const Lumen::Value *t2) {
+    if (LumenTypeOf(t1) != LumenTypeOf(t2)) return 0;
+    switch (LumenTypeOf(t1)) {
+        case LUA_TNIL:
+            return 1;
+        case LUA_TNUMBER:
+            return LumenNumberValue(t1) == LumenNumberValue(t2);
+        case LUA_TBOOLEAN:
+            return LumenBoolValue(t1) == LumenBoolValue(t2);  /* boolean true must be 1 !! */
+        case LUA_TLIGHTUSERDATA:
+            return LumenLUDataValue(t1) == LumenLUDataValue(t2);
+        default:
+            LumenAssert(LumenIsCollectable(t1));
+            return LumenGCValue(t1) == LumenGCValue(t2);
+    }
+}
+
+inline int Lumen::String2Decimal(const char *s, Lumen::Number *result) {
+    char *endPtr;
+    *result = lua_str2number(s, &endPtr);
+    if (endPtr == s) return 0;  /* conversion failed */
+    if (*endPtr == 'x' || *endPtr == 'X')  /* maybe an hexadecimal constant? */
+        *result = cast_num(strtoul(s, &endPtr, 16));
+    if (*endPtr == '\0') return 1;  /* most common case */
+    while (isspace(cast(unsigned char, *endPtr))) endPtr++;
+    if (*endPtr != '\0') return 0;  /* invalid trailing characters? */
+    return 1;
+}
+
+
 
 #endif
 
