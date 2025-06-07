@@ -43,8 +43,29 @@ namespace Lua {
 
     typedef int (*Delegate)(Lua::State *L);
 
+    /*
+    ** Hook Event codes
+    */
+    typedef LUA_ENUM(int, HookEvent) {
+        HookCall = 0,
+        HookRet = 1,
+        HookLine = 2,
+        HookCount = 3,
+        HookTailRet = 4
+    };
+
+    /*
+    ** Hook event masks
+    */
+    typedef LUA_ENUM(int, HookMask) {
+        HookMaskCall = (1 << HookCall),
+        HookMaskRet = (1 << HookRet),
+        HookMaskLine = (1 << HookLine),
+        HookMaskCount = (1 << HookCount)
+    };
+
     struct DebugInfo {
-        int Event;
+        HookEvent Event;
         const char *Name;    /* (n) */
         const char *NameSpace;    /* (n) `global', `local', `field', `method' */
         const char *Space;    /* (S) `Lua', `C', `main', `tail' */
@@ -117,7 +138,7 @@ namespace Lua {
         TypeThread = 8
     };
 
-    typedef LUA_ENUM(int, GCState) {
+    typedef LUA_ENUM(int, GCAction) {
         GCStop = 0,
         GCRestart = 1,
         GCCollect = 2,
@@ -151,27 +172,27 @@ namespace Lua {
 
         LPP_API void Replace(int idx);
 
-        LPP_API int CheckStack(int size);
+        LPP_API bool CheckStack(int size);
 
         // MARK: access functions (stack -> C)
 
-        LPP_API int IsNumber(int idx);
+        LPP_API bool IsNumber(int idx);
 
-        LPP_API int IsString(int idx);
+        LPP_API bool IsString(int idx);
 
-        LPP_API int IsDelegate(int idx);
+        LPP_API bool IsDelegate(int idx);
 
-        LPP_API int IsUserdata(int idx);
+        LPP_API bool IsUserdata(int idx);
 
-        LPP_API int Type(int idx);
+        LPP_API Lua::Type Type(int idx);
 
         LPP_API const char *TypeName(int t);
 
-        LPP_API int Equal(int idx1, int idx2);
+        LPP_API bool Equal(int idx1, int idx2);
 
-        LPP_API int RawEqual(int idx1, int idx2);
+        LPP_API bool RawEqual(int idx1, int idx2);
 
-        LPP_API int LessThan(int idx1, int idx2);
+        LPP_API bool LessThan(int idx1, int idx2);
 
         LPP_API Number ToNumber(int idx);
 
@@ -233,7 +254,7 @@ namespace Lua {
 
         LPP_API void *NewUserdata(UInteger size);
 
-        LPP_API int GetMetatable(int objIndex);
+        LPP_API bool GetMetatable(int objIndex);
 
         LPP_API void GetFEnv(int idx);
 
@@ -247,43 +268,43 @@ namespace Lua {
 
         LPP_API void RawSetAt(int idx, int n);
 
-        LPP_API int SetMetatable(int objIndex);
+        LPP_API bool SetMetatable(int objIndex);
 
-        LPP_API int SetFEnv(int idx);
+        LPP_API bool SetFEnv(int idx);
 
         // MARK: `load' and `call' functions (load and run Lua code)
 
         LPP_API void Call(int nargs, int nResults);
 
-        LPP_API int TryCall(int nargs, int nResults, int errFunc);
+        LPP_API Lua::Ret TryCall(int nargs, int nResults, int errFunc);
 
         // Try C Call
-        LPP_API int TryCall(Delegate invoke, void *userdata);
+        LPP_API Lua::Ret TryCall(Delegate invoke, void *userdata);
 
         // Try C Call
-        LPP_API int TryCall(Function invoke, void *userdata);
+        LPP_API Lua::Ret TryCall(Function invoke, void *userdata);
 
-        LPP_API int Load(Reader reader, void *data, const char *chunkName);
+        LPP_API Lua::Ret Load(Reader reader, void *data, const char *chunkName);
 
-        LPP_API int Dump(Writer writer, void *data);
+        LPP_API Lua::Ret Dump(Writer writer, void *data);
 
         // MARK: coroutine functions
 
-        LPP_API int Yield(int nResults);
+        LPP_API Lua::Ret Yield(int nResults);
 
-        LPP_API int Resume(int nArgs);
+        LPP_API Lua::Ret Resume(int nArgs);
 
-        LPP_API int Status();
+        LPP_API Lua::Ret Status();
 
         // MARK: garbage-collection function and options
 
-        LPP_API int GC(int what, int data);
+        LPP_API int GC(GCAction what, int data);
 
         // MARK: miscellaneous functions
 
-        LPP_API int Error();
+        LPP_API Lua::Ret Error();
 
-        LPP_API int Next(int idx);
+        LPP_API bool Next(int idx);
 
         LPP_API void Concat(int n);
 
@@ -382,9 +403,9 @@ namespace Lua {
 
         // MARK: debug
 
-        LPP_API int GetStack(int level, DebugInfo *ar);
+        LPP_API bool GetStack(int level, DebugInfo *ar);
 
-        LPP_API int GetInfo(const char *what, DebugInfo *ar);
+        LPP_API bool GetInfo(const char *what, DebugInfo *ar);
 
         LPP_API const char *GetLocal(const DebugInfo *ar, int n);
 
@@ -394,11 +415,11 @@ namespace Lua {
 
         LPP_API const char *SetUpValue(int funcIndex, int n);
 
-        LPP_API int SetHook(Hook func, int mask, int count);
+        LPP_API bool SetHook(Hook func, HookMask mask, int count);
 
         LPP_API Hook GetHook();
 
-        LPP_API int GetHookMask();
+        LPP_API Lua::HookMask GetHookMask();
 
         LPP_API int GetHookCount();
 
@@ -410,9 +431,9 @@ namespace Lua {
             OpenLib(name, i, 0);
         }
 
-        LPP_API int GetMetaField(int obj, const char *e);
+        LPP_API bool GetMetaField(int obj, const char *e);
 
-        LPP_API int CallMeta(int obj, const char *e);
+        LPP_API bool CallMeta(int obj, const char *e);
 
         LPP_API int TypeError(int nArg, const char *tName);
 
@@ -436,7 +457,7 @@ namespace Lua {
 
         LPP_API void CheckAny(int nArg);
 
-        LPP_API int NewMetatable(const char *tName);
+        LPP_API bool NewMetatable(const char *tName);
 
         LPP_API void *CheckUserdata(int ud, const char *tName);
 
@@ -446,17 +467,17 @@ namespace Lua {
 
         LPP_API int CheckOption(int nArg, const char *def, const char *const lst[]);
 
-        LPP_API int Ref(int t);
+        LPP_API Lua::Ref Ref(int t);
 
-        LPP_API void Unref(int t, int ref);
+        LPP_API void Unref(int t, Lua::Ref ref);
 
 //        void Unref(int ref);
 
-        LPP_API int LoadFile(const char *filename);
+        LPP_API Lua::Ret LoadFile(const char *filename);
 
-        LPP_API int LoadBuffer(const char *buff, UInteger size, const char *name);
+        LPP_API Lua::Ret LoadBuffer(const char *buff, UInteger size, const char *name);
 
-        LPP_API int LoadString(const char *s);
+        LPP_API Lua::Ret LoadString(const char *s);
 
         LPP_API static State *New();
 

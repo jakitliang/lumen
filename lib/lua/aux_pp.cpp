@@ -62,7 +62,7 @@ void Lua::State::OpenLib(const char *name, const Lua::Interface *inf, int nUpVal
     Pop(nUpValue);  /* remove upvalues */
 }
 
-int Lua::State::GetMetaField(int obj, const char *e) {
+bool Lua::State::GetMetaField(int obj, const char *e) {
     if (!GetMetatable(obj))  /* no metatable? */
         return 0;
     PushString(e);
@@ -76,7 +76,7 @@ int Lua::State::GetMetaField(int obj, const char *e) {
     }
 }
 
-int Lua::State::CallMeta(int obj, const char *e) {
+bool Lua::State::CallMeta(int obj, const char *e) {
     obj = absIndex(obj);
     if (!GetMetaField(obj, e))  /* no metaField? */
         return 0;
@@ -164,7 +164,7 @@ void Lua::State::CheckAny(int nArg) {
         ArgError(nArg, "value expected");
 }
 
-int Lua::State::NewMetatable(const char *tName) {
+bool Lua::State::NewMetatable(const char *tName) {
     GetField(Lua::RegistryIndex, tName);  /* get registry.name */
     if (!IsNil(-1))  /* name already in use? */
         return 0;  /* leave previous value on top, but return 0 */
@@ -221,7 +221,7 @@ int Lua::State::CheckOption(int nArg, const char *def, const char *const *lst) {
     return ArgError(nArg, PushFString("invalid option " LUA_QS, name));
 }
 
-int Lua::State::Ref(int t) {
+Lua::Ref Lua::State::Ref(int t) {
     int ref;
     t = absIndex(t);
     if (IsNil(-1)) {
@@ -242,7 +242,7 @@ int Lua::State::Ref(int t) {
     return ref;
 }
 
-void Lua::State::Unref(int t, int ref) {
+void Lua::State::Unref(int t, Lua::Ref ref) {
     if (ref >= 0) {
         t = absIndex(t);
         RawGetAt(t, FREELIST_REF);
@@ -278,7 +278,7 @@ static int fileErr(Lua::State *L, const char *what, int fileNameIdx) {
     return Lua::RetErrFile;
 }
 
-int Lua::State::LoadFile(const char *filename) {
+Lua::Ret Lua::State::LoadFile(const char *filename) {
     LoadFunc lf; // NOLINT
     int status, readStatus;
     int c;
@@ -330,14 +330,14 @@ static const char *getS(Lua::State *, void *ud, size_t *size) {
     return ls->s;
 }
 
-int Lua::State::LoadBuffer(const char *buff, size_t size, const char *name) {
+Lua::Ret Lua::State::LoadBuffer(const char *buff, size_t size, const char *name) {
     LoadState ls;
     ls.s = buff;
     ls.size = size;
     return Load(reinterpret_cast<Lua::Reader>(getS), &ls, name);
 }
 
-int Lua::State::LoadString(const char *s) {
+Lua::Ret Lua::State::LoadString(const char *s) {
     return LoadBuffer(s, strlen(s), s);
 }
 
