@@ -14,6 +14,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <cctype>
+#include <cstdlib>
 
 #include "lumen/limits.h"
 
