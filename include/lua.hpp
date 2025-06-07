@@ -12,6 +12,7 @@
 
 #include <climits>
 #include <cstddef>
+#include <cstdarg>
 #include <limits>
 #include <type_traits>
 
