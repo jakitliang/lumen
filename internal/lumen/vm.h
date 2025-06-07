@@ -11,6 +11,7 @@
 #ifndef LUMEN_VM_H
 #define LUMEN_VM_H
 
+#include <cstdio>
 
 #include "lumen/do.h"
 #include "lumen/object.h"

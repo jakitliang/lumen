@@ -11,7 +11,6 @@
 #include <cassert>
 #include <cstdarg>
 #include <cstring>
-#include <cstdio>
 
 #define LUA_CORE
 
