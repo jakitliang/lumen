@@ -1,9 +1,9 @@
 /*!
- * @brief Auxiliary functions for building Lua libraries
- * @author Lua.org, PUC-Rio, Jakit (https://github.com/jakitliang/lumen)
+ * @brief Auxiliary functions for building new Lua C++ libraries
+ * @author Jakit (https://github.com/jakitliang/lumen)
  * @date 2025/5/13
  * @copyright
- * Copyright (c) 2025 Lua.org, PUC-Rio, Jakit. All rights reserved.
+ * Copyright (c) 2025 Jakit. All rights reserved.
  * Licensed under the BSD 2-Clause License.
  */
 
@@ -33,7 +33,7 @@
 
 /* convert a stack index to positive */
 #define absIndex(i)    \
-((i) > 0 || (i) <= LUA_REGISTRYINDEX ? (i) : GetTop() + (i) + 1)
+((i) > 0 || (i) <= Lua::RegistryIndex ? (i) : GetTop() + (i) + 1)
 
 static inline int infSize(const Lua::Interface *l) {
     int size = 0;
@@ -45,12 +45,12 @@ void Lua::State::OpenLib(const char *name, const Lua::Interface *inf, int nUpVal
     if (name) {
         int size = infSize(inf);
         /* check whether lib already exists */
-        FindTable(LUA_REGISTRYINDEX, "_LOADED", 1);
+        FindTable(Lua::RegistryIndex, "_LOADED", 1);
         GetField(-1, name);  /* get _LOADED[name] */
         if (!IsTable(-1)) {  /* not found? */
             Pop(1);  /* remove previous result */
             /* try global variable (and create one if it does not exist) */
-            if (FindTable(LUA_GLOBALSINDEX, name, size) != nullptr)
+            if (FindTable(Lua::GlobalIndex, name, size) != nullptr)
                 Error("name conflict for module " LUA_QS, name);
             PushValue(-1);
             SetField(-3, name);  /* _LOADED[name] = new table */
@@ -120,7 +120,7 @@ static void tagError(Lua::State *L, int nArg, int tag) {
 
 const char *Lua::State::CheckString(int nArg, size_t *length) {
     const char *s = ToString(nArg, length);
-    if (!s) tagError(this, nArg, LUA_TSTRING);
+    if (!s) tagError(this, nArg, Lua::TypeString);
     return s;
 }
 
@@ -136,7 +136,7 @@ const char *Lua::State::OptString(int nArg, const char *def, size_t *length) {
 Lua::Number Lua::State::CheckNumber(int nArg) {
     auto d = ToNumber(nArg);
     if (d == 0 && !IsNumber(nArg))  /* avoid extra test when d is not 0 */
-        tagError(this, nArg, LUA_TNUMBER);
+        tagError(this, nArg, Lua::TypeNumber);
     return d;
 }
 
@@ -147,7 +147,7 @@ Lua::Number Lua::State::OptNumber(int nArg, Lua::Number def) {
 Lua::Integer Lua::State::CheckInteger(int nArg) {
     auto d = ToInteger(nArg);
     if (d == 0 && !IsNumber(nArg))  /* avoid extra test when d is not 0 */
-        tagError(this, nArg, LUA_TNUMBER);
+        tagError(this, nArg, Lua::TypeNumber);
     return d;
 }
 
@@ -166,18 +166,18 @@ void Lua::State::CheckType(int nArg, int t) {
 }
 
 void Lua::State::CheckAny(int nArg) {
-    if (Type(nArg) == LUA_TNONE)
+    if (Type(nArg) == Lua::TypeNone)
         ArgError(nArg, "value expected");
 }
 
 int Lua::State::NewMetatable(const char *tName) {
-    GetField(LUA_REGISTRYINDEX, tName);  /* get registry.name */
+    GetField(Lua::RegistryIndex, tName);  /* get registry.name */
     if (!IsNil(-1))  /* name already in use? */
         return 0;  /* leave previous value on top, but return 0 */
     Pop(1);
     NewTable();  /* create metatable */
     PushValue(-1);
-    SetField(LUA_REGISTRYINDEX, tName);  /* registry.name = metatable */
+    SetField(Lua::RegistryIndex, tName);  /* registry.name = metatable */
     return 1;
 }
 
@@ -185,7 +185,7 @@ void *Lua::State::CheckUserdata(int ud, const char *tName) {
     auto p = ToUserdata(ud);
     if (p != nullptr) {  /* value is a userdata? */
         if (GetMetatable(ud)) {  /* does it have a metatable? */
-            GetField(LUA_REGISTRYINDEX, tName);  /* get correct metatable */
+            GetField(Lua::RegistryIndex, tName);  /* get correct metatable */
             if (RawEqual(-1, -2)) {  /* does it have the correct mt? */
                 Pop(2);  /* remove both metatables */
                 return p;
@@ -404,6 +404,33 @@ const char *Lua::State::FindTable(int idx, const char *name, int hintSize) {
     return nullptr;
 }
 
+#define LUA_COLIBNAME    "coroutine"
+LUALIB_API int (luaopen_base)(Lua::CState *L);
+
+#define LUA_TABLIBNAME    "table"
+LUALIB_API int (luaopen_table)(Lua::CState *L);
+
+#define LUA_IOLIBNAME    "io"
+LUALIB_API int (luaopen_io)(Lua::CState *L);
+
+#define LUA_OSLIBNAME    "os"
+LUALIB_API int (luaopen_os)(Lua::CState *L);
+
+#define LUA_STRLIBNAME    "string"
+LUALIB_API int (luaopen_string)(Lua::CState *L);
+
+#define LUA_MATHLIBNAME    "math"
+LUALIB_API int (luaopen_math)(Lua::CState *L);
+
+#define LUA_DBLIBNAME    "debug"
+LUALIB_API int (luaopen_debug)(Lua::CState *L);
+
+#define LUA_BITLIBNAME    "bit"
+LUALIB_API int (luaopen_bit)(Lua::CState *L);
+
+#define LUA_LOADLIBNAME    "package"
+LUALIB_API int (luaopen_package)(Lua::CState *L);
+
 static const Lua::Registry luaLibs[] = {
     {"",              luaopen_base},
     {LUA_LOADLIBNAME, luaopen_package},
@@ -414,7 +441,7 @@ static const Lua::Registry luaLibs[] = {
     {LUA_MATHLIBNAME, luaopen_math},
     {LUA_BITLIBNAME,  luaopen_bit},
     {LUA_DBLIBNAME,   luaopen_debug},
-    {nullptr, nullptr}
+    {nullptr,         nullptr}
 };
 
 void Lua::State::OpenLibs() {

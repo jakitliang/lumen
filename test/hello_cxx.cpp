@@ -20,10 +20,14 @@ print(my_key);
 )");
 
     L->PushDelegate([](Lua::State *l) {
-        std::cout << "Try call" << std::endl;
-        return 0;
+        auto n = l->OptNumber(1, 123);
+        std::cout << "Got number: " << n << std::endl;
+        return 1;
     });
-    L->Call(0, 0);
+    L->SetGlobal("TestNumber");
+    L->DoString<0>(R"(
+TestNumber(555);
+)");
     Lua::Close(L);
 
     return 0;

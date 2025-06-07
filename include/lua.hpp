@@ -1,5 +1,5 @@
 /*!
- * @brief Lumen C++ API for Lua
+ * @brief Lumen C++ FrontEnd for Lua
  * @author Jakit
  * @date 2025/5/29
  * @copyright
@@ -15,27 +15,32 @@
 #include <limits>
 #include <type_traits>
 
-#include "lua.h"
-#include "lualib.h"
+#include "luaconf.h"
+
+#ifndef LUA_SIGNATURE
+#define LUA_SIGNATURE    "\033Lua"
+#endif
+
+struct LumenState;
 
 namespace Lua {
     using Byte = unsigned char;
     using Number = LUA_NUMBER;
     using Integer = LUA_INTEGER;
+    using UInteger = LUA_UINTEGER;
 
-    using Allocator = lua_Alloc;
-
-    using Reader = lua_Reader;
-
-    using Writer = lua_Writer;
-
-    using Function = lua_CFunction;
-
-    using BasicState = lua_State;
+    using CState = LumenState;
 
     struct State;
 
-//    using Delegate = lua_CFunction;
+    typedef void *(*Allocator)(void *ud, void *ptr, UInteger oldSize, UInteger newSize);
+
+    typedef const char *(*Reader)(State *L, void *ud, UInteger *sz);
+
+    typedef int (*Writer)(State *L, const void *p, UInteger sz, void *ud);
+
+    typedef int (*Function)(CState *L);
+
     typedef int (*Delegate)(Lua::State *L);
 
     struct DebugInfo {
@@ -52,7 +57,7 @@ namespace Lua {
         int CurrentCI;  /* active function */
     };
 
-    using Hook = lua_Hook;
+    typedef void (*Hook)(State *L, DebugInfo *ar);
 
     struct Interface {
         const char *Name;
@@ -65,32 +70,57 @@ namespace Lua {
     };
 
     typedef LUA_ENUM(int, Ret) {
-        RetOK = LUA_OK,
-        RetYield = LUA_YIELD,
-        RetErrRun = LUA_ERRRUN,
-        RetErrSyntax = LUA_ERRSYNTAX,
-        RetErrMem = LUA_ERRMEM,
-        RetErr = LUA_ERRERR
-    };
-
-    enum {
-        RetErrFile = LUA_ERRERR + 1
+        RetMul = -1,
+        RetOK = 0,
+        RetYield = 1,
+        RetErrRun = 2,
+        RetErrSyntax = 3,
+        RetErrMem = 4,
+        RetErr = 5,
+        RetErrFile = RetErr + 1
     };
 
     typedef LUA_ENUM(int, Index) {
-        IndexRegistry = LUA_GLOBALSINDEX,
-        IndexEnv = LUA_ENVIRONINDEX,
-        IndexGlobal = LUA_GLOBALSINDEX
+        RegistryIndex = -10000,
+        EnvIndex = -10001,
+        GlobalIndex = -10002
     };
+
+    inline int IndexUpValue(Index i) {
+        return GlobalIndex - (i);
+    }
 
     typedef LUA_ENUM(int, Ref) {
         RefNothing = -2,
         RefNil = -1
     };
 
-    inline int IndexUpValue(Index i) {
-        return LUA_GLOBALSINDEX - (i);
-    }
+    /**
+     * basic types
+     */
+    typedef LUA_ENUM(int, Type) {
+        TypeNone = -1,
+        TypeNil = 0,
+        TypeBool = 1,
+        TypeLightUserdata = 2,
+        TypeNumber = 3,
+        TypeString = 4,
+        TypeTable = 5,
+        TypeFunction = 6,
+        TypeUserdata = 7,
+        TypeThread = 8
+    };
+
+    typedef LUA_ENUM(int, GCState) {
+        GCStop = 0,
+        GCRestart = 1,
+        GCCollect = 2,
+        GCCount = 3,
+        GCCountB = 4,
+        GCStep = 5,
+        GCSetPause = 6,
+        GCSetStepMul = 7
+    };
 
     struct State {
         // MARK: state manipulation
@@ -143,9 +173,9 @@ namespace Lua {
 
         LPP_API bool ToBoolean(int idx);
 
-        LPP_API const char *ToString(int idx, size_t *len);
+        LPP_API const char *ToString(int idx, UInteger *len);
 
-        LPP_API size_t ObjectLength(int idx);
+        LPP_API UInteger ObjectLength(int idx);
 
         LPP_API Delegate ToDelegate(int idx);
 
@@ -153,7 +183,7 @@ namespace Lua {
 
         LPP_API void *ToUserdata(int idx);
 
-        LPP_API State ToThread(int idx);
+        LPP_API State *ToThread(int idx);
 
         LPP_API const void *ToPointer(int idx);
 
@@ -165,7 +195,7 @@ namespace Lua {
 
         LPP_API void PushInteger(Integer n);
 
-        LPP_API void PushString(const char *s, size_t length);
+        LPP_API void PushString(const char *s, UInteger length);
 
         LPP_API void PushString(const char *s);
 
@@ -195,7 +225,7 @@ namespace Lua {
 
         LPP_API void CreateTable(int nArray, int nRec);
 
-        LPP_API void *NewUserdata(size_t size);
+        LPP_API void *NewUserdata(UInteger size);
 
         LPP_API int GetMetatable(int objIndex);
 
@@ -281,53 +311,53 @@ namespace Lua {
             PushFunction(invoke, 0);
         }
 
-        inline size_t StringLength(int idx) {
+        inline UInteger StringLength(int idx) {
             return ObjectLength(idx);
         }
 
         inline bool IsFunction(int idx) {
-            return Type(idx) == LUA_TFUNCTION;
+            return Type(idx) == TypeFunction;
         }
 
         inline bool IsTable(int idx) {
-            return Type(idx) == LUA_TTABLE;
+            return Type(idx) == TypeTable;
         }
 
         inline bool IsLightUserdata(int idx) {
-            return Type(idx) == LUA_TLIGHTUSERDATA;
+            return Type(idx) == TypeLightUserdata;
         }
 
         inline bool IsNil(int idx) {
-            return Type(idx) == LUA_TNIL;
+            return Type(idx) == TypeNil;
         }
 
         inline bool IsBoolean(int idx) {
-            return Type(idx) == LUA_TBOOLEAN;
+            return Type(idx) == TypeBool;
         }
 
         inline bool IsThread(int idx) {
-            return Type(idx) == LUA_TTHREAD;
+            return Type(idx) == TypeThread;
         }
 
         inline bool IsNone(int idx) {
-            return Type(idx) == LUA_TNONE;
+            return Type(idx) == TypeNone;
         }
 
         inline bool IsNoneOrNil(int idx) {
             return Type(idx) <= 0;
         }
 
-        template<size_t S>
+        template<UInteger S>
         inline void PushLiteral(const char (&s)[S]) {
             PushString(s, S - 1);
         }
 
         inline void SetGlobal(const char *key) {
-            SetField(LUA_GLOBALSINDEX, key);
+            SetField(GlobalIndex, key);
         }
 
         inline void GetGlobal(const char *key) {
-            GetField(LUA_GLOBALSINDEX, key);
+            GetField(GlobalIndex, key);
         }
 
         const char *ToString(int idx) {
@@ -337,11 +367,11 @@ namespace Lua {
         // MARK: compatibility macros and functions
 
         inline void GetRegistry() {
-            PushValue(LUA_REGISTRYINDEX);
+            PushValue(RegistryIndex);
         }
 
         inline int GetGCCount() {
-            return GC(LUA_GCCOUNT, 0);
+            return GC(GCCount, 0);
         }
 
         // MARK: debug
@@ -382,9 +412,9 @@ namespace Lua {
 
         LPP_API int ArgError(int nArg, const char *extraMsg);
 
-        LPP_API const char *CheckString(int nArg, size_t *length);
+        LPP_API const char *CheckString(int nArg, UInteger *length);
 
-        LPP_API const char *OptString(int nArg, const char *def, size_t *length);
+        LPP_API const char *OptString(int nArg, const char *def, UInteger *length);
 
         LPP_API Number CheckNumber(int nArg);
 
@@ -418,7 +448,7 @@ namespace Lua {
 
         LPP_API int LoadFile(const char *filename);
 
-        LPP_API int LoadBuffer(const char *buff, size_t size, const char *name);
+        LPP_API int LoadBuffer(const char *buff, UInteger size, const char *name);
 
         LPP_API int LoadString(const char *s);
 
@@ -462,18 +492,18 @@ namespace Lua {
             return TypeName(Type(idx));
         }
 
-        template<int R = LUA_MULTRET>
+        template<int R = RetMul>
         inline int DoFile(const char *filename) {
             return LoadFile(filename) || TryCall(0, R, 0);
         }
 
-        template<int R = LUA_MULTRET>
+        template<int R = RetMul>
         inline int DoString(const char *s) {
             return LoadString(s) || TryCall(0, R, 0);
         }
 
         inline void GetMetatable(const char *tName) {
-            GetField(LUA_REGISTRYINDEX, tName);
+            GetField(RegistryIndex, tName);
         }
 
         template<typename T>
@@ -486,48 +516,30 @@ namespace Lua {
 
         // MARK: Library export
 
-        inline int OpenBase() {
-            return luaopen_base(L);
-        }
+        int OpenBase();
 
-        inline int OpenTable() {
-            return luaopen_table(L);
-        }
+        int OpenTable();
 
-        inline int OpenIO() {
-            return luaopen_io(L);
-        }
+        int OpenIO();
 
-        inline int OpenOS() {
-            return luaopen_os(L);
-        }
+        int OpenOS();
 
-        inline int OpenString() {
-            return luaopen_string(L);
-        }
+        int OpenString();
 
-        inline int OpenMath() {
-            return luaopen_math(L);
-        }
+        int OpenMath();
 
-        inline int OpenDebug() {
-            return luaopen_debug(L);
-        }
+        int OpenDebug();
 
-        inline int OpenBit() {
-            return luaopen_bit(L);
-        }
+        int OpenBit();
 
-        inline int OpenPackage() {
-            return luaopen_package(L);
-        }
+        int OpenPackage();
 
         LPP_API void OpenLibs();
-
-        BasicState *L;
     };
 
-    LPP_API State *Open();
+    inline State *Open() {
+        return Lua::State::New();
+    }
 
     LPP_API void Close(State *(&L));
 

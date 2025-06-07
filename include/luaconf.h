@@ -374,6 +374,8 @@
 */
 #define LUA_INTEGER    ptrdiff_t
 
+#define LUA_UINTEGER   size_t
+
 /*
 @@ LUAI_BITSINT defines the number of bits in an int.
 ** CHANGE here if Lua cannot automatically detect the number of bits of
@@ -631,6 +633,8 @@
 #endif
 
 // MARK: State configuration
+
+struct LumenState;
 
 /*
 @@ LUAI_EXTRASPACE allows you to add user-specific data in a lua_State
