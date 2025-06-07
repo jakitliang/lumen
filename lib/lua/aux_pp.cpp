@@ -16,16 +16,10 @@
 #include <cstring>
 #include <string>
 
-
-/* This file uses only the official API of Lua.
-** Any function declared here could be written as an application function.
-*/
-
 #define LUA_LIB
 
 #include "lua.hpp"
 
-//#include "lauxlib.h"
 #include "lumen/memory.h"
 
 

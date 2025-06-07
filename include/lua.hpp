@@ -59,11 +59,17 @@ namespace Lua {
 
     typedef void (*Hook)(State *L, DebugInfo *ar);
 
+    /**
+     * Interface for wrapping APIs to Lua
+     */
     struct Interface {
         const char *Name;
         Delegate Invoke;
     };
 
+    /**
+     * Fallback support to old C API wrapper
+     */
     struct Registry {
         const char *Name;
         Function Invoke;
@@ -213,7 +219,7 @@ namespace Lua {
 
         LPP_API int PushThread();
 
-        // MARK: get functions (LuaToState(this)ua -> stack)
+        // MARK: get functions (Lua -> stack)
 
         LPP_API void GetTable(int idx);
 
@@ -364,7 +370,7 @@ namespace Lua {
             return ToString(idx, nullptr);
         }
 
-        // MARK: compatibility macros and functions
+        // MARK: compatibility fast call functions
 
         inline void GetRegistry() {
             PushValue(RegistryIndex);

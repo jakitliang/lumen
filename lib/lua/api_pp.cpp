@@ -904,8 +904,7 @@ int Lua::State::Resume(int nArgs) {
 }
 
 int Lua::State::Status() {
-    auto L = LuaToLumen(this);
-    return L->Status;
+    return LuaToLumen(this)->Status;
 }
 
 // MARK: garbage-collection function and options
@@ -1169,63 +1168,51 @@ int Lua::State::SetHook(Lua::Hook func, int mask, int count) {
 }
 
 Lua::Hook Lua::State::GetHook() {
-    auto L = LuaToLumen(this);
-    return reinterpret_cast<Lua::Hook>(L->Hook);
+    return reinterpret_cast<Lua::Hook>(LuaToLumen(this)->Hook);
 }
 
 int Lua::State::GetHookMask() {
-    auto L = LuaToLumen(this);
-    return L->HookMask;
+    return LuaToLumen(this)->HookMask;
 }
 
 int Lua::State::GetHookCount() {
-    auto L = LuaToLumen(this);
-    return L->BaseHookCount;
+    return LuaToLumen(this)->BaseHookCount;
 }
 
 int Lua::State::OpenBase() {
-    auto L = LuaToLumen(this);
-    return luaopen_base(L);
+    return luaopen_base(LuaToLumen(this));
 }
 
 int Lua::State::OpenTable() {
-    auto L = LuaToLumen(this);
-    return luaopen_table(L);
+    return luaopen_table(LuaToLumen(this));
 }
 
 int Lua::State::OpenIO() {
-    auto L = LuaToLumen(this);
-    return luaopen_io(L);
+    return luaopen_io(LuaToLumen(this));
 }
 
 int Lua::State::OpenOS() {
-    auto L = LuaToLumen(this);
-    return luaopen_os(L);
+    return luaopen_os(LuaToLumen(this));
 }
 
 int Lua::State::OpenString() {
-    auto L = LuaToLumen(this);
-    return luaopen_string(L);
+    return luaopen_string(LuaToLumen(this));
 }
 
 int Lua::State::OpenMath() {
-    auto L = LuaToLumen(this);
-    return luaopen_math(L);
+    return luaopen_math(LuaToLumen(this));
 }
 
 int Lua::State::OpenDebug() {
-    auto L = LuaToLumen(this);
-    return luaopen_debug(L);
+    return luaopen_debug(LuaToLumen(this));
 }
 
 int Lua::State::OpenBit() {
-    auto L = LuaToLumen(this);
-    return luaopen_bit(L);
+    return luaopen_bit(LuaToLumen(this));
 }
 
 int Lua::State::OpenPackage() {
-    auto L = LuaToLumen(this);
-    return luaopen_package(L);
+    return luaopen_package(LuaToLumen(this));
 }
 
 void Lua::Close(Lua::State *(&state)) {
