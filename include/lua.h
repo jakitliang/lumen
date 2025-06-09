@@ -44,9 +44,6 @@
 #define LUMEN_VERSION_NUM    (LUMEN_VERSION_MAJOR_N * 100 + LUMEN_VERSION_MINOR_N)
 #define LUMEN_VERSION_RELEASE_NUM  (LUMEN_VERSION_NUM * 100 + LUMEN_VERSION_RELEASE_N)
 
-/* mark for precompiled code (`<esc>Lua') */
-#define LUA_SIGNATURE    "\033Lua"
-
 /* option for multiple returns in `lua_pcall' and `lua_call' */
 #define LUA_MULTRET    (-1)
 

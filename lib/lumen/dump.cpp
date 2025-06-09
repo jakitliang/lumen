@@ -15,8 +15,6 @@
 #include "lumen/state.h"
 #include "lumen/undump.h"
 
-#include "lua.h"
-
 struct DumpState {
     Lumen::State *L;
     Lumen::Writer writer;

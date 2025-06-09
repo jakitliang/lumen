@@ -606,8 +606,8 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 int b = LumenOpCodeGetArgB(i);
                 if (b != 0) L->Top = ra + b;  /* else previous instruction set top */
                 L->SavedPC = pc;
-                LumenAssert(LumenOpCodeGetArgC(i) - 1 == LUA_MULTRET);
-                switch (Lumen::Do::PreCall(L, ra, LUA_MULTRET)) {
+                LumenAssert(LumenOpCodeGetArgC(i) - 1 == Lumen::RetMul);
+                switch (Lumen::Do::PreCall(L, ra, Lumen::RetMul)) {
                     case Lumen::Do::PCRetLua: {
                         /* tail call: put new frame in place of previous one */
                         Lumen::CallInfo *ci = L->CallInfo - 1;  /* previous frame */
@@ -743,7 +743,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 int j;
                 Lumen::CallInfo *ci = L->CallInfo;
                 int n = cast_int(ci->Base - ci->Func) - cl->Func->NUmParams - 1;
-                if (b == LUA_MULTRET) {
+                if (b == Lumen::RetMul) {
                     Protect(LumenDoCheckStack(L, n));
                     ra = RA(i);  /* previous call may change the stack */
                     b = n;

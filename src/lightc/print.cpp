@@ -71,16 +71,16 @@ static void PrintString(const Lumen::String *ts) {
 static void PrintConstant(const Lumen::Proto *f, int i) {
     const Lumen::Value *o = &f->K[i];
     switch (LumenTypeOf(o)) {
-        case LUA_TNIL:
+        case Lumen::TypeNil:
             printf("nil");
             break;
-        case LUA_TBOOLEAN:
+        case Lumen::TypeBool:
             printf(LumenBoolValue(o) ? "true" : "false");
             break;
-        case LUA_TNUMBER:
+        case Lumen::TypeNumber:
             printf(LUA_NUMBER_FMT, LumenNumberValue(o));
             break;
-        case LUA_TSTRING:
+        case Lumen::TypeString:
             PrintString(LumenStringValue(o));
             break;
         default:                /* cannot happen */

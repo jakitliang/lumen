@@ -824,7 +824,7 @@ int Lumen::FuncState::CodeABx(Lumen::FuncState *fs, Lumen::OpCode o, int a, unsi
 
 void Lumen::FuncState::SetList(Lumen::FuncState *fs, int base, int nElements, int toStore) {
     int c = (nElements - 1) / LUA_FIELDS_PER_FLUSH + 1;
-    int b = (toStore == LUA_MULTRET) ? 0 : toStore;
+    int b = (toStore == Lumen::RetMul) ? 0 : toStore;
     LumenAssert(toStore != 0);
     if (c <= Lumen::Code::CMaxArg)
         Lumen::FuncState::CodeABC(fs, Lumen::OpCodeSetList, base, b, c);

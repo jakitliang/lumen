@@ -29,8 +29,6 @@
 #include "lumen/vm.h"
 #include "lumen/zio.h"
 
-#include "lua.h"
-
 /*
 ** {======================================================
 ** Error-recovery functions
@@ -350,7 +348,7 @@ int Lumen::Do::PosCall(Lumen::State *L, Lumen::StkId firstResult) {
     while (i-- > 0)
         LumenSetNilValue(res++);
     L->Top = res;
-    return (wanted - LUA_MULTRET);  /* 0 iff wanted == LUA_MULTRET */
+    return (wanted - Lumen::RetMul);  /* 0 iff wanted == Lumen::RetMul */
 }
 
 /*
@@ -377,7 +375,7 @@ void Lumen::Do::Resume(Lumen::State *L, void *ud) {
     Lumen::CallInfo *ci = L->CallInfo;
     if (L->Status == 0) {  /* start coroutine? */
         LumenAssert(ci == L->BaseCI && firstArg > L->Base);
-        if (Lumen::Do::PreCall(L, firstArg - 1, LUA_MULTRET) != Lumen::Do::PCRetLua)
+        if (Lumen::Do::PreCall(L, firstArg - 1, Lumen::RetMul) != Lumen::Do::PCRetLua)
             return;
     } else {  /* resuming from previous yield */
         LumenAssert(L->Status == Lumen::RetYield);

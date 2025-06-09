@@ -610,6 +610,9 @@
 
 // MARK: Library Load configuration
 
+/* mark for precompiled code (`<esc>Lua') */
+#define LUA_SIGNATURE    "\033Lua"
+
 /*
 @@ LUA_DL_* define which dynamic-library system Lua should use.
 ** CHANGE here if Lua has problems choosing the appropriate

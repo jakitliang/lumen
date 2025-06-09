@@ -127,7 +127,7 @@ namespace Lumen {
 
 #define LumenFuncStateCodeAsBx(fs, o, A, sBx)    Lumen::FuncState::CodeABx(fs,o,A,(sBx)+Lumen::Code::sBxMaxArg)
 
-#define LumenFuncStateSetMulRet(fs, e)    Lumen::FuncState::SetReturns(fs, e, LUA_MULTRET)
+#define LumenFuncStateSetMulRet(fs, e)    Lumen::FuncState::SetReturns(fs, e, Lumen::RetMul)
 
 inline void Lumen::FuncState::FixLine(Lumen::FuncState *fs, int line) {
     fs->Func->LineInfo[fs->PC - 1] = line;

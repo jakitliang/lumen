@@ -18,8 +18,6 @@
 
 #include "lumen/limits.h"
 
-#include "lua.h"
-
 
 /* tags for values visible from Lua */
 #define LUA_LAST_TAG    Lumen::TypeThread

@@ -319,7 +319,7 @@ static Lumen::Instruction symbolExec(const Lumen::Proto *pt, int lastPC, int reg
                     checkReg(pt, a + b - 1);
                 }
                 c--;  /* c = num. returns */
-                if (c == LUA_MULTRET) {
+                if (c == Lumen::RetMul) {
                     check(checkOpenOP(pt, pc));
                 } else if (c != 0)
                     checkReg(pt, a + c - 1);
@@ -356,7 +356,7 @@ static Lumen::Instruction symbolExec(const Lumen::Proto *pt, int lastPC, int reg
                 check((pt->IsVararg & Lumen::Proto::VarargIsVararg) &&
                       !(pt->IsVararg & Lumen::Proto::VarargIsNeedsArg));
                 b--;
-                if (b == LUA_MULTRET) check(checkOpenOP(pt, pc));
+                if (b == Lumen::RetMul) check(checkOpenOP(pt, pc));
                 checkReg(pt, a + b - 1);
                 break;
             }

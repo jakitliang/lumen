@@ -469,7 +469,7 @@ static void lastListField(Lumen::FuncState *fs, struct ConsControl *cc) {
     if (cc->tostore == 0) return;
     if (hasMulRet(cc->v.k)) {
         LumenFuncStateSetMulRet(fs, &cc->v);
-        Lumen::FuncState::SetList(fs, cc->t->Info, cc->na, LUA_MULTRET);
+        Lumen::FuncState::SetList(fs, cc->t->Info, cc->na, Lumen::RetMul);
         cc->na--;  /* do not count last expression (unknown number of elements) */
     } else {
         if (cc->v.k != Lumen::ExpDesc::KindVoid)
@@ -635,7 +635,7 @@ static void funcArgs(Lumen::LexState *ls, Lumen::ExpDesc *f) {
     LumenAssert(f->k == Lumen::ExpDesc::KindNonRelocatable);
     base = f->Info;  /* base register for call */
     if (hasMulRet(args.k))
-        nParams = LUA_MULTRET;  /* open call */
+        nParams = Lumen::RetMul;  /* open call */
     else {
         if (args.k != Lumen::ExpDesc::KindVoid)
             Lumen::FuncState::Exp2NextReg(fs, &args);  /* close last argument */
@@ -1281,7 +1281,7 @@ static void retStat(Lumen::LexState *ls) {
                 LumenAssert(LumenOpCodeGetArgA(LumenFuncStateGetCode(fs, &e)) == fs->ActiveVarsCount);
             }
             first = fs->ActiveVarsCount;
-            nRet = LUA_MULTRET;  /* return all values */
+            nRet = Lumen::RetMul;  /* return all values */
         } else {
             if (nRet == 1)  /* only one single value? */
                 first = Lumen::FuncState::Exp2AnyReg(fs, &e);
