@@ -24,7 +24,6 @@
 #include "lumen/protected_call.h"
 
 #include "lua.hpp"
-#include "lualib.h"
 
 extern const char lua_ident[];
 
@@ -50,23 +49,23 @@ static Lumen::Value *index2addr(Lumen::State *L, int idx) {
         LumenApiCheck(L, idx <= L->CallInfo->Top - L->Base);
         if (o >= L->Top) return cast(Lumen::Value *, Lumen::NilObject);
         else return o;
-    } else if (idx > LUA_REGISTRYINDEX) {
+    } else if (idx > Lua::RegistryIndex) {
         LumenApiCheck(L, idx != 0 && -idx <= L->Top - L->Base);
         return L->Top + idx;
     } else
         switch (idx) {  /* pseudo-indices */
-            case LUA_REGISTRYINDEX:
+            case Lua::RegistryIndex:
                 return LumenRegistry(L);
-            case LUA_ENVIRONINDEX: {
+            case Lua::EnvIndex: {
                 Lumen::Closure *func = LumenCurFunc(L);
                 LumenSetTableValue(L, &L->Env, func->AsC.Env);
                 return &L->Env;
             }
-            case LUA_GLOBALSINDEX:
+            case Lua::GlobalIndex:
                 return LumenGlobalTable(L);
             default: {
                 Lumen::Closure *func = LumenCurFunc(L);
-                idx = LUA_GLOBALSINDEX - idx;
+                idx = Lua::GlobalIndex - idx;
                 return (idx <= func->AsC.NUpValues)
                        ? &func->AsC.UpValues[idx - 1]
                        : cast(Lumen::Value *, Lumen::NilObject);
@@ -173,19 +172,19 @@ void Lua::State::Replace(int idx) {
     Lumen::StkId o;
     LumenLock(L);
     /* explicit test for incompatible code */
-    if (idx == LUA_ENVIRONINDEX && L->CallInfo == L->BaseCI)
+    if (idx == Lua::EnvIndex && L->CallInfo == L->BaseCI)
         Lumen::Debug::RunError(L, "no calling environment");
     apiCheckElementCount(L, 1);
     o = index2addr(L, idx);
     apiCheckValidIndex(L, o);
-    if (idx == LUA_ENVIRONINDEX) {
+    if (idx == Lua::EnvIndex) {
         Lumen::Closure *func = LumenCurFunc(L);
         LumenApiCheck(L, LumenTypeIsTable(L->Top - 1));
         func->AsC.Env = LumenTableValue(L->Top - 1);
         LumenGCBarrier(L, func, L->Top - 1);
     } else {
         LumenSetObject(L, o, L->Top - 1);
-        if (idx < LUA_GLOBALSINDEX)  /* function upvalue? */
+        if (idx < Lua::GlobalIndex)  /* function upvalue? */
             LumenGCBarrier(L, LumenCurFunc(L), L->Top - 1);
     }
     L->Top--;
@@ -218,8 +217,8 @@ bool Lua::State::IsNumber(int idx) {
 
 bool Lua::State::IsString(int idx) {
     auto L = LuaToLumen(this);
-    int t = lua_type(L, idx);
-    return (t == LUA_TSTRING || t == LUA_TNUMBER);
+    Lumen::StkId o = index2addr(L, idx);
+    return LumenTypeIsString(o);
 }
 
 bool Lua::State::IsDelegate(int idx) {
@@ -237,11 +236,11 @@ bool Lua::State::IsUserdata(int idx) {
 Lua::Type Lua::State::Type(int idx) {
     auto L = LuaToLumen(this);
     Lumen::StkId o = index2addr(L, idx);
-    return (o == Lumen::NilObject) ? LUA_TNONE : LumenTypeOf(o);
+    return (o == Lumen::NilObject) ? Lua::TypeNone : LumenTypeOf(o);
 }
 
 const char *Lua::State::TypeName(int t) {
-    return (t == LUA_TNONE) ? "no value" : Lumen::TM::TypeNames[t];
+    return (t == Lua::TypeNone) ? "no value" : Lumen::TM::TypeNames[t];
 }
 
 bool Lua::State::Equal(int idx1, int idx2) {
@@ -352,13 +351,13 @@ Lua::UInteger Lua::State::ObjectLength(int idx) {
     auto L = LuaToLumen(this);
     Lumen::StkId o = index2addr(L, idx);
     switch (LumenTypeOf(o)) {
-        case LUA_TSTRING:
+        case Lua::TypeString:
             return LumenStringValue(o)->Length;
-        case LUA_TUSERDATA:
+        case Lua::TypeUserdata:
             return LumenUDataValue(o)->Length;
-        case LUA_TTABLE:
+        case Lua::TypeTable:
             return Lumen::Table::GetN(LumenTableValue(o));
-        case LUA_TNUMBER: {
+        case Lua::TypeNumber: {
             Lua::UInteger l;
             LumenLock(L);  /* `Lumen::VM::ToString' may create a new string */
             l = (Lumen::VM::ToString(L, o) ? LumenStringValue(o)->Length : 0);
@@ -386,9 +385,9 @@ void *Lua::State::ToUserdata(int idx) {
     auto L = LuaToLumen(this);
     Lumen::StkId o = index2addr(L, idx);
     switch (LumenTypeOf(o)) {
-        case LUA_TUSERDATA:
+        case Lua::TypeUserdata:
             return (LumenUDataValue(o) + 1);
-        case LUA_TLIGHTUSERDATA:
+        case Lua::TypeLightUserdata:
             return LumenLUDataValue(o);
         default:
             return nullptr;
@@ -405,15 +404,15 @@ const void *Lua::State::ToPointer(int idx) {
     auto L = LuaToLumen(this);
     Lumen::StkId o = index2addr(L, idx);
     switch (LumenTypeOf(o)) {
-        case LUA_TTABLE:
+        case Lua::TypeTable:
             return LumenTableValue(o);
-        case LUA_TFUNCTION:
+        case Lua::TypeFunction:
             return LumenClosureValue(o);
-        case LUA_TTHREAD:
+        case Lua::TypeThread:
             return LumenThreadValue(o);
-        case LUA_TUSERDATA:
-        case LUA_TLIGHTUSERDATA:
-            return lua_touserdata(L, idx);
+        case Lua::TypeUserdata:
+        case Lua::TypeLightUserdata:
+            return ToUserdata(idx);
         default:
             return nullptr;
     }
@@ -458,9 +457,9 @@ void Lua::State::PushString(const char *s, Lua::UInteger length) {
 void Lua::State::PushString(const char *s) {
     auto L = LuaToLumen(this);
     if (s == nullptr)
-        lua_pushnil(L);
+        PushNil();
     else
-        lua_pushlstring(L, s, Lumen::String::LengthOf(s));
+        PushString(s, Lumen::String::LengthOf(s));
 }
 
 const char *Lua::State::PushVFString(const char *fmt, va_list argP) {
@@ -620,10 +619,10 @@ bool Lua::State::GetMetatable(int objIndex) {
     LumenLock(L);
     obj = index2addr(L, objIndex);
     switch (LumenTypeOf(obj)) {
-        case LUA_TTABLE:
+        case Lua::TypeTable:
             mt = LumenTableValue(obj)->Metatable;
             break;
-        case LUA_TUSERDATA:
+        case Lua::TypeUserdata:
             mt = LumenUDataValue(obj)->Metatable;
             break;
         default:
@@ -648,13 +647,13 @@ void Lua::State::GetFEnv(int idx) {
     o = index2addr(L, idx);
     apiCheckValidIndex(L, o);
     switch (LumenTypeOf(o)) {
-        case LUA_TFUNCTION:
+        case Lua::TypeFunction:
             LumenSetTableValue(L, L->Top, LumenClosureValue(o)->AsC.Env);
             break;
-        case LUA_TUSERDATA:
+        case Lua::TypeUserdata:
             LumenSetTableValue(L, L->Top, LumenUDataValue(o)->Env);
             break;
-        case LUA_TTHREAD:
+        case Lua::TypeThread:
             LumenSetObject2S(L, L->Top, LumenGlobalTable(LumenThreadValue(o)));
             break;
         default:
@@ -734,13 +733,13 @@ bool Lua::State::SetMetatable(int objIndex) {
         mt = LumenTableValue(L->Top - 1);
     }
     switch (LumenTypeOf(obj)) {
-        case LUA_TTABLE: {
+        case Lua::TypeTable: {
             LumenTableValue(obj)->Metatable = mt;
             if (mt)
                 LumenGCObjectBarrierTable(L, LumenTableValue(obj), mt);
             break;
         }
-        case LUA_TUSERDATA: {
+        case Lua::TypeUserdata: {
             LumenUDataValue(obj)->Metatable = mt;
             if (mt)
                 LumenGCObjectBarrier(L, LumenUDataValue(obj), mt);
@@ -766,13 +765,13 @@ bool Lua::State::SetFEnv(int idx) {
     apiCheckValidIndex(L, o);
     LumenApiCheck(L, LumenTypeIsTable(L->Top - 1));
     switch (LumenTypeOf(o)) {
-        case LUA_TFUNCTION:
+        case Lua::TypeFunction:
             LumenClosureValue(o)->AsC.Env = LumenTableValue(L->Top - 1);
             break;
-        case LUA_TUSERDATA:
+        case Lua::TypeUserdata:
             LumenUDataValue(o)->Env = LumenTableValue(L->Top - 1);
             break;
-        case LUA_TTHREAD:
+        case Lua::TypeThread:
             LumenSetTableValue(L, LumenGlobalTable(LumenThreadValue(o)), LumenTableValue(L->Top - 1));
             break;
         default:
@@ -789,12 +788,12 @@ bool Lua::State::SetFEnv(int idx) {
 
 #define adjustResults(L, nRes) \
 LumenDo(                         \
-    if (nRes == LUA_MULTRET && L->Top >= L->CallInfo->Top) \
+    if (nRes == Lua::RetMul && L->Top >= L->CallInfo->Top) \
         L->CallInfo->Top = L->Top;   \
 )
 
 #define checkResults(L, na, nr) \
-     LumenApiCheck(L, (nr) == LUA_MULTRET || (L->CallInfo->Top - L->Top >= (nr) - (na)))
+     LumenApiCheck(L, (nr) == Lua::RetMul || (L->CallInfo->Top - L->Top >= (nr) - (na)))
 
 
 void Lua::State::Call(int nargs, int nResults) {
@@ -900,7 +899,7 @@ Lua::Ret Lua::State::Yield(int nResults) {
     if (L->NCCalls > L->BaseCCalls)
         Lumen::Debug::RunError(L, "attempt to yield across metaMethod/C-call boundary");
     L->Base = L->Top - nResults;  /* protect stack slots below */
-    L->Status = LUA_YIELD;
+    L->Status = Lua::RetYield;
     LumenUnlock(L);
     return -1;
 }
@@ -909,7 +908,7 @@ Lua::Ret Lua::State::Resume(int nArgs) {
     auto L = LuaToLumen(this);
     int status;
     LumenLock(L);
-    if (L->Status != LUA_YIELD && (L->Status != 0 || L->CallInfo != L->BaseCI))
+    if (L->Status != Lua::RetYield && (L->Status != 0 || L->CallInfo != L->BaseCI))
         return Lumen::Do::ResumeError(L, "cannot resume non-suspended coroutine");
     if (L->NCCalls >= LUAI_MAXCCALLS)
         return Lumen::Do::ResumeError(L, "C stack overflow");
@@ -943,28 +942,28 @@ int Lua::State::GC(Lua::GCAction what, int data) {
     LumenLock(L);
     g = LumenGlobal(L);
     switch (what) {
-        case LUA_GCSTOP: {
+        case Lua::GCStop: {
             g->GCThreshold = Lumen::MaxUMemory;
             break;
         }
-        case LUA_GCRESTART: {
+        case Lua::GCRestart: {
             g->GCThreshold = g->TotalBytes;
             break;
         }
-        case LUA_GCCOLLECT: {
+        case Lua::GCCollect: {
             Lumen::GC::FullGC(L);
             break;
         }
-        case LUA_GCCOUNT: {
+        case Lua::GCCount: {
             /* GC values are expressed in KBytes: #bytes/2^10 */
             res = cast_int(g->TotalBytes >> 10);
             break;
         }
-        case LUA_GCCOUNTB: {
+        case Lua::GCCountB: {
             res = cast_int(g->TotalBytes & 0x3ff);
             break;
         }
-        case LUA_GCSTEP: {
+        case Lua::GCStep: {
             Lumen::MemorySize a = (cast(Lumen::MemorySize, data) << 10);
             if (a <= g->TotalBytes)
                 g->GCThreshold = g->TotalBytes - a;
@@ -979,12 +978,12 @@ int Lua::State::GC(Lua::GCAction what, int data) {
             }
             break;
         }
-        case LUA_GCSETPAUSE: {
+        case Lua::GCSetPause: {
             res = g->GCPause;
             g->GCPause = data;
             break;
         }
-        case LUA_GCSETSTEPMUL: {
+        case Lua::GCSetStepMul: {
             res = g->GCStepMul;
             g->GCStepMul = data;
             break;
@@ -1204,42 +1203,6 @@ int Lua::State::GetHookMask() {
 
 int Lua::State::GetHookCount() {
     return LuaToLumen(this)->BaseHookCount;
-}
-
-int Lua::State::OpenBase() {
-    return luaopen_base(LuaToLumen(this));
-}
-
-int Lua::State::OpenTable() {
-    return luaopen_table(LuaToLumen(this));
-}
-
-int Lua::State::OpenIO() {
-    return luaopen_io(LuaToLumen(this));
-}
-
-int Lua::State::OpenOS() {
-    return luaopen_os(LuaToLumen(this));
-}
-
-int Lua::State::OpenString() {
-    return luaopen_string(LuaToLumen(this));
-}
-
-int Lua::State::OpenMath() {
-    return luaopen_math(LuaToLumen(this));
-}
-
-int Lua::State::OpenDebug() {
-    return luaopen_debug(LuaToLumen(this));
-}
-
-int Lua::State::OpenBit() {
-    return luaopen_bit(LuaToLumen(this));
-}
-
-int Lua::State::OpenPackage() {
-    return luaopen_package(LuaToLumen(this));
 }
 
 void Lua::Close(Lua::State *(&state)) {

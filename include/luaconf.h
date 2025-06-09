@@ -533,7 +533,7 @@
 ** in C is extremely slow, so any alternative is worth trying.
 */
 #define lua_number2int(i, d)    ((i)=(int)(d))
-#define lua_number2integer(i, d)    ((i)=(lua_Integer)(d))
+#define lua_number2integer(i, d)    ((i)=(LUA_INTEGER)(d))
 
 /* }================================================================== */
 

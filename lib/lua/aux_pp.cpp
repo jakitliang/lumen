@@ -29,6 +29,9 @@
 #define absIndex(i)    \
 ((i) > 0 || (i) <= Lua::RegistryIndex ? (i) : GetTop() + (i) + 1)
 
+#define LuaToLumen(L) reinterpret_cast<Lumen::State *>(L)
+#define LumenToLua(L) reinterpret_cast<Lua::State *>(L)
+
 static inline int infSize(const Lua::Interface *l) {
     int size = 0;
     for (; l->Name; l++) size++;
@@ -424,6 +427,42 @@ LUALIB_API int (luaopen_bit)(Lua::CState *L);
 
 #define LUA_LOADLIBNAME    "package"
 LUALIB_API int (luaopen_package)(Lua::CState *L);
+
+int Lua::State::OpenBase() {
+    return luaopen_base(LuaToLumen(this));
+}
+
+int Lua::State::OpenTable() {
+    return luaopen_table(LuaToLumen(this));
+}
+
+int Lua::State::OpenIO() {
+    return luaopen_io(LuaToLumen(this));
+}
+
+int Lua::State::OpenOS() {
+    return luaopen_os(LuaToLumen(this));
+}
+
+int Lua::State::OpenString() {
+    return luaopen_string(LuaToLumen(this));
+}
+
+int Lua::State::OpenMath() {
+    return luaopen_math(LuaToLumen(this));
+}
+
+int Lua::State::OpenDebug() {
+    return luaopen_debug(LuaToLumen(this));
+}
+
+int Lua::State::OpenBit() {
+    return luaopen_bit(LuaToLumen(this));
+}
+
+int Lua::State::OpenPackage() {
+    return luaopen_package(LuaToLumen(this));
+}
 
 static const Lua::Registry luaLibs[] = {
     {"",              luaopen_base},
