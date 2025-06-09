@@ -44,10 +44,10 @@ void Lumen::TM::Init(Lumen::State *L) {
 const Lumen::Value *Lumen::TM::GetByObject(Lumen::State *L, const Lumen::Value *o, Lumen::TM::Name event) {
     Lumen::Table *mt;
     switch (LumenTypeOf(o)) {
-        case LUA_TTABLE:
+        case Lumen::TypeTable:
             mt = LumenTableValue(o)->Metatable;
             break;
-        case LUA_TUSERDATA:
+        case Lumen::TypeUserdata:
             mt = LumenUDataValue(o)->Metatable;
             break;
         default:

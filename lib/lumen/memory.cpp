@@ -75,7 +75,7 @@ void *Lumen::Memory::ReAlloc(Lumen::State *L, void *block, Lumen::UInteger oldSi
     LumenAssert((oldSize == 0) == (block == nullptr));
     block = (*g->ReAllocator)(g->ReAllocatorUData, block, oldSize, newSize);
     if (block == nullptr && newSize > 0)
-        Lumen::Do::Throw(L, LUA_ERRMEM);
+        Lumen::Do::Throw(L, Lumen::RetErrMem);
     LumenAssert((newSize == 0) == (block == nullptr));
     g->TotalBytes = (g->TotalBytes - oldSize) + newSize;
     return block;

@@ -34,18 +34,18 @@ static void traceExec(Lumen::State *L, const Lumen::Instruction *pc) {
     Lumen::Byte mask = L->HookMask;
     const Lumen::Instruction *oldpc = L->SavedPC;
     L->SavedPC = pc;
-    if ((mask & LUA_MASKCOUNT) && L->HookCount == 0) {
+    if ((mask & Lumen::HookMaskCount) && L->HookCount == 0) {
         LumenDebugResetHookCount(L);
-        Lumen::Do::CallHook(L, LUA_HOOKCOUNT, -1);
+        Lumen::Do::CallHook(L, Lumen::HookCount, -1);
     }
-    if (mask & LUA_MASKLINE) {
+    if (mask & Lumen::HookMaskLine) {
         Lumen::Proto *p = LumenCIFunc(L->CallInfo)->AsLua.Func;
         int npc = LumenDebugPCRel(pc, p);
         int newline = LumenDebugGetLine(p, npc);
         /* call linehook when enter a new function, when jump back (loop),
            or when enter a new line */
         if (npc == 0 || pc <= oldpc || newline != LumenDebugGetLine(p, LumenDebugPCRel(oldpc, p)))
-            Lumen::Do::CallHook(L, LUA_HOOKLINE, newline);
+            Lumen::Do::CallHook(L, Lumen::HookLine, newline);
     }
 }
 
@@ -229,21 +229,21 @@ int Lumen::VM::EqualVal(Lumen::State *L, const Lumen::Value *t1, const Lumen::Va
     const Lumen::Value *tm;
     LumenAssert(LumenTypeOf(t1) == LumenTypeOf(t2));
     switch (LumenTypeOf(t1)) {
-        case LUA_TNIL:
+        case Lumen::TypeNil:
             return 1;
-        case LUA_TNUMBER:
+        case Lumen::TypeNumber:
             return luai_numeq(LumenNumberValue(t1), LumenNumberValue(t2));
-        case LUA_TBOOLEAN:
+        case Lumen::TypeBool:
             return LumenBoolValue(t1) == LumenBoolValue(t2);  /* true must be 1 !! */
-        case LUA_TLIGHTUSERDATA:
+        case Lumen::TypeLightUserdata:
             return LumenLUDataValue(t1) == LumenLUDataValue(t2);
-        case LUA_TUSERDATA: {
+        case Lumen::TypeUserdata: {
             if (LumenUDataValue(t1) == LumenUDataValue(t2)) return 1;
             tm = get_compTM(L, LumenUDataValue(t1)->Metatable, LumenUDataValue(t2)->Metatable,
                             Lumen::TM::NameEQ);
             break;  /* will try TM */
         }
-        case LUA_TTABLE: {
+        case Lumen::TypeTable: {
             if (LumenTableValue(t1) == LumenTableValue(t2)) return 1;
             tm = get_compTM(L, LumenTableValue(t1)->Metatable, LumenTableValue(t2)->Metatable, Lumen::TM::NameEQ);
             break;  /* will try TM */
@@ -389,10 +389,10 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
     for (;;) {
         const Lumen::Instruction i = *pc++;
         Lumen::StkId ra;
-        if ((L->HookMask & (LUA_MASKLINE | LUA_MASKCOUNT)) &&
-            (--L->HookCount == 0 || L->HookMask & LUA_MASKLINE)) {
+        if ((L->HookMask & (Lumen::HookMaskLine | Lumen::HookMaskCount)) &&
+            (--L->HookCount == 0 || L->HookMask & Lumen::HookMaskLine)) {
             traceExec(L, pc);
-            if (L->Status == LUA_YIELD) {  /* did hook yield? */
+            if (L->Status == Lumen::RetYield) {  /* did hook yield? */
                 L->SavedPC = pc - 1;
                 return;
             }
@@ -513,11 +513,11 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
             case Lumen::OpCodeLen: {
                 const Lumen::Value *rb = RB(i);
                 switch (LumenTypeOf(rb)) {
-                    case LUA_TTABLE: {
+                    case Lumen::TypeTable: {
                         LumenSetNumberValue(ra, cast_num(Lumen::Table::GetN(LumenTableValue(rb))));
                         break;
                     }
-                    case LUA_TSTRING: {
+                    case Lumen::TypeString: {
                         LumenSetNumberValue(ra, cast_num(LumenStringValue(rb)->Length));
                         break;
                     }

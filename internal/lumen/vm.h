@@ -37,9 +37,9 @@ namespace Lumen::VM {
     void Concat(Lumen::State *L, int total, int last);
 }
 
-#define LumenVMToString(L, o) ((LumenTypeOf(o) == LUA_TSTRING) || (Lumen::VM::ToString(L, o)))
+#define LumenVMToString(L, o) ((LumenTypeOf(o) == Lumen::TypeString) || (Lumen::VM::ToString(L, o)))
 
-#define LumenVMToNumber(o, n)    (LumenTypeOf(o) == LUA_TNUMBER || \
+#define LumenVMToNumber(o, n)    (LumenTypeOf(o) == Lumen::TypeNumber || \
                          (((o) = Lumen::VM::ToNumber(o,n)) != nullptr))
 
 #define LumenVMEqualObj(L, o1, o2)    (LumenTypeOf(o1) == LumenTypeOf(o2) && Lumen::VM::EqualVal(L, o1, o2))

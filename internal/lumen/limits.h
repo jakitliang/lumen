@@ -40,6 +40,74 @@ namespace Lumen {
 
     using UACNumber = LUAI_UACNUMBER; // Result of a `usual argument conversion' over lua_Number
 
+    /*
+    ** pseudo-indices
+    */
+    typedef LUA_ENUM(int, Index) {
+        RegistryIndex = -10000,
+        EnvIndex = -10001,
+        GlobalIndex = -10002
+    };
+
+    typedef LUA_ENUM(int, Ret) {
+        RetMul = -1,
+        RetOK = 0,
+        RetYield = 1,
+        RetErrRun = 2,
+        RetErrSyntax = 3,
+        RetErrMem = 4,
+        RetErr = 5,
+        RetErrFile = RetErr + 1
+    };
+
+    /**
+     * basic types
+     */
+    typedef LUA_ENUM(int, Type) {
+        TypeNone = -1,
+        TypeNil = 0,
+        TypeBool = 1,
+        TypeLightUserdata = 2,
+        TypeNumber = 3,
+        TypeString = 4,
+        TypeTable = 5,
+        TypeFunction = 6,
+        TypeUserdata = 7,
+        TypeThread = 8
+    };
+
+    typedef LUA_ENUM(int, GCAction) {
+        GCStop = 0,
+        GCRestart = 1,
+        GCCollect = 2,
+        GCCount = 3,
+        GCCountB = 4,
+        GCStep = 5,
+        GCSetPause = 6,
+        GCSetStepMul = 7
+    };
+
+    /*
+    ** Hook Event codes
+    */
+    typedef LUA_ENUM(int, HookEvent) {
+        HookCall = 0,
+        HookRet = 1,
+        HookLine = 2,
+        HookCount = 3,
+        HookTailRet = 4
+    };
+
+    /*
+    ** Hook event masks
+    */
+    typedef LUA_ENUM(int, HookMask) {
+        HookMaskCall = (1 << HookCall),
+        HookMaskRet = (1 << HookRet),
+        HookMaskLine = (1 << HookLine),
+        HookMaskCount = (1 << HookCount)
+    };
+
     using State = LumenState;
 
     struct BasicObject {

@@ -116,7 +116,7 @@ static void LuaStateClose(Lumen::State *L) {
 
 Lumen::State *Lumen::State::NewThread(Lumen::State *L) {
     Lumen::State *L1 = toState(LumenMemoryAlloc(L, sizeOfState(Lumen::State)));
-    Lumen::GC::Link(L, LumenObject2GCObject(L1), LUA_TTHREAD);
+    Lumen::GC::Link(L, LumenObject2GCObject(L1), Lumen::TypeThread);
     LuaStatePreInit(L1, LumenGlobal(L));
     stackInit(L1, L);  /* init stack */
     LumenSetObject2N(L, LumenGlobalTable(L1), LumenGlobalTable(L));  /* share table of globals */
@@ -147,7 +147,7 @@ Lumen::State *Lumen::State::New(Lumen::Allocator allocator, void *userData) {
     L = toState(l);
     g = &((LG *) L)->g;
     L->GCNext = nullptr;
-    L->Type = LUA_TTHREAD;
+    L->Type = Lumen::TypeThread;
     g->CurrentWhite = LumenGCBit2Mask(Lumen::GC::MarkWhite0Bit, Lumen::GC::MarkFixedBit);
     L->Marked = LumenGCWhite(g);
     LumenGCSet2Bits(L->Marked, Lumen::GC::MarkFixedBit, Lumen::GC::MarkSFixedBit);

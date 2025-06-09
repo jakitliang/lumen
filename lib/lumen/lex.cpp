@@ -74,7 +74,7 @@ void Lumen::LexState::LexError(Lumen::LexState *ls, const char *msg, int token) 
     msg = Lumen::PushFString(ls->L, "%s:%d: %s", buff, ls->LineNumber, msg);
     if (token)
         Lumen::PushFString(ls->L, "%s near " LUA_QS, msg, txtToken(ls, token));
-    Lumen::Do::Throw(ls->L, LUA_ERRSYNTAX);
+    Lumen::Do::Throw(ls->L, Lumen::RetErrSyntax);
 }
 
 Lumen::String *Lumen::LexState::NewString(Lumen::LexState *ls, const char *str, Lumen::UInteger l) {

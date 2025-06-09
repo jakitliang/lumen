@@ -145,15 +145,15 @@ namespace Lumen {
 
 
 /* macros to convert a Lumen::GCObject into a specific value */
-#define LumenGCObject2String(o)    LumenCheckExp((o)->AsObject.Type == LUA_TSTRING, &((o)->AsString))
-#define LumenGCObject2Userdata(o)    LumenCheckExp((o)->AsObject.Type == LUA_TUSERDATA, &((o)->AsUserdata))
-#define LumenGCObject2Closure(o)    LumenCheckExp((o)->AsObject.Type == LUA_TFUNCTION, &((o)->AsClosure))
-#define LumenGCObject2Table(o)    LumenCheckExp((o)->AsObject.Type == LUA_TTABLE, &((o)->AsTable))
+#define LumenGCObject2String(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeString, &((o)->AsString))
+#define LumenGCObject2Userdata(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeUserdata, &((o)->AsUserdata))
+#define LumenGCObject2Closure(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeFunction, &((o)->AsClosure))
+#define LumenGCObject2Table(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeTable, &((o)->AsTable))
 #define LumenGCObject2Proto(o)    LumenCheckExp((o)->AsObject.Type == LUA_TPROTO, &((o)->AsProto))
 #define LumenGCObject2UpValue(o)    LumenCheckExp((o)->AsObject.Type == LUA_TUPVAL, &((o)->AsUpValue))
 #define LumenNullGCObject2UpValue(o) \
     LumenCheckExp((o) == nullptr || (o)->AsObject.Type == LUA_TUPVAL, &((o)->AsUpValue))
-#define LumenGCObject2Thread(o)    LumenCheckExp((o)->AsObject.Type == LUA_TTHREAD, &((o)->AsThread))
+#define LumenGCObject2Thread(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeThread, &((o)->AsThread))
 
 /* macro to convert any Lua object into a Lumen::GCObject */
 #define LumenObject2GCObject(v)    (cast(Lumen::GCObject *, (v)))

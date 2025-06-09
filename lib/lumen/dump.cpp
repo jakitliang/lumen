@@ -76,15 +76,15 @@ static void DumpConstants(const Lumen::Proto *f, DumpState *D) {
         const Lumen::Value *o = &f->K[i];
         DumpChar(LumenTypeOf(o), D);
         switch (LumenTypeOf(o)) {
-            case LUA_TNIL:
+            case Lumen::TypeNil:
                 break;
-            case LUA_TBOOLEAN:
+            case Lumen::TypeBool:
                 DumpChar(LumenBoolValue(o), D);
                 break;
-            case LUA_TNUMBER:
+            case Lumen::TypeNumber:
                 DumpNumber(LumenNumberValue(o), D);
                 break;
-            case LUA_TSTRING:
+            case Lumen::TypeString:
                 DumpString(LumenStringValue(o), D);
                 break;
             default:

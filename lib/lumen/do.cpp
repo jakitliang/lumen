@@ -48,16 +48,16 @@ struct Lumen::LongJump {
 
 void Lumen::Do::SetErrorObject(Lumen::State *L, int errcode, Lumen::StkId oldTop) {
     switch (errcode) {
-        case LUA_ERRMEM: {
+        case Lumen::RetErrMem: {
             LumenSetStringValue2S(L, oldTop, LumenStringNewLiteral(L, LUA_MEM_ERR_MSG));
             break;
         }
-        case LUA_ERRERR: {
+        case Lumen::RetErr: {
             LumenSetStringValue2S(L, oldTop, LumenStringNewLiteral(L, "error in error handling"));
             break;
         }
-        case LUA_ERRSYNTAX:
-        case LUA_ERRRUN: {
+        case Lumen::RetErrSyntax:
+        case Lumen::RetErrRun: {
             LumenSetObjectS2S(L, oldTop, L->Top - 1);  /* error message on current top */
             break;
         }
@@ -165,7 +165,7 @@ void Lumen::Do::GrowStack(Lumen::State *L, int n) {
 
 static Lumen::CallInfo *growCI(Lumen::State *L) {
     if (L->BaseCICount > LUAI_MAXCALLS)  /* overflow while handling overflow? */
-        Lumen::Do::Throw(L, LUA_ERRERR);
+        Lumen::Do::Throw(L, Lumen::RetErr);
     else {
         Lumen::Do::ReAllocCI(L, 2 * L->BaseCICount);
         if (L->BaseCICount > LUAI_MAXCALLS)
@@ -183,7 +183,7 @@ void Lumen::Do::CallHook(Lumen::State *L, int event, int line) {
         Lumen::DebugInfo ar;
         ar.Event = event;
         ar.CurrentLine = line;
-        if (event == LUA_HOOKTAILRET)
+        if (event == Lumen::HookTailRet)
             ar.CurrentCI = 0;  /* tail call; no debug information about it */
         else
             ar.CurrentCI = cast_int(L->CallInfo - L->BaseCI);
@@ -293,9 +293,9 @@ int Lumen::Do::PreCall(Lumen::State *L, Lumen::StkId func, int nResults) {
         for (st = L->Top; st < ci->Top; st++)
             LumenSetNilValue(st);
         L->Top = ci->Top;
-        if (L->HookMask & LUA_MASKCALL) {
+        if (L->HookMask & Lumen::HookMaskCall) {
             L->SavedPC++;  /* hooks assume 'pc' is already incremented */
-            Lumen::Do::CallHook(L, LUA_HOOKCALL, -1);
+            Lumen::Do::CallHook(L, Lumen::HookCall, -1);
             L->SavedPC--;  /* correct 'pc' */
         }
         return Lumen::Do::PCRetLua;
@@ -309,8 +309,8 @@ int Lumen::Do::PreCall(Lumen::State *L, Lumen::StkId func, int nResults) {
         ci->Top = L->Top + Lumen::MinStack;
         LumenAssert(ci->Top <= L->StackLast);
         ci->NResults = nResults;
-        if (L->HookMask & LUA_MASKCALL)
-            Lumen::Do::CallHook(L, LUA_HOOKCALL, -1);
+        if (L->HookMask & Lumen::HookMaskCall)
+            Lumen::Do::CallHook(L, Lumen::HookCall, -1);
         LumenUnlock(L);
         n = (*LumenCurFunc(L)->AsC.Func)(L);  /* do the actual call */
         LumenLock(L);
@@ -325,10 +325,10 @@ int Lumen::Do::PreCall(Lumen::State *L, Lumen::StkId func, int nResults) {
 
 static Lumen::StkId callRetHooks(Lumen::State *L, Lumen::StkId firstResult) {
     Lumen::Integer fr = LumenSaveStack(L, firstResult);  /* next call may change stack */
-    Lumen::Do::CallHook(L, LUA_HOOKRET, -1);
+    Lumen::Do::CallHook(L, Lumen::HookRet, -1);
     if (LumenCIFuncIsLua(L->CallInfo)) {  /* Lua function? */
-        while ((L->HookMask & LUA_MASKRET) && L->CallInfo->NTailCalls--) /* tail calls */
-            Lumen::Do::CallHook(L, LUA_HOOKTAILRET, -1);
+        while ((L->HookMask & Lumen::HookMaskRet) && L->CallInfo->NTailCalls--) /* tail calls */
+            Lumen::Do::CallHook(L, Lumen::HookTailRet, -1);
     }
     return LumenRestoreStack(L, fr);
 }
@@ -337,7 +337,7 @@ int Lumen::Do::PosCall(Lumen::State *L, Lumen::StkId firstResult) {
     Lumen::StkId res;
     int wanted, i;
     Lumen::CallInfo *ci;
-    if (L->HookMask & LUA_MASKRET)
+    if (L->HookMask & Lumen::HookMaskRet)
         firstResult = callRetHooks(L, firstResult);
     ci = L->CallInfo--;
     res = ci->Func;  /* res == final position of 1st result */
@@ -364,7 +364,7 @@ void Lumen::Do::Call(Lumen::State *L, Lumen::StkId func, int nResults) {
         if (L->NCCalls == LUAI_MAXCCALLS)
             Lumen::Debug::RunError(L, "C stack overflow");
         else if (L->NCCalls >= (LUAI_MAXCCALLS + (LUAI_MAXCCALLS >> 3)))
-            Lumen::Do::Throw(L, LUA_ERRERR);  /* error while handing stack error */
+            Lumen::Do::Throw(L, Lumen::RetErr);  /* error while handing stack error */
     }
     if (Lumen::Do::PreCall(L, func, nResults) == Lumen::Do::PCRetLua)  /* is a Lua function? */
         Lumen::VM::Execute(L, 1);  /* call it */
@@ -380,7 +380,7 @@ void Lumen::Do::Resume(Lumen::State *L, void *ud) {
         if (Lumen::Do::PreCall(L, firstArg - 1, LUA_MULTRET) != Lumen::Do::PCRetLua)
             return;
     } else {  /* resuming from previous yield */
-        LumenAssert(L->Status == LUA_YIELD);
+        LumenAssert(L->Status == Lumen::RetYield);
         L->Status = 0;
         if (!LumenCIFuncIsLua(ci)) {  /* `common' yield? */
             /* finish interrupted execution of `Lumen::OpCodeCall' */
@@ -399,7 +399,7 @@ int Lumen::Do::ResumeError(Lumen::State *L, const char *msg) {
     LumenSetStringValue2S(L, L->Top, Lumen::String::New(L, msg));
     LumenIncrTop(L);
     LumenUnlock(L);
-    return LUA_ERRRUN;
+    return Lumen::RetErrRun;
 }
 
 int Lumen::Do::PCall(Lumen::State *L, Lumen::Do::PFunc func, void *u,

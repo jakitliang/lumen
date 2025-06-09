@@ -22,7 +22,7 @@
 
 
 /* tags for values visible from Lua */
-#define LUA_LAST_TAG    LUA_TTHREAD
+#define LUA_LAST_TAG    Lumen::TypeThread
 
 #define LUA_NUM_TAGS    (LUA_LAST_TAG+1)
 
@@ -260,15 +260,15 @@ namespace Lumen {
 
 
 /* Macros to test type */
-#define LumenTypeIsNil(o)    (LumenTypeOf(o) == LUA_TNIL)
-#define LumenTypeIsNumber(o)    (LumenTypeOf(o) == LUA_TNUMBER)
-#define LumenTypeIsString(o)    (LumenTypeOf(o) == LUA_TSTRING)
-#define LumenTypeIsTable(o)    (LumenTypeOf(o) == LUA_TTABLE)
-#define LumenTypeIsFunction(o)    (LumenTypeOf(o) == LUA_TFUNCTION)
-#define LumenTypeIsBoolean(o)    (LumenTypeOf(o) == LUA_TBOOLEAN)
-#define LumenTypeIsUData(o)    (LumenTypeOf(o) == LUA_TUSERDATA)
-#define LumenTypeIsThread(o)    (LumenTypeOf(o) == LUA_TTHREAD)
-#define LumenTypeIsLUData(o)    (LumenTypeOf(o) == LUA_TLIGHTUSERDATA)
+#define LumenTypeIsNil(o)    (LumenTypeOf(o) == Lumen::TypeNil)
+#define LumenTypeIsNumber(o)    (LumenTypeOf(o) == Lumen::TypeNumber)
+#define LumenTypeIsString(o)    (LumenTypeOf(o) == Lumen::TypeString)
+#define LumenTypeIsTable(o)    (LumenTypeOf(o) == Lumen::TypeTable)
+#define LumenTypeIsFunction(o)    (LumenTypeOf(o) == Lumen::TypeFunction)
+#define LumenTypeIsBoolean(o)    (LumenTypeOf(o) == Lumen::TypeBool)
+#define LumenTypeIsUData(o)    (LumenTypeOf(o) == Lumen::TypeUserdata)
+#define LumenTypeIsThread(o)    (LumenTypeOf(o) == Lumen::TypeThread)
+#define LumenTypeIsLUData(o)    (LumenTypeOf(o) == Lumen::TypeLightUserdata)
 
 /* Macros to access values */
 #define LumenTypeOf(o)    (o)->Type
@@ -283,7 +283,7 @@ namespace Lumen {
 #define LumenThreadValue(o)    LumenCheckExp(LumenTypeIsThread(o), &(o)->value.gc->AsThread)
 
 #define LumenIsFalse(o)    (LumenTypeIsNil(o) || (LumenTypeIsBoolean(o) && LumenBoolValue(o) == 0))
-#define LumenIsCollectable(o)    (LumenTypeOf(o) >= LUA_TSTRING)
+#define LumenIsCollectable(o)    (LumenTypeOf(o) >= Lumen::TypeString)
 
 /*
 ** for internal debug only
@@ -297,49 +297,49 @@ LumenAssert(!LumenIsCollectable(obj) || \
 
 
 /* Macros to set values */
-#define LumenSetNilValue(obj) ((obj)->Type=LUA_TNIL)
+#define LumenSetNilValue(obj) ((obj)->Type=Lumen::TypeNil)
 
 #define LumenSetNumberValue(obj, x) \
-LumenDo( Lumen::Value *i_o=(obj); i_o->value.n=(x); i_o->Type=LUA_TNUMBER; )
+LumenDo( Lumen::Value *i_o=(obj); i_o->value.n=(x); i_o->Type=Lumen::TypeNumber; )
 
 #define LumenSetLUDataValue(obj, x) \
-LumenDo( Lumen::Value *i_o=(obj); i_o->value.p=(x); i_o->Type=LUA_TLIGHTUSERDATA; )
+LumenDo( Lumen::Value *i_o=(obj); i_o->value.p=(x); i_o->Type=Lumen::TypeLightUserdata; )
 
 #define LumenSetBoolValue(obj, x) \
-LumenDo( Lumen::Value *i_o=(obj); i_o->value.b=(x); i_o->Type=LUA_TBOOLEAN; )
+LumenDo( Lumen::Value *i_o=(obj); i_o->value.b=(x); i_o->Type=Lumen::TypeBool; )
 
 #define LumenSetStringValue(L, obj, x) \
 LumenDo(                               \
     Lumen::Value *i_o=(obj);           \
-    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=LUA_TSTRING; \
+    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeString; \
     LumenCheckLiveness(LumenGlobal(L), i_o);                              \
 )
 
 #define LumenSetUDataValue(L, obj, x) \
 LumenDo(                              \
     Lumen::Value *i_o=(obj);          \
-    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=LUA_TUSERDATA; \
+    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeUserdata; \
     LumenCheckLiveness(LumenGlobal(L), i_o);                                \
 )
 
 #define LumenSetThreadValue(L, obj, x) \
 LumenDo(                               \
     Lumen::Value *i_o=(obj);           \
-    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=LUA_TTHREAD; \
+    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeThread; \
     LumenCheckLiveness(LumenGlobal(L), i_o);                              \
 )
 
 #define LumenSetClosureValue(L, obj, x) \
 LumenDo(                                \
     Lumen::Value *i_o=(obj);            \
-    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=LUA_TFUNCTION; \
+    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeFunction; \
     LumenCheckLiveness(LumenGlobal(L), i_o);                                \
 )
 
 #define LumenSetTableValue(L, obj, x) \
 LumenDo(                              \
     Lumen::Value *i_o=(obj);          \
-    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=LUA_TTABLE; \
+    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeTable; \
     LumenCheckLiveness(LumenGlobal(L), i_o);                             \
 )
 
@@ -389,8 +389,8 @@ LumenDo(                              \
 
 // Closure helpers
 
-#define LumenIsCFunction(o)    (LumenTypeOf(o) == LUA_TFUNCTION && LumenClosureValue(o)->AsC.IsC)
-#define LumenIsLFunction(o)    (LumenTypeOf(o) == LUA_TFUNCTION && !LumenClosureValue(o)->AsC.IsC)
+#define LumenIsCFunction(o)    (LumenTypeOf(o) == Lumen::TypeFunction && LumenClosureValue(o)->AsC.IsC)
+#define LumenIsLFunction(o)    (LumenTypeOf(o) == Lumen::TypeFunction && !LumenClosureValue(o)->AsC.IsC)
 
 #define LumenCClosureSize(n)    (cast(int, sizeof(Lumen::CClosure)) + \
                          cast(int, sizeof(Lumen::Value)*((n)-1)))
@@ -430,13 +430,13 @@ inline int Lumen::FB2Int(int x) {
 inline int Lumen::RawEqualObject(const Lumen::Value *t1, const Lumen::Value *t2) {
     if (LumenTypeOf(t1) != LumenTypeOf(t2)) return 0;
     switch (LumenTypeOf(t1)) {
-        case LUA_TNIL:
+        case Lumen::TypeNil:
             return 1;
-        case LUA_TNUMBER:
+        case Lumen::TypeNumber:
             return LumenNumberValue(t1) == LumenNumberValue(t2);
-        case LUA_TBOOLEAN:
+        case Lumen::TypeBool:
             return LumenBoolValue(t1) == LumenBoolValue(t2);  /* boolean true must be 1 !! */
-        case LUA_TLIGHTUSERDATA:
+        case Lumen::TypeLightUserdata:
             return LumenLUDataValue(t1) == LumenLUDataValue(t2);
         default:
             LumenAssert(LumenIsCollectable(t1));

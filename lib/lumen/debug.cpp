@@ -512,13 +512,13 @@ static void addInfo(Lumen::State *L, const char *msg) {
 void Lumen::Debug::ErrorMessage(Lumen::State *L) {
     if (L->ErrFunc != 0) {  /* is there an error handling function? */
         Lumen::StkId errFunc = LumenRestoreStack(L, L->ErrFunc);
-        if (!LumenTypeIsFunction(errFunc)) Lumen::Do::Throw(L, LUA_ERRERR);
+        if (!LumenTypeIsFunction(errFunc)) Lumen::Do::Throw(L, Lumen::RetErr);
         LumenSetObjectS2S(L, L->Top, L->Top - 1);  /* move argument */
         LumenSetObjectS2S(L, L->Top - 1, errFunc);  /* push function */
         LumenIncrTop(L);
         Lumen::Do::Call(L, L->Top - 2, 1);  /* call it */
     }
-    Lumen::Do::Throw(L, LUA_ERRRUN);
+    Lumen::Do::Throw(L, Lumen::RetErrRun);
 }
 
 

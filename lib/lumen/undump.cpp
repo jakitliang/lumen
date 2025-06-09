@@ -35,7 +35,7 @@ struct LoadState {
 
 static void error(LoadState *S, const char *why) {
     Lumen::PushFString(S->L, "%s: %s in precompiled chunk", S->name, why);
-    Lumen::Do::Throw(S->L, LUA_ERRSYNTAX);
+    Lumen::Do::Throw(S->L, Lumen::RetErrSyntax);
 }
 
 #endif
@@ -100,14 +100,14 @@ static void LoadConstants(LoadState *S, Lumen::Proto *f) {
         Lumen::Value *o = &f->K[i];
         int t = LoadChar(S);
         switch (t) {
-            case LUA_TNIL:
+            case Lumen::TypeNil:
                 LumenSetNilValue(o);
                 break;
-            case LUA_TBOOLEAN: LumenSetBoolValue(o, LoadChar(S) != 0);
+            case Lumen::TypeBool: LumenSetBoolValue(o, LoadChar(S) != 0);
                 break;
-            case LUA_TNUMBER: LumenSetNumberValue(o, LoadNumber(S));
+            case Lumen::TypeNumber: LumenSetNumberValue(o, LoadNumber(S));
                 break;
-            case LUA_TSTRING:
+            case Lumen::TypeString:
                 LumenSetStringValue2N (S->L, o, LoadString(S));
                 break;
             default:

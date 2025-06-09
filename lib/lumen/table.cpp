@@ -66,8 +66,8 @@ namespace Lumen {
     static inline constexpr int NumInts = sizeof(Lumen::Number) / sizeof(int);
 
     static const Lumen::Node DummyNode = {
-            {LUA_TNIL, {nullptr}},  /* value */
-            {{LUA_TNIL, {nullptr}, nullptr}}  /* key */
+            {Lumen::TypeNil, {nullptr}},  /* value */
+            {{Lumen::TypeNil, {nullptr}, nullptr}}  /* key */
     };
 }
 
@@ -93,13 +93,13 @@ static Lumen::Node *hashNum(const Lumen::Table *t, Lumen::Number n) {
 */
 static Lumen::Node *mainPosition(const Lumen::Table *t, const Lumen::Value *key) {
     switch (LumenTypeOf(key)) {
-        case LUA_TNUMBER:
+        case Lumen::TypeNumber:
             return hashNum(t, LumenNumberValue(key));
-        case LUA_TSTRING:
+        case Lumen::TypeString:
             return hashString(t, LumenStringValue(key));
-        case LUA_TBOOLEAN:
+        case Lumen::TypeBool:
             return hashBoolean(t, LumenBoolValue(key));
-        case LUA_TLIGHTUSERDATA:
+        case Lumen::TypeLightUserdata:
             return hashPointer(t, LumenLUDataValue(key));
         default:
             return hashPointer(t, LumenGCValue(key));
@@ -347,7 +347,7 @@ static void rehash(Lumen::State *L, Lumen::Table *t, const Lumen::Value *ek) {
 
 Lumen::Table *Lumen::Table::New(Lumen::State *L, int nArray, int nHash) {
     Lumen::Table *t = LumenMemoryNew(L, Lumen::Table);
-    Lumen::GC::Link(L, LumenObject2GCObject(t), LUA_TTABLE);
+    Lumen::GC::Link(L, LumenObject2GCObject(t), Lumen::TypeTable);
     t->Metatable = nullptr;
     t->Flags = cast_byte(~0);
     /* temporary values (kept only if some malloc fails) */
@@ -457,11 +457,11 @@ const Lumen::Value *Lumen::Table::GetString(Lumen::Table *t, Lumen::String *key)
 */
 const Lumen::Value *Lumen::Table::Get(Lumen::Table *t, const Lumen::Value *key) {
     switch (LumenTypeOf(key)) {
-        case LUA_TNIL:
+        case Lumen::TypeNil:
             return Lumen::NilObject;
-        case LUA_TSTRING:
+        case Lumen::TypeString:
             return Lumen::Table::GetString(t, LumenStringValue(key));
-        case LUA_TNUMBER: {
+        case Lumen::TypeNumber: {
             int k;
             Lumen::Number n = LumenNumberValue(key);
             lua_number2int(k, n);

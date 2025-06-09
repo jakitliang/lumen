@@ -20,7 +20,7 @@
 
 Lumen::Closure *Lumen::CClosure::New(Lumen::State *L, int nElements, Lumen::Table *e) {
     Lumen::Closure *c = cast(Lumen::Closure *, LumenMemoryAlloc(L, LumenCClosureSize(nElements)));
-    Lumen::GC::Link(L, LumenObject2GCObject(c), LUA_TFUNCTION);
+    Lumen::GC::Link(L, LumenObject2GCObject(c), Lumen::TypeFunction);
     c->AsC.IsC = 1;
     c->AsC.Env = e;
     c->AsC.NUpValues = cast_byte(nElements);
@@ -30,7 +30,7 @@ Lumen::Closure *Lumen::CClosure::New(Lumen::State *L, int nElements, Lumen::Tabl
 
 Lumen::Closure *Lumen::LClosure::New(Lumen::State *L, int nElements, Lumen::Table *e) {
     Lumen::Closure *c = cast(Lumen::Closure *, LumenMemoryAlloc(L, LumenLClosureSize(nElements)));
-    Lumen::GC::Link(L, LumenObject2GCObject(c), LUA_TFUNCTION);
+    Lumen::GC::Link(L, LumenObject2GCObject(c), Lumen::TypeFunction);
     c->AsLua.IsC = 0;
     c->AsLua.Env = e;
     c->AsLua.NUpValues = cast_byte(nElements);

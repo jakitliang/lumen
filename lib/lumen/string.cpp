@@ -58,7 +58,7 @@ static Lumen::String *newStringWithLength(Lumen::State *L, const char *str, Lume
     ts->Length = l;
     ts->Hash = h;
     ts->Marked = LumenGCWhite(LumenGlobal(L));
-    ts->Type = LUA_TSTRING;
+    ts->Type = Lumen::TypeString;
     ts->Reserved = 0;
     memcpy(ts + 1, str, l * sizeof(char));
     ((char *) (ts + 1))[l] = '\0';  /* ending 0 */
@@ -161,7 +161,7 @@ Lumen::Userdata *Lumen::Userdata::New(Lumen::State *L, Lumen::UInteger s, Lumen:
         Lumen::Memory::TooBig(L);
     u = cast(Lumen::Userdata *, LumenMemoryAlloc(L, s + sizeof(Lumen::Userdata)));
     u->Marked = LumenGCWhite(LumenGlobal(L));  /* is not finalized */
-    u->Type = LUA_TUSERDATA;
+    u->Type = Lumen::TypeUserdata;
     u->Length = s;
     u->Metatable = nullptr;
     u->Env = e;

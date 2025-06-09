@@ -76,10 +76,10 @@ static void reallyMarkObject(Lumen::GlobalState *g, Lumen::GCObject *o) {
     LumenAssert(LumenGCIsWhite(o) && !LumenGCIsDead(g, o));
     white2gray(o);
     switch (o->AsObject.Type) {
-        case LUA_TSTRING: {
+        case Lumen::TypeString: {
             return;
         }
-        case LUA_TUSERDATA: {
+        case Lumen::TypeUserdata: {
             Lumen::Table *mt = LumenGCObject2Userdata(o)->Metatable;
             LumenGCGray2Black(o);  /* uData are never gray */
             if (mt) markObject(g, mt);
@@ -93,17 +93,17 @@ static void reallyMarkObject(Lumen::GlobalState *g, Lumen::GCObject *o) {
                 LumenGCGray2Black(o);  /* open upValues are never black */
             return;
         }
-        case LUA_TFUNCTION: {
+        case Lumen::TypeFunction: {
             LumenGCObject2Closure(o)->AsC.GCList = g->GCGray;
             g->GCGray = o;
             break;
         }
-        case LUA_TTABLE: {
+        case Lumen::TypeTable: {
             LumenGCObject2Table(o)->GCList = g->GCGray;
             g->GCGray = o;
             break;
         }
-        case LUA_TTHREAD: {
+        case Lumen::TypeThread: {
             LumenGCObject2Thread(o)->GCList = g->GCGray;
             g->GCGray = o;
             break;
@@ -279,7 +279,7 @@ static Lumen::MemoryDelta propagateMark(Lumen::GlobalState *g) {
     LumenAssert(LumenGCIsGray(o));
     LumenGCGray2Black(o);
     switch (o->AsObject.Type) {
-        case LUA_TTABLE: {
+        case Lumen::TypeTable: {
             Lumen::Table *h = LumenGCObject2Table(o);
             g->GCGray = h->GCList;
             if (traverseTable(g, h))  /* table is weak? */
@@ -287,14 +287,14 @@ static Lumen::MemoryDelta propagateMark(Lumen::GlobalState *g) {
             return sizeof(Lumen::Table) + sizeof(Lumen::Value) * h->ArrayCount +
                    sizeof(Lumen::Node) * LumenTableNodeCount(h);
         }
-        case LUA_TFUNCTION: {
+        case Lumen::TypeFunction: {
             Lumen::Closure *cl = LumenGCObject2Closure(o);
             g->GCGray = cl->AsC.GCList;
             traverseClosure(g, cl);
             return (cl->AsC.IsC) ? LumenCClosureSize(cl->AsC.NUpValues) :
                    LumenLClosureSize(cl->AsLua.NUpValues);
         }
-        case LUA_TTHREAD: {
+        case Lumen::TypeThread: {
             Lumen::State *th = LumenGCObject2Thread(o);
             g->GCGray = th->GCList;
             th->GCList = g->GCGrayAgain;
@@ -382,26 +382,26 @@ static void freeObject(Lumen::State *L, Lumen::GCObject *o) {
         case LUA_TPROTO:
             Lumen::Proto::Free(L, LumenGCObject2Proto(o));
             break;
-        case LUA_TFUNCTION:
+        case Lumen::TypeFunction:
             Lumen::Closure::Free(L, LumenGCObject2Closure(o));
             break;
         case LUA_TUPVAL:
             Lumen::UpValue::Free(L, LumenGCObject2UpValue(o));
             break;
-        case LUA_TTABLE:
+        case Lumen::TypeTable:
             Lumen::Table::Free(L, LumenGCObject2Table(o));
             break;
-        case LUA_TTHREAD: {
+        case Lumen::TypeThread: {
             LumenAssert(LumenGCObject2Thread(o) != L && LumenGCObject2Thread(o) != LumenGlobal(L)->MainThread);
             Lumen::State::FreeThread(L, LumenGCObject2Thread(o));
             break;
         }
-        case LUA_TSTRING: {
+        case Lumen::TypeString: {
             LumenGlobal(L)->StringMap.Count--;
             LumenMemoryFreeMemory(L, o, LumenStringSize(LumenGCObject2String(o)));
             break;
         }
-        case LUA_TUSERDATA: {
+        case Lumen::TypeUserdata: {
             LumenMemoryFreeMemory(L, o, LumenUserdataSize(LumenGCObject2Userdata(o)));
             break;
         }
@@ -419,7 +419,7 @@ static Lumen::GCObject **sweepList(Lumen::State *L, Lumen::GCObject **p, Lumen::
     Lumen::GlobalState *g = LumenGlobal(L);
     int deadMask = LumenGCOtherWhite(g);
     while ((curr = *p) != nullptr && count-- > 0) {
-        if (curr->AsObject.Type == LUA_TTHREAD)  /* sweep open upvalues of each thread */
+        if (curr->AsObject.Type == Lumen::TypeThread)  /* sweep open upvalues of each thread */
             sweepWholeList(L, &LumenGCObject2Thread(curr)->OpenedUpValue);
         if ((curr->AsObject.Marked ^ Lumen::GC::MarkWhiteBits) & deadMask) {  /* not dead? */
             LumenAssert(!LumenGCIsDead(g, curr) || LumenGCTestBit(curr->AsObject.Marked, Lumen::GC::MarkFixedBit));
@@ -670,7 +670,7 @@ void Lumen::GC::BarrierF(Lumen::State *L, Lumen::GCObject *o, Lumen::GCObject *v
     Lumen::GlobalState *g = LumenGlobal(L);
     LumenAssert(LumenGCIsBlack(o) && LumenGCIsWhite(v) && !LumenGCIsDead(g, v) && !LumenGCIsDead(g, o));
     LumenAssert(g->GCState != Lumen::GC::StateFinalize && g->GCState != Lumen::GC::StatePause);
-    LumenAssert(LumenTypeOf(&o->AsObject) != LUA_TTABLE);
+    LumenAssert(LumenTypeOf(&o->AsObject) != Lumen::TypeTable);
     /* must keep invariant? */
     if (g->GCState == Lumen::GC::StatePropagate)
         reallyMarkObject(g, v);  /* restore invariant */
