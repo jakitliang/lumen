@@ -259,8 +259,8 @@ static Lumen::StkId tryFuncTM(Lumen::State *L, Lumen::StkId func) {
 int Lumen::Do::PreCall(Lumen::State *L, Lumen::StkId func, int nResults) {
     Lumen::LClosure *cl;
     Lumen::Integer funcR;
-    if (!LumenTypeIsFunction(func)) /* `func' is not a function? */
-        func = tryFuncTM(L, func);  /* check the `function' tag method */
+    if (!LumenTypeIsFunction(func)) /* `func` is not a function? */
+        func = tryFuncTM(L, func);  /* check the `function` tag method */
     funcR = LumenSaveStack(L, func);
     cl = &LumenClosureValue(func)->AsLua;
     L->CallInfo->SavedPC = L->SavedPC;
@@ -280,7 +280,7 @@ int Lumen::Do::PreCall(Lumen::State *L, Lumen::StkId func, int nResults) {
             base = adjustVarargs(L, p, nargs);
             func = LumenRestoreStack(L, funcR);  /* previous call may change the stack */
         }
-        ci = incrCI(L);  /* now `enter' new function */
+        ci = incrCI(L);  /* now `enter` new function */
         ci->Func = func;
         L->Base = ci->Base = base;
         ci->Top = L->Base + p->MaxStackSize;
