@@ -186,7 +186,7 @@ namespace Lua {
 
         LPP_API Lua::Type Type(int idx);
 
-        LPP_API const char *TypeName(int t);
+        LPP_API const char *TypeName(int t) const;
 
         LPP_API bool Equal(int idx1, int idx2);
 

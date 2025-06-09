@@ -28,8 +28,8 @@
 #include "lua.h"
 
 const char lua_ident[] =
-    "$Lua: " LUA_RELEASE " " LUA_COPYRIGHT " $\n"
-    "$Authors: " LUA_AUTHORS " $\n"
+    "$Lua: " LUA_RELEASE " " LUMEN_COPYRIGHT " $\n"
+    "$Authors: " LUMEN_AUTHORS " $\n"
     "$URL: www.lua.org $\n";
 
 
@@ -258,7 +258,7 @@ LUA_API int lua_iscfunction(lua_State *L, int idx) {
 
 
 LUA_API int lua_isnumber(lua_State *L, int idx) {
-    Lumen::Value n;
+    Lumen::Value n; // NOLINT
     const Lumen::Value *o = index2addr(L, idx);
     return LumenVMToNumber(o, &n);
 }
@@ -311,7 +311,7 @@ LUA_API int lua_lessthan(lua_State *L, int index1, int index2) {
 
 
 LUA_API Lumen::Number lua_tonumber(lua_State *L, int idx) {
-    Lumen::Value n;
+    Lumen::Value n; // NOLINT
     const Lumen::Value *o = index2addr(L, idx);
     if (LumenVMToNumber(o, &n))
         return LumenNumberValue(o);
@@ -321,7 +321,7 @@ LUA_API Lumen::Number lua_tonumber(lua_State *L, int idx) {
 
 
 LUA_API Lumen::Integer lua_tointeger(lua_State *L, int idx) {
-    Lumen::Value n;
+    Lumen::Value n; // NOLINT
     const Lumen::Value *o = index2addr(L, idx);
     if (LumenVMToNumber(o, &n)) {
         Lumen::Integer res;
@@ -552,7 +552,7 @@ LUA_API void lua_gettable(lua_State *L, int idx) {
 
 LUA_API void lua_getfield(lua_State *L, int idx, const char *k) {
     Lumen::StkId t;
-    Lumen::Value key;
+    Lumen::Value key; // NOLINT
     LumenLock(L);
     t = index2addr(L, idx);
     apiCheckValidIndex(L, t);
@@ -665,7 +665,7 @@ LUA_API void lua_settable(lua_State *L, int idx) {
 
 LUA_API void lua_setfield(lua_State *L, int idx, const char *k) {
     Lumen::StkId t;
-    Lumen::Value key;
+    Lumen::Value key; // NOLINT
     LumenLock(L);
     apiCheckElementCount(L, 1);
     t = index2addr(L, idx);
@@ -797,7 +797,7 @@ LUA_API void lua_call(lua_State *L, int nargs, int nResults) {
 }
 
 LUA_API int lua_pcall(lua_State *L, int nargs, int nResults, int errFunc) {
-    Lumen::ProtectedCall c;
+    Lumen::ProtectedCall c; // NOLINT
     int status;
     ptrdiff_t func;
     LumenLock(L);
@@ -821,7 +821,7 @@ LUA_API int lua_pcall(lua_State *L, int nargs, int nResults, int errFunc) {
 }
 
 LUA_API int lua_cpcall(lua_State *L, lua_CFunction func, void *ud) {
-    Lumen::ProtectedCCall c;
+    Lumen::ProtectedCCall c; // NOLINT
     int status;
     LumenLock(L);
     c.Func = reinterpret_cast<Lumen::Delegate>(func);
@@ -836,7 +836,7 @@ LUA_API int lua_cpcall(lua_State *L, lua_CFunction func, void *ud) {
 
 LUA_API int lua_load(lua_State *L, lua_Reader reader, void *data,
                      const char *chunkName) {
-    Lumen::ZIO z;
+    Lumen::ZIO z; // NOLINT
     int status;
     LumenLock(L);
     if (!chunkName) chunkName = "?";

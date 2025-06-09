@@ -25,8 +25,6 @@
 
 #include "lua.hpp"
 
-extern const char lua_ident[];
-
 #define apiCheckElementCount(L, n)    LumenApiCheck(L, (n) <= (L->Top - L->Base))
 
 #define apiCheckValidIndex(L, i)    LumenApiCheck(L, (i) != Lumen::NilObject)
@@ -210,7 +208,7 @@ bool Lua::State::CheckStack(int size) {
 
 bool Lua::State::IsNumber(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::Value n;
+    Lumen::Value n; // NOLINT
     const Lumen::Value *o = index2addr(L, idx);
     return LumenVMToNumber(o, &n);
 }
@@ -239,7 +237,7 @@ Lua::Type Lua::State::Type(int idx) {
     return (o == Lumen::NilObject) ? Lua::TypeNone : LumenTypeOf(o);
 }
 
-const char *Lua::State::TypeName(int t) {
+const char *Lua::State::TypeName(int t) const { // NOLINT
     return (t == Lua::TypeNone) ? "no value" : Lumen::TM::TypeNames[t];
 }
 
@@ -278,7 +276,7 @@ bool Lua::State::LessThan(int idx1, int idx2) {
 
 Lua::Number Lua::State::ToNumber(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::Value n;
+    Lumen::Value n; // NOLINT
     const Lumen::Value *o = index2addr(L, idx);
     if (LumenVMToNumber(o, &n))
         return LumenNumberValue(o);
@@ -288,7 +286,7 @@ Lua::Number Lua::State::ToNumber(int idx) {
 
 Lua::Integer Lua::State::ToInteger(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::Value n;
+    Lumen::Value n; // NOLINT
     const Lumen::Value *o = index2addr(L, idx);
     if (LumenVMToNumber(o, &n)) {
         Lumen::Integer res;
@@ -455,7 +453,6 @@ void Lua::State::PushString(const char *s, Lua::UInteger length) {
 }
 
 void Lua::State::PushString(const char *s) {
-    auto L = LuaToLumen(this);
     if (s == nullptr)
         PushNil();
     else
@@ -559,7 +556,7 @@ void Lua::State::GetTable(int idx) {
 void Lua::State::GetField(int idx, const char *k) {
     auto L = LuaToLumen(this);
     Lumen::StkId t;
-    Lumen::Value key;
+    Lumen::Value key; // NOLINT
     LumenLock(L);
     t = index2addr(L, idx);
     apiCheckValidIndex(L, t);
@@ -681,7 +678,7 @@ void Lua::State::SetTable(int idx) {
 void Lua::State::SetField(int idx, const char *k) {
     auto L = LuaToLumen(this);
     Lumen::StkId t;
-    Lumen::Value key;
+    Lumen::Value key; // NOLINT
     LumenLock(L);
     apiCheckElementCount(L, 1);
     t = index2addr(L, idx);
@@ -810,7 +807,7 @@ void Lua::State::Call(int nargs, int nResults) {
 
 Lua::Ret Lua::State::TryCall(int nargs, int nResults, int errFunc) {
     auto L = LuaToLumen(this);
-    Lumen::ProtectedCall c;
+    Lumen::ProtectedCall c; // NOLINT
     int status;
     ptrdiff_t func;
     LumenLock(L);
@@ -835,7 +832,7 @@ Lua::Ret Lua::State::TryCall(int nargs, int nResults, int errFunc) {
 
 Lua::Ret Lua::State::TryCall(Lua::Delegate invoke, void *userdata) {
     auto L = LuaToLumen(this);
-    Lumen::ProtectedCCall c;
+    Lumen::ProtectedCCall c; // NOLINT
     int status;
     LumenLock(L);
     c.Func = reinterpret_cast<Lumen::Delegate>(invoke);
@@ -849,7 +846,7 @@ Lua::Ret Lua::State::TryCall(Lua::Delegate invoke, void *userdata) {
 
 Lua::Ret Lua::State::TryCall(Lua::Function invoke, void *userdata) {
     auto L = LuaToLumen(this);
-    Lumen::ProtectedCCall c;
+    Lumen::ProtectedCCall c; // NOLINT
     int status;
     LumenLock(L);
     c.Func = invoke;
@@ -863,7 +860,7 @@ Lua::Ret Lua::State::TryCall(Lua::Function invoke, void *userdata) {
 
 Lua::Ret Lua::State::Load(Lua::Reader reader, void *data, const char *chunkName) {
     auto L = LuaToLumen(this);
-    Lumen::ZIO z;
+    Lumen::ZIO z; // NOLINT
     int status;
     LumenLock(L);
     if (!chunkName) chunkName = "?";

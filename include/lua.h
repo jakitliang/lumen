@@ -22,12 +22,16 @@
 
 #define LUA_COPYRIGHT      "Copyright (C) 1994-2012 Lua.org, PUC-Rio"
 #define LUA_AUTHORS        "R. Ierusalimschy, L. H. de Figueiredo & W. Celes"
+
 #define LUMEN_COPYRIGHT    "Copyright (C) 2025 Jakit Liang. https://github.com/jakitliang/lumen"
 #define LUMEN_AUTHORS      "Jakit Liang"
 
 #define LUA_VERSION    "Lua 5.1"
-#define LUA_RELEASE    "Lua 5.1.4"
+#define LUA_RELEASE    "Lua 5.1.5"
+
+#ifndef LUMEN_VERSION
 #define LUMEN_VERSION  "Lumen 1.0"
+#endif
 #ifndef LUMEN_RELEASE
 #define LUMEN_RELEASE  "Lumen 1.0.0"
 #endif
@@ -47,6 +51,7 @@
 /* option for multiple returns in `lua_pcall' and `lua_call' */
 #define LUA_MULTRET    (-1)
 
+LUA_API const char lua_ident[];
 
 /*
 ** pseudo-indices
