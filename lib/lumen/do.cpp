@@ -17,7 +17,7 @@
 #include "lumen/debug.h"
 #include "lumen/do.h"
 #include "lumen/gc.h"
-#include "lumen/mem.h"
+#include "lumen/memory.h"
 #include "lumen/object.h"
 #include "lumen/opcodes.h"
 #include "lumen/parser.h"

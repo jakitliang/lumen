@@ -16,7 +16,7 @@
 #include "lumen/do.h"
 #include "lumen/gc.h"
 #include "lumen/lex.h"
-#include "lumen/mem.h"
+#include "lumen/memory.h"
 #include "lumen/state.h"
 #include "lumen/string.h"
 #include "lumen/table.h"

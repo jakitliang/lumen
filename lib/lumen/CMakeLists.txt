@@ -12,7 +12,7 @@ add_library(
     func.cpp
     gc.cpp
     lex.cpp
-    mem.cpp
+    memory.cpp
     object.cpp
     opcodes.cpp
     parser.cpp

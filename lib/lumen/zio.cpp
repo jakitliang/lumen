@@ -13,7 +13,7 @@
 #define LUA_CORE
 
 #include "lumen/limits.h"
-#include "lumen/mem.h"
+#include "lumen/memory.h"
 #include "lumen/state.h"
 #include "lumen/zio.h"
 

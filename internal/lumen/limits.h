@@ -33,6 +33,7 @@ namespace Lumen {
 
     using Number = LUA_NUMBER;
     using Integer = LUA_INTEGER;
+    using UInteger = LUA_UINTEGER;
 
     using MemorySize = LUAI_UMEM;
     using MemoryDelta = LUAI_MEM;

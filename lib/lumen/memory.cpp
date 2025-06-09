@@ -14,7 +14,7 @@
 
 #include "lumen/debug.h"
 #include "lumen/do.h"
-#include "lumen/mem.h"
+#include "lumen/memory.h"
 #include "lumen/object.h"
 #include "lumen/state.h"
 
@@ -22,7 +22,7 @@
 
 /*
 ** About the reAlloc function:
-** void * Lumen::Memory::ReAlloc(void *ud, void *ptr, size_t oldSize, size_t newSize);
+** void * Lumen::Memory::ReAlloc(void *ud, void *ptr, Lumen::UInteger oldSize, Lumen::UInteger newSize);
 **
 ** Lua ensures that (ptr == nullptr) iff (osize == 0).
 **
@@ -42,7 +42,7 @@
 #define MIN_ARRAY_SIZE    4
 
 
-void *Lumen::Memory::GrowAux(Lumen::State *L, void *block, int *size, size_t size_elems,
+void *Lumen::Memory::GrowAux(Lumen::State *L, void *block, int *size, Lumen::UInteger size_elems,
                            int limit, const char *errorMsg) {
     void *newBlock;
     int newSize;
@@ -70,7 +70,7 @@ void *Lumen::Memory::TooBig(Lumen::State *L) {
 /*
 ** generic allocation routine.
 */
-void *Lumen::Memory::ReAlloc(Lumen::State *L, void *block, size_t oldSize, size_t newSize) {
+void *Lumen::Memory::ReAlloc(Lumen::State *L, void *block, Lumen::UInteger oldSize, Lumen::UInteger newSize) {
     Lumen::GlobalState *g = LumenGlobal(L);
     LumenAssert((oldSize == 0) == (block == nullptr));
     block = (*g->ReAllocator)(g->ReAllocatorUData, block, oldSize, newSize);
@@ -81,3 +81,30 @@ void *Lumen::Memory::ReAlloc(Lumen::State *L, void *block, size_t oldSize, size_
     return block;
 }
 
+const char *Lumen::Memory::Find(const char *cStr1, size_t len1, const char *cStr2, size_t len2) {
+    if (len2 == 0) return cStr1;  /* empty strings are everywhere */
+    else if (len2 > len1) return nullptr;  /* avoids a negative `len1` */
+    else {
+        const char *found;  /* to search for a `*s2' inside `cStr1` */
+        len2--;  /* 1st char will be checked by `memchr` */
+        len1 = len1 - len2;  /* `s2` cannot be found after that */
+        while (len1 > 0 && (found = (const char *) memchr(cStr1, *cStr2, len1)) != nullptr) {
+            found++;   /* 1st char is already checked */
+            if (memcmp(found, cStr2 + 1, len2) == 0)
+                return found - 1;
+            else {  /* correct `len1` and `cStr1` to try again */
+                len1 -= found - cStr1;
+                cStr1 = found;
+            }
+        }
+        return nullptr;  /* not found */
+    }
+}
+
+void *Lumen::Memory::Alloc(void *userData, void *ptr, size_t originSize, size_t newSize) {
+    if (newSize == 0) {
+        free(ptr);
+        return nullptr;
+    }
+    return realloc(ptr, newSize);
+}

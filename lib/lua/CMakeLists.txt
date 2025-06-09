@@ -2,7 +2,6 @@ add_library(
     lumen-lua OBJECT
     api.cpp
     api_pp.cpp
-    memory.cpp
     auxlib.cpp
     aux_pp.cpp
     baselib.c

@@ -14,7 +14,7 @@
 
 #include "lumen/debug.h"
 #include "lumen/do.h"
-#include "lumen/mem.h"
+#include "lumen/memory.h"
 #include "lumen/object.h"
 #include "lumen/string.h"
 #include "lumen/undump.h"

@@ -17,7 +17,7 @@
 #define LUA_CORE
 
 #include "lumen/do.h"
-#include "lumen/mem.h"
+#include "lumen/memory.h"
 #include "lumen/object.h"
 #include "lumen/opcodes.h"
 #include "lumen/string.h"
