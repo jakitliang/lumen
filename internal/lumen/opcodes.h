@@ -37,17 +37,17 @@ namespace Lumen::Code {
     ** size and position of opcode arguments.
     */
 
-    inline constexpr size_t CFieldSize = 9;
-    inline constexpr size_t BFieldSize = 9;
-    inline constexpr size_t BxFieldSize = Lumen::Code::CFieldSize + Lumen::Code::BFieldSize;
-    inline constexpr size_t AFieldSize = 8;
-    inline constexpr size_t OpFieldSize = 6;
+    inline constexpr Lumen::UInteger CFieldSize = 9;
+    inline constexpr Lumen::UInteger BFieldSize = 9;
+    inline constexpr Lumen::UInteger BxFieldSize = Lumen::Code::CFieldSize + Lumen::Code::BFieldSize;
+    inline constexpr Lumen::UInteger AFieldSize = 8;
+    inline constexpr Lumen::UInteger OpFieldSize = 6;
 
-    inline constexpr size_t OpPos = 0;
-    inline constexpr size_t APos = Lumen::Code::OpPos + Lumen::Code::OpFieldSize;
-    inline constexpr size_t CPos = Lumen::Code::APos + Lumen::Code::AFieldSize;
-    inline constexpr size_t BPos = Lumen::Code::CPos + Lumen::Code::CFieldSize;
-    inline constexpr size_t BxPos = Lumen::Code::CPos;
+    inline constexpr Lumen::UInteger OpPos = 0;
+    inline constexpr Lumen::UInteger APos = Lumen::Code::OpPos + Lumen::Code::OpFieldSize;
+    inline constexpr Lumen::UInteger CPos = Lumen::Code::APos + Lumen::Code::AFieldSize;
+    inline constexpr Lumen::UInteger BPos = Lumen::Code::CPos + Lumen::Code::CFieldSize;
+    inline constexpr Lumen::UInteger BxPos = Lumen::Code::CPos;
 
     /*
     ** limits for opcode arguments.
@@ -55,20 +55,20 @@ namespace Lumen::Code {
     ** so they must fit in LUAI_BITSINT-1 bits (-1 for sign)
     */
 
-    inline constexpr size_t BxMaxArg = (1 << Lumen::Code::BxFieldSize) - 1;
-    inline constexpr size_t sBxMaxArg = Lumen::Code::BxMaxArg >> 1; /* `sBx` is signed */
+    inline constexpr Lumen::UInteger BxMaxArg = (1 << Lumen::Code::BxFieldSize) - 1;
+    inline constexpr Lumen::UInteger sBxMaxArg = Lumen::Code::BxMaxArg >> 1; /* `sBx` is signed */
 
-    inline constexpr size_t AMaxArg = (1 << Lumen::Code::AFieldSize) - 1;
-    inline constexpr size_t BMaxArg = (1 << Lumen::Code::BFieldSize) - 1;
-    inline constexpr size_t CMaxArg = (1 << Lumen::Code::CFieldSize) - 1;
+    inline constexpr Lumen::UInteger AMaxArg = (1 << Lumen::Code::AFieldSize) - 1;
+    inline constexpr Lumen::UInteger BMaxArg = (1 << Lumen::Code::BFieldSize) - 1;
+    inline constexpr Lumen::UInteger CMaxArg = (1 << Lumen::Code::CFieldSize) - 1;
 
     /* creates a mask with `n' 1 bits at position `p' */
-    constexpr Lumen::Instruction MakeMask1(size_t n, size_t p) {
+    constexpr Lumen::Instruction MakeMask1(Lumen::UInteger n, Lumen::UInteger p) {
         return ((~((~(Lumen::Instruction) 0) << n)) << p);
     }
 
     /* creates a mask with `n' 0 bits at position `p' */
-    constexpr Lumen::Instruction MakeMask0(size_t n, size_t p) {
+    constexpr Lumen::Instruction MakeMask0(Lumen::UInteger n, Lumen::UInteger p) {
         return (~MakeMask1(n, p));
     }
 

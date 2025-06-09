@@ -48,7 +48,7 @@ void Lumen::String::Resize(Lumen::State *L, int newSize) {
 }
 
 
-static Lumen::String *newStringWithLength(Lumen::State *L, const char *str, size_t l,
+static Lumen::String *newStringWithLength(Lumen::State *L, const char *str, Lumen::UInteger l,
                                           unsigned int h) {
     Lumen::String *ts;
     Lumen::StringTable *tb;
@@ -72,7 +72,7 @@ static Lumen::String *newStringWithLength(Lumen::State *L, const char *str, size
     return ts;
 }
 
-static inline uint32_t murmur32(const uint8_t *key, size_t len, uint32_t seed) {
+static inline uint32_t murmur32(const uint8_t *key, Lumen::UInteger len, uint32_t seed) {
     static const uint32_t c1 = 0xcc9e2d51;
     static const uint32_t c2 = 0x1b873593;
     static const uint32_t r1 = 15;
@@ -81,9 +81,9 @@ static inline uint32_t murmur32(const uint8_t *key, size_t len, uint32_t seed) {
     static const uint32_t n = 0xe6546b64;
     uint32_t hash = seed;
 
-    const size_t nBlocks = len / 4;
+    const Lumen::UInteger nBlocks = len / 4;
     auto blocks = (const uint32_t *) key;
-    for (size_t i = 0; i < nBlocks; i++) {
+    for (Lumen::UInteger i = 0; i < nBlocks; i++) {
         uint32_t k = blocks[i];
         k *= c1;
         k = (k << r1) | (k >> (32 - r1));
@@ -118,7 +118,7 @@ static inline uint32_t murmur32(const uint8_t *key, size_t len, uint32_t seed) {
     return hash;
 }
 
-Lumen::String *Lumen::String::New(Lumen::State *L, const char *str, size_t l) {
+Lumen::String *Lumen::String::New(Lumen::State *L, const char *str, Lumen::UInteger l) {
     Lumen::GCObject *o;
     unsigned int h = murmur32((uint8_t *) str, l, (uint32_t) l);
     for (o = LumenGlobal(L)->StringMap.HashTable[LumenLogMod(h, LumenGlobal(L)->StringMap.Capacity)];
@@ -136,7 +136,7 @@ Lumen::String *Lumen::String::New(Lumen::State *L, const char *str, size_t l) {
 
 Lumen::String *Lumen::String::New(Lumen::State *L, const char *str) {
     Lumen::GCObject *o;
-    size_t l = LengthOf(str);
+    Lumen::UInteger l = LengthOf(str);
     unsigned int h = murmur32((uint8_t *) str, l, (uint32_t) l);
     for (o = LumenGlobal(L)->StringMap.HashTable[LumenLogMod(h, LumenGlobal(L)->StringMap.Capacity)];
          o != nullptr;
@@ -151,11 +151,11 @@ Lumen::String *Lumen::String::New(Lumen::State *L, const char *str) {
     return newStringWithLength(L, str, l, h);  /* not found */
 }
 
-size_t Lumen::String::LengthOf(const char *cStr) {
+Lumen::UInteger Lumen::String::LengthOf(const char *cStr) {
     return std::string_view(cStr).length();
 }
 
-Lumen::Userdata *Lumen::Userdata::New(Lumen::State *L, size_t s, Lumen::Table *e) {
+Lumen::Userdata *Lumen::Userdata::New(Lumen::State *L, Lumen::UInteger s, Lumen::Table *e) {
     Lumen::Userdata *u;
     if (s > Lumen::MaxSize - sizeof(Lumen::Userdata))
         Lumen::Memory::TooBig(L);

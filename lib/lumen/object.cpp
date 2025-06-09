@@ -123,13 +123,13 @@ const char *Lumen::PushFString(Lumen::State *L, const char *fmt, ...) {
 }
 
 
-void Lumen::ChunkId(char *out, const char *source, size_t buffLen) {
+void Lumen::ChunkId(char *out, const char *source, Lumen::UInteger buffLen) {
     if (*source == '=') {
         strncpy(out, source + 1, buffLen);  /* remove first char */
         out[buffLen - 1] = '\0';  /* ensures null termination */
     } else {  /* out = "source", or "...source" */
         if (*source == '@') {
-            size_t l;
+            Lumen::UInteger l;
             source++;  /* skip the `@' */
             buffLen -= sizeof(" '...' ");
             l = Lumen::String::LengthOf(source);
@@ -140,7 +140,7 @@ void Lumen::ChunkId(char *out, const char *source, size_t buffLen) {
             }
             strcat(out, source);
         } else {  /* out = [string "string"] */
-            size_t len = strcspn(source, "\n\r");  /* stop at first newline */
+            Lumen::UInteger len = strcspn(source, "\n\r");  /* stop at first newline */
             buffLen -= sizeof(" [string \"...\"] ");
             if (len > buffLen) len = buffLen;
             strcpy(out, "[string \"");

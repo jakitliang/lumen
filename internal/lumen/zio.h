@@ -31,14 +31,14 @@
 namespace Lumen {
     struct ZBuffer {
         char *buffer;
-        size_t n;
-        size_t buffsize;
+        Lumen::UInteger n;
+        Lumen::UInteger buffsize;
 
-        static char *OpenSpace(Lumen::State *L, Lumen::ZBuffer *buff, size_t n);
+        static char *OpenSpace(Lumen::State *L, Lumen::ZBuffer *buff, Lumen::UInteger n);
     };
 
     struct ZIO {
-        size_t n;            /* bytes still unread */
+        Lumen::UInteger n;            /* bytes still unread */
         const char *p;        /* current position in buffer */
         Lumen::Reader reader;
         void *data;            /* additional data */
@@ -47,7 +47,7 @@ namespace Lumen {
         static void Init(Lumen::State *L, Lumen::ZIO *z, Lumen::Reader reader,
                          void *data);
 
-        static size_t Read(Lumen::ZIO *z, void *b, size_t n);    /* read next n bytes */
+        static Lumen::UInteger Read(Lumen::ZIO *z, void *b, Lumen::UInteger n);    /* read next n bytes */
 
         static int LookAhead(Lumen::ZIO *z);
 
@@ -55,7 +55,7 @@ namespace Lumen {
     };
 }
 
-inline char *Lumen::ZBuffer::OpenSpace(Lumen::State *L, Lumen::ZBuffer *buff, size_t n) {
+inline char *Lumen::ZBuffer::OpenSpace(Lumen::State *L, Lumen::ZBuffer *buff, Lumen::UInteger n) {
     if (n > buff->buffsize) {
         if (n < Lumen::MinBufferSize) n = Lumen::MinBufferSize;
         LumenZBufferResize(L, buff, n);

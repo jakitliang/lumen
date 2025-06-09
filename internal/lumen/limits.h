@@ -75,11 +75,11 @@ namespace Lumen {
 
     typedef int (*Delegate)(Lumen::State *L);
 
-    typedef const char *(*Reader)(Lumen::State *L, void *ud, size_t *sz);
+    typedef const char *(*Reader)(Lumen::State *L, void *ud, Lumen::UInteger *sz);
 
-    typedef int (*Writer)(Lumen::State *L, const void *p, size_t sz, void *ud);
+    typedef int (*Writer)(Lumen::State *L, const void *p, Lumen::UInteger sz, void *ud);
 
-    typedef void *(*Allocator)(void *ud, void *ptr, size_t oldSize, size_t newSize);
+    typedef void *(*Allocator)(void *ud, void *ptr, Lumen::UInteger oldSize, Lumen::UInteger newSize);
 
     struct DebugInfo {
         int Event;
@@ -97,32 +97,32 @@ namespace Lumen {
 
     typedef void (*Hook)(Lumen::State *L, Lumen::DebugInfo *ar);
 
-    inline constexpr size_t MaxSize = std::numeric_limits<size_t>::max() - 2;
+    inline constexpr Lumen::UInteger MaxSize = std::numeric_limits<Lumen::UInteger>::max() - 2;
 
-    inline constexpr size_t MaxUMemory = std::numeric_limits<MemorySize>::max() - 2;
+    inline constexpr Lumen::UInteger MaxUMemory = std::numeric_limits<MemorySize>::max() - 2;
 
-    inline constexpr size_t MaxInt = INT_MAX - 2;
+    inline constexpr Lumen::UInteger MaxInt = INT_MAX - 2;
 
-    inline constexpr size_t MinStack = LUA_MINSTACK;
+    inline constexpr Lumen::UInteger MinStack = LUA_MINSTACK;
 
     /* maximum stack for a Lua function */
-    inline constexpr size_t MaxStack = 250;
+    inline constexpr Lumen::UInteger MaxStack = 250;
 
     /* minimum size for the string table (must be power of 2) */
 #ifndef MINSTRTABSIZE
-    inline constexpr size_t MinStringTableSize = 32;
+    inline constexpr Lumen::UInteger MinStringTableSize = 32;
 #else
-    inline constexpr size_t MinStringTableSize = MINSTRTABSIZE;
+    inline constexpr Lumen::UInteger MinStringTableSize = MINSTRTABSIZE;
 #endif
 
     /* minimum size for string buffer */
 #ifndef LUA_MINBUFFER
-    inline constexpr size_t MinBufferSize = 32;
+    inline constexpr Lumen::UInteger MinBufferSize = 32;
 #else
-    inline constexpr size_t MinBufferSize = LUA_MINBUFFER;
+    inline constexpr Lumen::UInteger MinBufferSize = LUA_MINBUFFER;
 #endif
 
-    inline constexpr size_t BitsInt = sizeof(int);
+    inline constexpr Lumen::UInteger BitsInt = sizeof(int);
 }
 
 #define LumenDo(block) do { block } while(0)

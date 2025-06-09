@@ -94,14 +94,14 @@ namespace Lumen {
         char DecimalPoint;  /* locale decimal point */
 
         /* maximum length of a reserved word */
-        static inline constexpr size_t TokenLength = sizeof("function") / sizeof(char);
+        static inline constexpr Lumen::UInteger TokenLength = sizeof("function") / sizeof(char);
 
         static void Init(Lumen::State *L);
 
         static void SetInput(Lumen::State *L, Lumen::LexState *ls, Lumen::ZIO *z,
                                             Lumen::String *source);
 
-        static Lumen::String *NewString(Lumen::LexState *ls, const char *str, size_t l);
+        static Lumen::String *NewString(Lumen::LexState *ls, const char *str, Lumen::UInteger l);
 
         static void Next(Lumen::LexState *ls);
 

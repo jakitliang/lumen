@@ -28,7 +28,7 @@ struct DumpState {
 #define DumpMem(b, n, size, D)    DumpBlock(b,(n)*(size),D)
 #define DumpVar(x, D)        DumpMem(&x,1,sizeof(x),D)
 
-static void DumpBlock(const void *b, size_t size, DumpState *D) {
+static void DumpBlock(const void *b, Lumen::UInteger size, DumpState *D) {
     if (D->status == 0) {
         LumenUnlock(D->L);
         D->status = (*D->writer)(D->L, b, size, D->data);
@@ -49,17 +49,17 @@ static void DumpNumber(Lumen::Number x, DumpState *D) {
     DumpVar(x, D);
 }
 
-static void DumpVector(const void *b, int n, size_t size, DumpState *D) {
+static void DumpVector(const void *b, int n, Lumen::UInteger size, DumpState *D) {
     DumpInt(n, D);
     DumpMem(b, n, size, D);
 }
 
 static void DumpString(const Lumen::String *s, DumpState *D) {
     if (s == nullptr || LumenStringCString(s) == nullptr) {
-        size_t size = 0;
+        Lumen::UInteger size = 0;
         DumpVar(size, D);
     } else {
-        size_t size = s->Length + 1;        /* include trailing '\0' */
+        Lumen::UInteger size = s->Length + 1;        /* include trailing '\0' */
         DumpVar(size, D);
         DumpBlock(LumenStringCString(s), size, D);
     }

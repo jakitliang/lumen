@@ -52,7 +52,7 @@ static void traceExec(Lumen::State *L, const Lumen::Instruction *pc) {
 
 static inline void callTMRes(Lumen::State *L, Lumen::StkId res, const Lumen::Value *f,
                       const Lumen::Value *p1, const Lumen::Value *p2) {
-    ptrdiff_t result = LumenSaveStack(L, res);
+    Lumen::Integer result = LumenSaveStack(L, res);
     LumenSetObject2S(L, L->Top, f);  /* push function */
     LumenSetObject2S(L, L->Top + 1, p1);  /* 1st argument */
     LumenSetObject2S(L, L->Top + 2, p2);  /* 2nd argument */
@@ -172,14 +172,14 @@ static inline int callOrderTM(Lumen::State *L, const Lumen::Value *p1, const Lum
 
 static int luaStrCmp(const Lumen::String *ls, const Lumen::String *rs) {
     const char *l = LumenStringCString(ls);
-    size_t ll = ls->Length;
+    Lumen::UInteger ll = ls->Length;
     const char *r = LumenStringCString(rs);
-    size_t lr = rs->Length;
+    Lumen::UInteger lr = rs->Length;
     for (;;) {
         int temp = strcoll(l, r);
         if (temp != 0) return temp;
         else {  /* strings are equal up to a `\0' */
-            size_t len = Lumen::String::LengthOf(l);  /* index of first `\0' in both strings */
+            Lumen::UInteger len = Lumen::String::LengthOf(l);  /* index of first `\0' in both strings */
             if (len == lr)  /* r is finished? */
                 return (len == ll) ? 0 : 1;
             else if (len == ll)  /* l is finished? */
@@ -268,19 +268,19 @@ void Lumen::VM::Concat(Lumen::State *L, int total, int last) {
             (void) LumenVMToString(L, top - 2);  /* result is first op (as string) */
         else {
             /* at least two string values; get as many as possible */
-            size_t tl = LumenStringValue(top - 1)->Length;
+            Lumen::UInteger tl = LumenStringValue(top - 1)->Length;
             char *buffer;
             int i;
             /* collect total length */
             for (n = 1; n < total && LumenVMToString(L, top - n - 1); n++) {
-                size_t l = LumenStringValue(top - n - 1)->Length;
+                Lumen::UInteger l = LumenStringValue(top - n - 1)->Length;
                 if (l >= Lumen::MaxSize - tl) Lumen::Debug::RunError(L, "string length overflow");
                 tl += l;
             }
             buffer = Lumen::ZBuffer::OpenSpace(L, &LumenGlobal(L)->Buff, tl);
             tl = 0;
             for (i = n; i > 0; i--) {  /* concat all strings */
-                size_t l = LumenStringValue(top - i)->Length;
+                Lumen::UInteger l = LumenStringValue(top - i)->Length;
                 memcpy(buffer + tl, LumenStringValue2CString(top - i), l);
                 tl += l;
             }

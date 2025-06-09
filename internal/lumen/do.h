@@ -55,7 +55,7 @@ namespace Lumen::Do {
     int PreCall(Lumen::State *L, Lumen::StkId func, int nResults);
     void Call(Lumen::State *L, Lumen::StkId func, int nResults);
     int PCall(Lumen::State *L, Lumen::Do::PFunc func, void *u,
-                             ptrdiff_t oldtop, ptrdiff_t ef);
+                             Lumen::Integer oldtop, Lumen::Integer ef);
     int PosCall(Lumen::State *L, Lumen::StkId firstResult);
     void ReAllocCI(Lumen::State *L, int newSize);
     void ReAllocStack(Lumen::State *L, int newSize);

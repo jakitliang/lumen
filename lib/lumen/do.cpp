@@ -178,8 +178,8 @@ static Lumen::CallInfo *growCI(Lumen::State *L) {
 void Lumen::Do::CallHook(Lumen::State *L, int event, int line) {
     Lumen::Hook hook = L->Hook;
     if (hook && L->AllowHook) {
-        ptrdiff_t top = LumenSaveStack(L, L->Top);
-        ptrdiff_t ci_top = LumenSaveStack(L, L->CallInfo->Top);
+        Lumen::Integer top = LumenSaveStack(L, L->Top);
+        Lumen::Integer ci_top = LumenSaveStack(L, L->CallInfo->Top);
         Lumen::DebugInfo ar;
         ar.Event = event;
         ar.CurrentLine = line;
@@ -241,7 +241,7 @@ static Lumen::StkId adjustVarargs(Lumen::State *L, Lumen::Proto *p, int actual) 
 static Lumen::StkId tryFuncTM(Lumen::State *L, Lumen::StkId func) {
     const Lumen::Value *tm = Lumen::TM::GetByObject(L, func, Lumen::TM::NameCall);
     Lumen::StkId p;
-    ptrdiff_t funcR = LumenSaveStack(L, func);
+    Lumen::Integer funcR = LumenSaveStack(L, func);
     if (!LumenTypeIsFunction(tm))
         Lumen::Debug::TypeError(L, func, "call");
     /* Open a hole inside the stack at `func' */
@@ -260,7 +260,7 @@ static Lumen::StkId tryFuncTM(Lumen::State *L, Lumen::StkId func) {
 
 int Lumen::Do::PreCall(Lumen::State *L, Lumen::StkId func, int nResults) {
     Lumen::LClosure *cl;
-    ptrdiff_t funcR;
+    Lumen::Integer funcR;
     if (!LumenTypeIsFunction(func)) /* `func' is not a function? */
         func = tryFuncTM(L, func);  /* check the `function' tag method */
     funcR = LumenSaveStack(L, func);
@@ -324,7 +324,7 @@ int Lumen::Do::PreCall(Lumen::State *L, Lumen::StkId func, int nResults) {
 }
 
 static Lumen::StkId callRetHooks(Lumen::State *L, Lumen::StkId firstResult) {
-    ptrdiff_t fr = LumenSaveStack(L, firstResult);  /* next call may change stack */
+    Lumen::Integer fr = LumenSaveStack(L, firstResult);  /* next call may change stack */
     Lumen::Do::CallHook(L, LUA_HOOKRET, -1);
     if (LumenCIFuncIsLua(L->CallInfo)) {  /* Lua function? */
         while ((L->HookMask & LUA_MASKRET) && L->CallInfo->NTailCalls--) /* tail calls */
@@ -403,12 +403,12 @@ int Lumen::Do::ResumeError(Lumen::State *L, const char *msg) {
 }
 
 int Lumen::Do::PCall(Lumen::State *L, Lumen::Do::PFunc func, void *u,
-                   ptrdiff_t old_top, ptrdiff_t ef) {
+                   Lumen::Integer old_top, Lumen::Integer ef) {
     int status;
     unsigned short oldNCCalls = L->NCCalls;
-    ptrdiff_t old_ci = LumenSaveCI(L, L->CallInfo);
+    Lumen::Integer old_ci = LumenSaveCI(L, L->CallInfo);
     Lumen::Byte old_allowHooks = L->AllowHook;
-    ptrdiff_t old_errFunc = L->ErrFunc;
+    Lumen::Integer old_errFunc = L->ErrFunc;
     L->ErrFunc = ef;
     status = Lumen::Do::RawRunProtected(L, func, u);
     if (status != 0) {  /* an error occurred? */

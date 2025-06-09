@@ -44,7 +44,7 @@ const char *const Lumen::Token::Names[] = {
 static inline void save(Lumen::LexState *ls, int c) {
     Lumen::ZBuffer *b = ls->buff;
     if (b->n + 1 > b->buffsize) {
-        size_t newSize;
+        Lumen::UInteger newSize;
         if (b->buffsize >= Lumen::MaxSize / 2)
             Lumen::LexState::LexError(ls, "lexical element too long", 0);
         newSize = b->buffsize * 2;
@@ -77,7 +77,7 @@ void Lumen::LexState::LexError(Lumen::LexState *ls, const char *msg, int token) 
     Lumen::Do::Throw(ls->L, LUA_ERRSYNTAX);
 }
 
-Lumen::String *Lumen::LexState::NewString(Lumen::LexState *ls, const char *str, size_t l) {
+Lumen::String *Lumen::LexState::NewString(Lumen::LexState *ls, const char *str, Lumen::UInteger l) {
     Lumen::State *L = ls->L;
     Lumen::String *ts = Lumen::String::New(L, str, l);
     Lumen::Value *o = Lumen::Table::SetString(L, ls->fs->Constants, ts);  /* entry for `str' */
@@ -131,7 +131,7 @@ static inline int checkNext(Lumen::LexState *ls, const char *set) {
 
 
 static inline void bufferReplace(Lumen::LexState *ls, char from, char to) {
-    size_t n = LumenZBufferLength(ls->buff);
+    Lumen::UInteger n = LumenZBufferLength(ls->buff);
     char *p = LumenZBufferGet(ls->buff);
     while (n--)
         if (p[n] == from) p[n] = to;

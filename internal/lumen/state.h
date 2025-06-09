@@ -68,11 +68,11 @@ namespace Lumen {
     };
 
     /* extra stack space to handle TM calls and some other extras */
-    inline constexpr size_t ExtraStack = 5;
+    inline constexpr Lumen::UInteger ExtraStack = 5;
 
-    inline constexpr size_t BasicCISize = 8;
+    inline constexpr Lumen::UInteger BasicCISize = 8;
 
-    inline constexpr size_t BasicStackSize = 2 * LUA_MINSTACK;
+    inline constexpr Lumen::UInteger BasicStackSize = 2 * LUA_MINSTACK;
 }
 
 #define LumenCurFunc(L)    (LumenClosureValue(L->CallInfo->Func))
@@ -108,7 +108,7 @@ struct LumenState : Lumen::Object {
     Lumen::GCObject *OpenedUpValue;  /* list of open upValues in this stack */
     Lumen::GCObject *GCList;
     Lumen::LongJump *ErrorJmp;  /* current error recover point */
-    ptrdiff_t ErrFunc;  /* current error handling function (stack index) */
+    Lumen::Integer ErrFunc;  /* current error handling function (stack index) */
 
     // MARK: Debug
 

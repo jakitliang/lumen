@@ -64,15 +64,15 @@ namespace Lumen {
     struct String : Object {
         Lumen::Byte Reserved;
         unsigned int Hash;
-        size_t Length;
+        Lumen::UInteger Length;
 
         static void Resize(Lumen::State *L, int newSize);
 
-        static Lumen::String *New(Lumen::State *L, const char *str, size_t l);
+        static Lumen::String *New(Lumen::State *L, const char *str, Lumen::UInteger l);
 
         static Lumen::String *New(Lumen::State *L, const char *str);
 
-        static size_t LengthOf(const char *cStr);
+        static Lumen::UInteger LengthOf(const char *cStr);
     };
 
     union Key {
@@ -129,9 +129,9 @@ namespace Lumen {
     struct Userdata : Object {
         Table *Metatable;
         Table *Env;
-        size_t Length;
+        Lumen::UInteger Length;
 
-        static Lumen::Userdata *New(Lumen::State *L, size_t s, Lumen::Table *e);
+        static Lumen::Userdata *New(Lumen::State *L, Lumen::UInteger s, Lumen::Table *e);
     };
 
     struct LocalVar {
@@ -251,7 +251,7 @@ namespace Lumen {
 
     const char *PushFString(Lumen::State *L, const char *fmt, ...);
 
-    void ChunkId(char *out, const char *source, size_t buffLen);
+    void ChunkId(char *out, const char *source, Lumen::UInteger buffLen);
 
     LUAI_DATA const Lumen::Value NilValue;
 

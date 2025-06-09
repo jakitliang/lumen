@@ -18,7 +18,7 @@
 #include "lumen/zio.h"
 
 int Lumen::ZIO::Fill(Lumen::ZIO *z) {
-    size_t size;
+    Lumen::UInteger size;
     Lumen::State *L = z->L;
     const char *buff;
     LumenUnlock(L);
@@ -30,9 +30,9 @@ int Lumen::ZIO::Fill(Lumen::ZIO *z) {
     return LumenChar2Int(*(z->p++));
 }
 
-size_t Lumen::ZIO::Read(Lumen::ZIO *z, void *b, size_t n) {
+Lumen::UInteger Lumen::ZIO::Read(Lumen::ZIO *z, void *b, Lumen::UInteger n) {
     while (n) {
-        size_t m;
+        Lumen::UInteger m;
         if (Lumen::ZIO::LookAhead(z) == EOZ)
             return n;  /* return number of missing bytes */
         m = (n <= z->n) ? n : z->n;  /* min. between n and z->n */

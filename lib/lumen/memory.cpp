@@ -81,7 +81,7 @@ void *Lumen::Memory::ReAlloc(Lumen::State *L, void *block, Lumen::UInteger oldSi
     return block;
 }
 
-const char *Lumen::Memory::Find(const char *cStr1, size_t len1, const char *cStr2, size_t len2) {
+const char *Lumen::Memory::Find(const char *cStr1, Lumen::UInteger len1, const char *cStr2, Lumen::UInteger len2) {
     if (len2 == 0) return cStr1;  /* empty strings are everywhere */
     else if (len2 > len1) return nullptr;  /* avoids a negative `len1` */
     else {
@@ -101,7 +101,7 @@ const char *Lumen::Memory::Find(const char *cStr1, size_t len1, const char *cStr
     }
 }
 
-void *Lumen::Memory::Alloc(void *userData, void *ptr, size_t originSize, size_t newSize) {
+void *Lumen::Memory::Alloc(void *userData, void *ptr, Lumen::UInteger originSize, Lumen::UInteger newSize) {
     if (newSize == 0) {
         free(ptr);
         return nullptr;

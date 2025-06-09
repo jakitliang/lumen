@@ -45,8 +45,8 @@ static void error(LoadState *S, const char *why) {
 #define LoadVar(S, x)                LoadMem(S,&x,1,sizeof(x))
 #define LoadVector(S, b, n, size)    LoadMem(S,b,n,size)
 
-static void LoadBlock(LoadState *S, void *b, size_t size) {
-    size_t r = Lumen::ZIO::Read(S->Z, b, size);
+static void LoadBlock(LoadState *S, void *b, Lumen::UInteger size) {
+    Lumen::UInteger r = Lumen::ZIO::Read(S->Z, b, size);
     IF (r != 0, "unexpected end");
 }
 
@@ -70,7 +70,7 @@ static Lumen::Number LoadNumber(LoadState *S) {
 }
 
 static Lumen::String *LoadString(LoadState *S) {
-    size_t size;
+    Lumen::UInteger size;
     LoadVar(S, size);
     if (size == 0)
         return nullptr;
@@ -204,7 +204,7 @@ void Lumen::Dumper::Header(char *h) {
     *h++ = (char) LUAC_FORMAT;
     *h++ = (char) *(char *) &x;                /* endianness */
     *h++ = (char) sizeof(int);
-    *h++ = (char) sizeof(size_t);
+    *h++ = (char) sizeof(Lumen::UInteger);
     *h++ = (char) sizeof(Lumen::Instruction);
     *h++ = (char) sizeof(Lumen::Number);
     *h++ = (char) (((Lumen::Number) 0.5) == 0);        /* is Lumen::Number integral? */

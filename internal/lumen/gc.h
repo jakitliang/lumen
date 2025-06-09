@@ -56,7 +56,7 @@ namespace Lumen::GC {
         MarkWhiteBits = LumenGCBit2Mask(Lumen::GC::MarkWhite0Bit, Lumen::GC::MarkWhite1Bit)
     };
 
-    size_t SeparateUserdata(Lumen::State *L, int all);
+    Lumen::UInteger SeparateUserdata(Lumen::State *L, int all);
 
     void CallGCTM(Lumen::State *L);
 

@@ -132,9 +132,9 @@ static void markTMUData(Lumen::GlobalState *g) {
 
 
 /* move `dead` UData that need finalization to list `TMUData` */
-size_t Lumen::GC::SeparateUserdata(Lumen::State *L, int all) {
+Lumen::UInteger Lumen::GC::SeparateUserdata(Lumen::State *L, int all) {
     Lumen::GlobalState *g = LumenGlobal(L);
-    size_t deadMem = 0;
+    Lumen::UInteger deadMem = 0;
     Lumen::GCObject **p = &g->MainThread->GCNext;
     Lumen::GCObject *curr;
     while ((curr = *p) != nullptr) {
@@ -322,8 +322,8 @@ static Lumen::MemoryDelta propagateMark(Lumen::GlobalState *g) {
 }
 
 
-static size_t propagateAll(Lumen::GlobalState *g) {
-    size_t m = 0;
+static Lumen::UInteger propagateAll(Lumen::GlobalState *g) {
+    Lumen::UInteger m = 0;
     while (g->GCGray) m += propagateMark(g);
     return m;
 }
@@ -445,7 +445,7 @@ static void checkSizes(Lumen::State *L) {
         Lumen::String::Resize(L, g->StringMap.Capacity / 2);  /* table is too big */
     /* check size of buffer */
     if (LumenZBufferSize(&g->Buff) > Lumen::MinBufferSize * 2) {  /* buffer too big? */
-        size_t newSize = LumenZBufferSize(&g->Buff) / 2;
+        Lumen::UInteger newSize = LumenZBufferSize(&g->Buff) / 2;
         LumenZBufferResize(L, &g->Buff, newSize);
     }
 }
@@ -532,7 +532,7 @@ static void remarkUpValues(Lumen::GlobalState *g) {
 
 static void atomic(Lumen::State *L) {
     Lumen::GlobalState *g = LumenGlobal(L);
-    size_t uDataSize;  /* total size of userdata to be finalized */
+    Lumen::UInteger uDataSize;  /* total size of userdata to be finalized */
     /* remark occasional upValues of (maybe) dead threads */
     remarkUpValues(g);
     /* traverse objects caught by write barrier and by 'remarkUpValues' */
