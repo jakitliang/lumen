@@ -29,13 +29,6 @@
 #define LUA_VERSION    "Lua 5.1"
 #define LUA_RELEASE    "Lua 5.1.5"
 
-#ifndef LUMEN_VERSION
-#define LUMEN_VERSION  "Lumen 1.0"
-#endif
-#ifndef LUMEN_RELEASE
-#define LUMEN_RELEASE  "Lumen 1.0.0"
-#endif
-
 #define LUA_VERSION_MAJOR_N      5
 #define LUA_VERSION_MINOR_N      1
 #define LUA_VERSION_RELEASE_N    0
@@ -43,10 +36,13 @@
 #define LUA_VERSION_RELEASE_NUM  (LUA_VERSION_NUM * 100 + LUA_VERSION_RELEASE_N)
 
 #define LUMEN_VERSION_MAJOR_N      1
-#define LUMEN_VERSION_MINOR_N      0
-#define LUMEN_VERSION_RELEASE_N    0
-#define LUMEN_VERSION_NUM    (LUMEN_VERSION_MAJOR_N * 100 + LUMEN_VERSION_MINOR_N)
-#define LUMEN_VERSION_RELEASE_NUM  (LUMEN_VERSION_NUM * 100 + LUMEN_VERSION_RELEASE_N)
+#define LUMEN_VERSION_MINOR_N      1
+#define LUMEN_VERSION_RELEASE_N    4
+
+#define LUMEN_RELEASE  "Lumen " \
+LUA_TO_STRING(LUMEN_VERSION_MAJOR_N) "." \
+LUA_TO_STRING(LUMEN_VERSION_MINOR_N) "." \
+LUA_TO_STRING(LUMEN_VERSION_RELEASE_N)
 
 /* option for multiple returns in `lua_pcall' and `lua_call' */
 #define LUA_MULTRET    (-1)

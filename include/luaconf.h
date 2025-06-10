@@ -681,6 +681,8 @@ struct LumenState;
 
 #endif
 
+#define LUA_TO_STRING_HELPER(x)    #x
+#define LUA_TO_STRING(x)           LUA_TO_STRING_HELPER(x)
 
 /*
 ** Local configuration. You can use this space to add your redefinitions
