@@ -545,23 +545,23 @@ namespace Lua {
 
         // MARK: Library export
 
-        int OpenBase();
+        LPP_API int OpenBase();
 
-        int OpenTable();
+        LPP_API int OpenTable();
 
-        int OpenIO();
+        LPP_API int OpenIO();
 
-        int OpenOS();
+        LPP_API int OpenOS();
 
-        int OpenString();
+        LPP_API int OpenString();
 
-        int OpenMath();
+        LPP_API int OpenMath();
 
-        int OpenDebug();
+        LPP_API int OpenDebug();
 
-        int OpenBit();
+        LPP_API int OpenBit();
 
-        int OpenPackage();
+        LPP_API int OpenPackage();
 
         LPP_API void OpenLibs();
     };
