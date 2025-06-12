@@ -11,6 +11,7 @@
 
 #include <vector>
 #include <string_view>
+#include <algorithm>
 
 #include "lua.hpp"
 
