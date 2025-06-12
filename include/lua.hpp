@@ -598,7 +598,7 @@ namespace Lua {
 
         LPP_API void *CBuffer();
 
-        LPP_API  void AddValue(Lua::State *L);
+        LPP_API void AddValue(Lua::State *L);
 
         LPP_API static Buffer *Get();
     };

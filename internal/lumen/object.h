@@ -49,11 +49,15 @@ namespace Lumen {
         unsigned int Hash;
         Lumen::UInteger Length;
 
+        void Intern(Lumen::State *L);
+
         static void Resize(Lumen::State *L, int newSize);
 
         static Lumen::String *New(Lumen::State *L, const char *str, Lumen::UInteger l);
 
         static Lumen::String *New(Lumen::State *L, const char *str);
+
+        static Lumen::String *NewRaw(Lumen::State *L, const char *str, Lumen::UInteger l);
 
         static Lumen::UInteger LengthOf(const char *cStr);
     };
