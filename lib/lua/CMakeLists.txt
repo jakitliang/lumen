@@ -5,13 +5,14 @@ add_library(
     auxlib.cpp
     aux_pp.cpp
     baselib.c
+    buffer.cpp
     dblib.c
     init.c
     iolib.c
     mathlib.c
     loadlib.c
     oslib.c
-    strlib.cpp
+    string.cpp
     tablib.c
     bitlib.c
 )

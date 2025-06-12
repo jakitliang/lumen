@@ -113,7 +113,7 @@ namespace Lua {
         GlobalIndex = -10002
     };
 
-    inline int IndexUpValue(Index i) {
+    inline int UpValueIndex(Index i) {
         return GlobalIndex - (i);
     }
 
@@ -147,6 +147,17 @@ namespace Lua {
         GCStep = 5,
         GCSetPause = 6,
         GCSetStepMul = 7
+    };
+
+    struct TypeInfo {
+        Lua::Byte Type;
+    };
+
+    struct Object : TypeInfo {
+    };
+
+    struct String {
+        struct Context;
     };
 
     struct State {
@@ -312,7 +323,7 @@ namespace Lua {
 
         LPP_API void SetAllocator(Allocator f, void *ud);
 
-        inline void Pop(int n) {
+        inline void Pop(int n = 1) {
             SetTop(-(n) - 1);
         }
 
@@ -564,6 +575,32 @@ namespace Lua {
         LPP_API int OpenPackage();
 
         LPP_API void OpenLibs();
+    };
+
+    struct Buffer {
+        LPP_API void Push(char c);
+
+        LPP_API void Push(const char *cStr);
+
+        LPP_API void Push(const void *cBuffer, UInteger size);
+
+        LPP_API void Reverse();
+
+        LPP_API void Reserve(UInteger size);
+
+        LPP_API void Resize(UInteger size);
+
+        LPP_API UInteger Length();
+
+        LPP_API void Clear();
+
+        LPP_API char *CString();
+
+        LPP_API void *CBuffer();
+
+        LPP_API  void AddValue(Lua::State *L);
+
+        LPP_API static Buffer *Get();
     };
 
     inline State *Open() {
