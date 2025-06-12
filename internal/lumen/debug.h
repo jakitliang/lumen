@@ -20,16 +20,16 @@
 #define LumenDebugResetHookCount(L)    (L->HookCount = L->BaseHookCount)
 
 namespace Lumen::Debug {
-    void TypeError(Lumen::State *L, const Lumen::Value *o,
+    void TypeError(Lumen::State *L, const Lumen::Object *o,
                                const char *opname);
 
-    void ConcatError(Lumen::State *L, Lumen::StkId p1, Lumen::StkId p2);
+    void ConcatError(Lumen::State *L, Lumen::Value p1, Lumen::Value p2);
 
-    void ArithError(Lumen::State *L, const Lumen::Value *p1,
-                                const Lumen::Value *p2);
+    void ArithError(Lumen::State *L, const Lumen::Object *p1,
+                                const Lumen::Object *p2);
 
-    int OrderError(Lumen::State *L, const Lumen::Value *p1,
-                               const Lumen::Value *p2);
+    int OrderError(Lumen::State *L, const Lumen::Object *p1,
+                               const Lumen::Object *p2);
 
     void RunError(Lumen::State *L, const char *fmt, ...);
 

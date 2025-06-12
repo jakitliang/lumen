@@ -50,8 +50,8 @@ static void traceExec(Lumen::State *L, const Lumen::Instruction *pc) {
 }
 
 
-static inline void callTMRes(Lumen::State *L, Lumen::StkId res, const Lumen::Value *f,
-                      const Lumen::Value *p1, const Lumen::Value *p2) {
+static inline void callTMRes(Lumen::State *L, Lumen::Value res, const Lumen::Object *f,
+                      const Lumen::Object *p1, const Lumen::Object *p2) {
     Lumen::Integer result = LumenSaveStack(L, res);
     LumenSetObject2S(L, L->Top, f);  /* push function */
     LumenSetObject2S(L, L->Top + 1, p1);  /* 1st argument */
@@ -65,8 +65,8 @@ static inline void callTMRes(Lumen::State *L, Lumen::StkId res, const Lumen::Val
 }
 
 
-static inline void callTM(Lumen::State *L, const Lumen::Value *f, const Lumen::Value *p1,
-                   const Lumen::Value *p2, const Lumen::Value *p3) {
+static inline void callTM(Lumen::State *L, const Lumen::Object *f, const Lumen::Object *p1,
+                   const Lumen::Object *p2, const Lumen::Object *p3) {
     LumenSetObject2S(L, L->Top, f);  /* push function */
     LumenSetObject2S(L, L->Top + 1, p1);  /* 1st argument */
     LumenSetObject2S(L, L->Top + 2, p2);  /* 2nd argument */
@@ -77,13 +77,13 @@ static inline void callTM(Lumen::State *L, const Lumen::Value *f, const Lumen::V
 }
 
 
-void Lumen::VM::GetTable(Lumen::State *L, const Lumen::Value *t, Lumen::Value *key, Lumen::StkId val) {
+void Lumen::VM::GetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object *key, Lumen::Value val) {
     int loop;
     for (loop = 0; loop < LUA_VM_MAX_TAG_LOOP; loop++) {
-        const Lumen::Value *tm;
+        const Lumen::Object *tm;
         if (LumenTypeIsTable(t)) {  /* `t' is a table? */
             Lumen::Table *h = LumenTableValue(t);
-            const Lumen::Value *res = Lumen::Table::Get(h, key); /* do a primitive get */
+            const Lumen::Object *res = Lumen::Table::Get(h, key); /* do a primitive get */
             if (!LumenTypeIsNil(res) ||  /* result is no nil? */
                 (tm = LumenTMGetFast(L, h->Metatable, Lumen::TM::NameIndex)) == nullptr) { /* or no TM? */
                 LumenSetObject2S(L, val, res);
@@ -102,14 +102,14 @@ void Lumen::VM::GetTable(Lumen::State *L, const Lumen::Value *t, Lumen::Value *k
 }
 
 
-void Lumen::VM::SetTable(Lumen::State *L, const Lumen::Value *t, Lumen::Value *key, Lumen::StkId val) {
+void Lumen::VM::SetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object *key, Lumen::Value val) {
     int loop;
-    Lumen::Value temp;
+    Lumen::Object temp;
     for (loop = 0; loop < LUA_VM_MAX_TAG_LOOP; loop++) {
-        const Lumen::Value *tm;
+        const Lumen::Object *tm;
         if (LumenTypeIsTable(t)) {  /* `t' is a table? */
             Lumen::Table *h = LumenTableValue(t);
-            Lumen::Value *oldval = Lumen::Table::Set(L, h, key); /* do a primitive set */
+            Lumen::Object *oldval = Lumen::Table::Set(L, h, key); /* do a primitive set */
             if (!LumenTypeIsNil(oldval) ||  /* result is no nil? */
                 (tm = LumenTMGetFast(L, h->Metatable, Lumen::TM::NameNewIndex)) == nullptr) { /* or no TM? */
                 LumenSetObject2T(L, oldval, val);
@@ -132,9 +132,9 @@ void Lumen::VM::SetTable(Lumen::State *L, const Lumen::Value *t, Lumen::Value *k
 }
 
 
-static inline int call_binTM(Lumen::State *L, const Lumen::Value *p1, const Lumen::Value *p2,
-                      Lumen::StkId res, Lumen::TM::Name event) {
-    const Lumen::Value *tm = Lumen::TM::GetByObject(L, p1, event);  /* try first operand */
+static inline int call_binTM(Lumen::State *L, const Lumen::Object *p1, const Lumen::Object *p2,
+                      Lumen::Value res, Lumen::TM::Name event) {
+    const Lumen::Object *tm = Lumen::TM::GetByObject(L, p1, event);  /* try first operand */
     if (LumenTypeIsNil(tm))
         tm = Lumen::TM::GetByObject(L, p2, event);  /* try second operand */
     if (LumenTypeIsNil(tm)) return 0;
@@ -143,10 +143,10 @@ static inline int call_binTM(Lumen::State *L, const Lumen::Value *p1, const Lume
 }
 
 
-static inline const Lumen::Value *get_compTM(Lumen::State *L, Lumen::Table *mt1, Lumen::Table *mt2,
+static inline const Lumen::Object *get_compTM(Lumen::State *L, Lumen::Table *mt1, Lumen::Table *mt2,
                                     Lumen::TM::Name event) {
-    const Lumen::Value *tm1 = LumenTMGetFast(L, mt1, event);
-    const Lumen::Value *tm2;
+    const Lumen::Object *tm1 = LumenTMGetFast(L, mt1, event);
+    const Lumen::Object *tm2;
     if (tm1 == nullptr) return nullptr;  /* no metamethod */
     if (mt1 == mt2) return tm1;  /* same metatables => same metamethods */
     tm2 = LumenTMGetFast(L, mt2, event);
@@ -157,10 +157,10 @@ static inline const Lumen::Value *get_compTM(Lumen::State *L, Lumen::Table *mt1,
 }
 
 
-static inline int callOrderTM(Lumen::State *L, const Lumen::Value *p1, const Lumen::Value *p2,
+static inline int callOrderTM(Lumen::State *L, const Lumen::Object *p1, const Lumen::Object *p2,
                        Lumen::TM::Name event) {
-    const Lumen::Value *tm1 = Lumen::TM::GetByObject(L, p1, event);
-    const Lumen::Value *tm2;
+    const Lumen::Object *tm1 = Lumen::TM::GetByObject(L, p1, event);
+    const Lumen::Object *tm2;
     if (LumenTypeIsNil(tm1)) return -1;  /* no metamethod? */
     tm2 = Lumen::TM::GetByObject(L, p2, event);
     if (!Lumen::RawEqualObject(tm1, tm2))  /* different metamethods? */
@@ -195,7 +195,7 @@ static int luaStrCmp(const Lumen::String *ls, const Lumen::String *rs) {
 }
 
 
-int Lumen::VM::LessThan(Lumen::State *L, const Lumen::Value *l, const Lumen::Value *r) {
+int Lumen::VM::LessThan(Lumen::State *L, const Lumen::Object *l, const Lumen::Object *r) {
     int res;
     if (LumenTypeOf(l) != LumenTypeOf(r))
         return Lumen::Debug::OrderError(L, l, r);
@@ -209,7 +209,7 @@ int Lumen::VM::LessThan(Lumen::State *L, const Lumen::Value *l, const Lumen::Val
 }
 
 
-static inline int lessEqual(Lumen::State *L, const Lumen::Value *l, const Lumen::Value *r) {
+static inline int lessEqual(Lumen::State *L, const Lumen::Object *l, const Lumen::Object *r) {
     int res;
     if (LumenTypeOf(l) != LumenTypeOf(r))
         return Lumen::Debug::OrderError(L, l, r);
@@ -225,8 +225,8 @@ static inline int lessEqual(Lumen::State *L, const Lumen::Value *l, const Lumen:
 }
 
 
-int Lumen::VM::EqualVal(Lumen::State *L, const Lumen::Value *t1, const Lumen::Value *t2) {
-    const Lumen::Value *tm;
+int Lumen::VM::EqualVal(Lumen::State *L, const Lumen::Object *t1, const Lumen::Object *t2) {
+    const Lumen::Object *tm;
     LumenAssert(LumenTypeOf(t1) == LumenTypeOf(t2));
     switch (LumenTypeOf(t1)) {
         case Lumen::TypeNil:
@@ -259,7 +259,7 @@ int Lumen::VM::EqualVal(Lumen::State *L, const Lumen::Value *t1, const Lumen::Va
 
 void Lumen::VM::Concat(Lumen::State *L, int total, int last) {
     do {
-        Lumen::StkId top = L->Base + last + 1;
+        Lumen::Value top = L->Base + last + 1;
         int n = 2;  /* number of elements handled in this pass (at least 2) */
         if (!(LumenTypeIsString(top - 2) || LumenTypeIsNumber(top - 2)) || !LumenVMToString(L, top - 1)) {
             if (!call_binTM(L, top - 2, top - 1, top - 2, Lumen::TM::NameConcat))
@@ -292,10 +292,10 @@ void Lumen::VM::Concat(Lumen::State *L, int total, int last) {
 }
 
 
-static void Arith(Lumen::State *L, Lumen::StkId ra, const Lumen::Value *rb,
-                  const Lumen::Value *rc, Lumen::TM::Name op) {
-    Lumen::Value tempB, tempC;
-    const Lumen::Value *b, *c;
+static void Arith(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb,
+                  const Lumen::Object *rc, Lumen::TM::Name op) {
+    Lumen::Object tempB, tempC;
+    const Lumen::Object *b, *c;
     if ((b = Lumen::VM::ToNumber(rb, &tempB)) != nullptr &&
         (c = Lumen::VM::ToNumber(rc, &tempC)) != nullptr) {
         Lumen::Number nb = LumenNumberValue(b), nc = LumenNumberValue(c);
@@ -363,8 +363,8 @@ LumenDo(                   \
 
 
 #define arith_op(op, tm) do { \
-    Lumen::Value *rb = RKB(i); \
-    Lumen::Value *rc = RKC(i); \
+    Lumen::Object *rb = RKB(i); \
+    Lumen::Object *rc = RKC(i); \
     if (LumenTypeIsNumber(rb) && LumenTypeIsNumber(rc)) { \
         Lumen::Number nb = LumenNumberValue(rb), nc = LumenNumberValue(rc); \
         LumenSetNumberValue(ra, op(nb, nc));            \
@@ -376,8 +376,8 @@ LumenDo(                   \
 
 void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
     Lumen::LClosure *cl;
-    Lumen::StkId base;
-    Lumen::Value *k;
+    Lumen::Value base;
+    Lumen::Object *k;
     const Lumen::Instruction *pc;
     reentry:  /* entry point */
     LumenAssert(LumenFuncIsLua(L->CallInfo));
@@ -388,7 +388,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
     /* main loop of interpreter */
     for (;;) {
         const Lumen::Instruction i = *pc++;
-        Lumen::StkId ra;
+        Lumen::Value ra;
         if ((L->HookMask & (Lumen::HookMaskLine | Lumen::HookMaskCount)) &&
             (--L->HookCount == 0 || L->HookMask & Lumen::HookMaskLine)) {
             traceExec(L, pc);
@@ -418,7 +418,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeLoadNil: {
-                Lumen::Value *rb = RB(i);
+                Lumen::Object *rb = RB(i);
                 do {
                     LumenSetNilValue(rb--);
                 } while (rb >= ra);
@@ -430,8 +430,8 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeGetGlobal: {
-                Lumen::Value g;
-                Lumen::Value *rb = KBx(i);
+                Lumen::Object g;
+                Lumen::Object *rb = KBx(i);
                 LumenSetTableValue(L, &g, cl->Env);
                 LumenAssert(LumenTypeIsString(rb));
                 Protect(Lumen::VM::GetTable(L, &g, rb, ra));
@@ -442,7 +442,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeSetGlobal: {
-                Lumen::Value g;
+                Lumen::Object g;
                 LumenSetTableValue(L, &g, cl->Env);
                 LumenAssert(LumenTypeIsString(KBx(i)));
                 Protect(Lumen::VM::SetTable(L, &g, KBx(i), ra));
@@ -466,7 +466,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeSelf: {
-                Lumen::StkId rb = RB(i);
+                Lumen::Value rb = RB(i);
                 LumenSetObjectS2S(L, ra + 1, rb);
                 Protect(Lumen::VM::GetTable(L, rb, RKC(i), ra));
                 continue;
@@ -496,7 +496,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeUnm: {
-                Lumen::Value *rb = RB(i);
+                Lumen::Object *rb = RB(i);
                 if (LumenTypeIsNumber(rb)) {
                     Lumen::Number nb = LumenNumberValue(rb);
                     LumenSetNumberValue(ra, luai_numunm(nb));
@@ -511,7 +511,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeLen: {
-                const Lumen::Value *rb = RB(i);
+                const Lumen::Object *rb = RB(i);
                 switch (LumenTypeOf(rb)) {
                     case Lumen::TypeTable: {
                         LumenSetNumberValue(ra, cast_num(Lumen::Table::GetN(LumenTableValue(rb))));
@@ -542,8 +542,8 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeEQ: {
-                Lumen::Value *rb = RKB(i);
-                Lumen::Value *rc = RKC(i);
+                Lumen::Object *rb = RKB(i);
+                Lumen::Object *rc = RKC(i);
                 Protect(
                         if (LumenVMEqualObj(L, rb, rc) == LumenOpCodeGetArgA(i))
                             doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
@@ -573,7 +573,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeTestTest: {
-                Lumen::Value *rb = RB(i);
+                Lumen::Object *rb = RB(i);
                 if (LumenIsFalse(rb) != LumenOpCodeGetArgC(i)) {
                     LumenSetObjectS2S(L, ra, rb);
                     doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
@@ -612,8 +612,8 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                         /* tail call: put new frame in place of previous one */
                         Lumen::CallInfo *ci = L->CallInfo - 1;  /* previous frame */
                         int aux;
-                        Lumen::StkId func = ci->Func;
-                        Lumen::StkId pfunc = (ci + 1)->Func;  /* previous function index */
+                        Lumen::Value func = ci->Func;
+                        Lumen::Value pfunc = (ci + 1)->Func;  /* previous function index */
                         if (L->OpenedUpValue) Lumen::UpValue::Close(L, ci->Base);
                         L->Base = ci->Base = ci->Func + ((ci + 1)->Base - pfunc);
                         for (aux = 0; pfunc + aux < L->Top; aux++)  /* move frame down */
@@ -662,9 +662,9 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeForPrep: {
-                const Lumen::Value *init = ra;
-                const Lumen::Value *plimit = ra + 1;
-                const Lumen::Value *pstep = ra + 2;
+                const Lumen::Object *init = ra;
+                const Lumen::Object *plimit = ra + 1;
+                const Lumen::Object *pstep = ra + 2;
                 L->SavedPC = pc;  /* next steps may throw errors */
                 if (!LumenVMToNumber(init, ra))
                     Lumen::Debug::RunError(L, LUA_QL("for") " initial value must be a number");
@@ -677,7 +677,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeTForLoop: {
-                Lumen::StkId cb = ra + 3;  /* call base */
+                Lumen::Value cb = ra + 3;  /* call base */
                 LumenSetObjectS2S(L, cb + 2, ra + 2);
                 LumenSetObjectS2S(L, cb + 1, ra + 1);
                 LumenSetObjectS2S(L, cb, ra);
@@ -708,7 +708,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 if (last > h->ArrayCount)  /* needs more space? */
                     Lumen::Table::ResizeArray(L, h, last);  /* pre-alloc it at once */
                 for (; n > 0; n--) {
-                    Lumen::Value *val = ra + n;
+                    Lumen::Object *val = ra + n;
                     LumenSetObject2T(L, Lumen::Table::SetNum(L, h, last--), val);
                     LumenGCBarrierTable(L, h, val);
                 }

@@ -42,9 +42,9 @@ namespace Lumen::TM {
         NameN        /* number of elements in the enum */
     };
 
-    const Lumen::Value *Get(Lumen::Table *events, Lumen::TM::Name event, Lumen::String *name);
+    const Lumen::Object *Get(Lumen::Table *events, Lumen::TM::Name event, Lumen::String *name);
 
-    const Lumen::Value *GetByObject(Lumen::State *L, const Lumen::Value *o,
+    const Lumen::Object *GetByObject(Lumen::State *L, const Lumen::Object *o,
                               Lumen::TM::Name event);
 
     void Init(Lumen::State *L);
@@ -61,8 +61,8 @@ namespace Lumen::TM {
 ** function to be used with macro "LumenTMGetFast": optimized for absence of
 ** tag methods
 */
-inline const Lumen::Value *Lumen::TM::Get(Lumen::Table *events, Lumen::TM::Name event, Lumen::String *name) {
-    const Lumen::Value *tm = Lumen::Table::GetString(events, name);
+inline const Lumen::Object *Lumen::TM::Get(Lumen::Table *events, Lumen::TM::Name event, Lumen::String *name) {
+    const Lumen::Object *tm = Lumen::Table::GetString(events, name);
     LumenAssert(event <= Lumen::TM::NameEQ);
     if (LumenTypeIsNil(tm)) {  /* no tag method? */
         events->Flags |= cast_byte(1u << event);  /* cache this fact */

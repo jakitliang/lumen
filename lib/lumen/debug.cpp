@@ -27,7 +27,7 @@
 
 static const char *getFuncName(Lumen::State *L, Lumen::CallInfo *ci, const char **name);
 
-void lua_PushObject(Lumen::State *L, const Lumen::Value *o);
+void lua_PushObject(Lumen::State *L, const Lumen::Object *o);
 
 static int currentPC(Lumen::State *L, Lumen::CallInfo *ci) {
     if (!LumenFuncIsLua(ci)) return -1;  /* function is not a Lua function? */
@@ -57,7 +57,7 @@ const char *Lumen::State::FindLocal(Lumen::CallInfo *ci, int n) {
     if (fp && (name = Lumen::Proto::GetLocalName(fp, n, currentPC(this, ci))) != nullptr)
         return name;  /* is a local variable in a Lua function */
     else {
-        Lumen::StkId limit = (ci == CallInfo) ? Top : (ci + 1)->Func;
+        Lumen::Value limit = (ci == CallInfo) ? Top : (ci + 1)->Func;
         if (limit - ci->Base >= n && n > 0)  /* is 'n' inside 'ci' stack? */
             return "(*temporary)";
         else
@@ -450,15 +450,15 @@ static const char *getFuncName(Lumen::State *L, Lumen::CallInfo *ci, const char 
 
 
 /* only ANSI way to check whether a pointer points to an array */
-static int isInStack(Lumen::CallInfo *ci, const Lumen::Value *o) {
-    Lumen::StkId p;
+static int isInStack(Lumen::CallInfo *ci, const Lumen::Object *o) {
+    Lumen::Value p;
     for (p = ci->Base; p < ci->Top; p++)
         if (o == p) return 1;
     return 0;
 }
 
 
-void Lumen::Debug::TypeError(Lumen::State *L, const Lumen::Value *o, const char *op) {
+void Lumen::Debug::TypeError(Lumen::State *L, const Lumen::Object *o, const char *op) {
     const char *name = nullptr;
     const char *t = Lumen::TM::TypeNames[LumenTypeOf(o)];
     const char *kind = (isInStack(L->CallInfo, o)) ?
@@ -472,22 +472,22 @@ void Lumen::Debug::TypeError(Lumen::State *L, const Lumen::Value *o, const char 
 }
 
 
-void Lumen::Debug::ConcatError(Lumen::State *L, Lumen::StkId p1, Lumen::StkId p2) {
+void Lumen::Debug::ConcatError(Lumen::State *L, Lumen::Value p1, Lumen::Value p2) {
     if (LumenTypeIsString(p1) || LumenTypeIsNumber(p1)) p1 = p2;
     LumenAssert(!LumenTypeIsString(p1) && !LumenTypeIsNumber(p1));
     Lumen::Debug::TypeError(L, p1, "concatenate");
 }
 
 
-void Lumen::Debug::ArithError(Lumen::State *L, const Lumen::Value *p1, const Lumen::Value *p2) {
-    Lumen::Value temp; // NOLINT
+void Lumen::Debug::ArithError(Lumen::State *L, const Lumen::Object *p1, const Lumen::Object *p2) {
+    Lumen::Object temp; // NOLINT
     if (Lumen::VM::ToNumber(p1, &temp) == nullptr)
         p2 = p1;  /* first operand is wrong */
     Lumen::Debug::TypeError(L, p2, "perform arithmetic on");
 }
 
 
-int Lumen::Debug::OrderError(Lumen::State *L, const Lumen::Value *p1, const Lumen::Value *p2) {
+int Lumen::Debug::OrderError(Lumen::State *L, const Lumen::Object *p1, const Lumen::Object *p2) {
     const char *t1 = Lumen::TM::TypeNames[LumenTypeOf(p1)];
     const char *t2 = Lumen::TM::TypeNames[LumenTypeOf(p2)];
     if (t1[2] == t2[2])
@@ -511,7 +511,7 @@ static void addInfo(Lumen::State *L, const char *msg) {
 
 void Lumen::Debug::ErrorMessage(Lumen::State *L) {
     if (L->ErrFunc != 0) {  /* is there an error handling function? */
-        Lumen::StkId errFunc = LumenRestoreStack(L, L->ErrFunc);
+        Lumen::Value errFunc = LumenRestoreStack(L, L->ErrFunc);
         if (!LumenTypeIsFunction(errFunc)) Lumen::Do::Throw(L, Lumen::RetErr);
         LumenSetObjectS2S(L, L->Top, L->Top - 1);  /* move argument */
         LumenSetObjectS2S(L, L->Top - 1, errFunc);  /* push function */

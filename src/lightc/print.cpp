@@ -69,7 +69,7 @@ static void PrintString(const Lumen::String *ts) {
 }
 
 static void PrintConstant(const Lumen::Proto *f, int i) {
-    const Lumen::Value *o = &f->K[i];
+    const Lumen::Object *o = &f->K[i];
     switch (LumenTypeOf(o)) {
         case Lumen::TypeNil:
             printf("nil");

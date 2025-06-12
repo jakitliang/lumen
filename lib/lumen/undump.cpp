@@ -93,11 +93,11 @@ static Lumen::Proto *LoadFunction(LoadState *S, Lumen::String *p);
 static void LoadConstants(LoadState *S, Lumen::Proto *f) {
     int i, n;
     n = LoadInt(S);
-    f->K = LumenMemoryNewVector(S->L, n, Lumen::Value);
+    f->K = LumenMemoryNewVector(S->L, n, Lumen::Object);
     f->KCount = n;
     for (i = 0; i < n; i++) LumenSetNilValue(&f->K[i]);
     for (i = 0; i < n; i++) {
-        Lumen::Value *o = &f->K[i];
+        Lumen::Object *o = &f->K[i];
         int t = LoadChar(S);
         switch (t) {
             case Lumen::TypeNil:

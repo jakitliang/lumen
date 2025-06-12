@@ -41,11 +41,11 @@ LumenDo(                \
 #define LuaToLumen(L) reinterpret_cast<Lumen::State *>(L)
 #define LumenToLua(L) reinterpret_cast<Lua::State *>(L)
 
-static Lumen::Value *index2addr(Lumen::State *L, int idx) {
+static Lumen::Object *index2addr(Lumen::State *L, int idx) {
     if (idx > 0) {
-        Lumen::Value *o = L->Base + (idx - 1);
+        Lumen::Object *o = L->Base + (idx - 1);
         LumenApiCheck(L, idx <= L->CallInfo->Top - L->Base);
-        if (o >= L->Top) return cast(Lumen::Value *, Lumen::NilObject);
+        if (o >= L->Top) return cast(Lumen::Object *, Lumen::NilObject);
         else return o;
     } else if (idx > Lua::RegistryIndex) {
         LumenApiCheck(L, idx != 0 && -idx <= L->Top - L->Base);
@@ -66,7 +66,7 @@ static Lumen::Value *index2addr(Lumen::State *L, int idx) {
                 idx = Lua::GlobalIndex - idx;
                 return (idx <= func->AsC.NUpValues)
                        ? &func->AsC.UpValues[idx - 1]
-                       : cast(Lumen::Value *, Lumen::NilObject);
+                       : cast(Lumen::Object *, Lumen::NilObject);
             }
         }
 }
@@ -80,7 +80,7 @@ static Lumen::Table *getCurEnv(Lumen::State *L) {
     }
 }
 
-void lua_PushObject(Lumen::State *L, const Lumen::Value *o);
+void lua_PushObject(Lumen::State *L, const Lumen::Object *o);
 
 // MARK: state manipulation
 
@@ -144,7 +144,7 @@ void Lua::State::PushValue(int idx) {
 
 void Lua::State::Remove(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId p;
+    Lumen::Value p;
     LumenLock(L);
     p = index2addr(L, idx);
     apiCheckValidIndex(L, p);
@@ -155,8 +155,8 @@ void Lua::State::Remove(int idx) {
 
 void Lua::State::Insert(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId p;
-    Lumen::StkId q;
+    Lumen::Value p;
+    Lumen::Value q;
     LumenLock(L);
     p = index2addr(L, idx);
     apiCheckValidIndex(L, p);
@@ -167,7 +167,7 @@ void Lua::State::Insert(int idx) {
 
 void Lua::State::Replace(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o;
+    Lumen::Value o;
     LumenLock(L);
     /* explicit test for incompatible code */
     if (idx == Lua::EnvIndex && L->CallInfo == L->BaseCI)
@@ -208,32 +208,32 @@ bool Lua::State::CheckStack(int size) {
 
 bool Lua::State::IsNumber(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::Value n; // NOLINT
-    const Lumen::Value *o = index2addr(L, idx);
+    Lumen::Object n; // NOLINT
+    const Lumen::Object *o = index2addr(L, idx);
     return LumenVMToNumber(o, &n);
 }
 
 bool Lua::State::IsString(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     return LumenTypeIsString(o);
 }
 
 bool Lua::State::IsDelegate(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     return LumenIsCFunction(o);
 }
 
 bool Lua::State::IsUserdata(int idx) {
     auto L = LuaToLumen(this);
-    const Lumen::Value *o = index2addr(L, idx);
+    const Lumen::Object *o = index2addr(L, idx);
     return (LumenTypeIsUData(o) || LumenTypeIsLUData(o));
 }
 
 Lua::Type Lua::State::Type(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     return (o == Lumen::NilObject) ? Lua::TypeNone : LumenTypeOf(o);
 }
 
@@ -243,7 +243,7 @@ const char *Lua::State::TypeName(int t) const { // NOLINT
 
 bool Lua::State::Equal(int idx1, int idx2) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o1, o2;
+    Lumen::Value o1, o2;
     int i;
     LumenLock(L);  /* may call tag method */
     o1 = index2addr(L, idx1);
@@ -255,15 +255,15 @@ bool Lua::State::Equal(int idx1, int idx2) {
 
 bool Lua::State::RawEqual(int idx1, int idx2) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o1 = index2addr(L, idx1);
-    Lumen::StkId o2 = index2addr(L, idx2);
+    Lumen::Value o1 = index2addr(L, idx1);
+    Lumen::Value o2 = index2addr(L, idx2);
     return (o1 == Lumen::NilObject || o2 == Lumen::NilObject) ? false
                                                               : Lumen::RawEqualObject(o1, o2);
 }
 
 bool Lua::State::LessThan(int idx1, int idx2) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o1, o2;
+    Lumen::Value o1, o2;
     int i;
     LumenLock(L);  /* may call tag method */
     o1 = index2addr(L, idx1);
@@ -276,8 +276,8 @@ bool Lua::State::LessThan(int idx1, int idx2) {
 
 Lua::Number Lua::State::ToNumber(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::Value n; // NOLINT
-    const Lumen::Value *o = index2addr(L, idx);
+    Lumen::Object n; // NOLINT
+    const Lumen::Object *o = index2addr(L, idx);
     if (LumenVMToNumber(o, &n))
         return LumenNumberValue(o);
     else
@@ -286,8 +286,8 @@ Lua::Number Lua::State::ToNumber(int idx) {
 
 Lua::Integer Lua::State::ToInteger(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::Value n; // NOLINT
-    const Lumen::Value *o = index2addr(L, idx);
+    Lumen::Object n; // NOLINT
+    const Lumen::Object *o = index2addr(L, idx);
     if (LumenVMToNumber(o, &n)) {
         Lumen::Integer res;
         Lumen::Number num = LumenNumberValue(o);
@@ -299,13 +299,13 @@ Lua::Integer Lua::State::ToInteger(int idx) {
 
 bool Lua::State::ToBoolean(int idx) {
     auto L = LuaToLumen(this);
-    const Lumen::Value *o = index2addr(L, idx);
+    const Lumen::Object *o = index2addr(L, idx);
     return !LumenIsFalse(o);
 }
 
 const char *Lua::State::ToString(int idx, Lua::UInteger *len) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     if (!LumenTypeIsString(o)) {
         LumenLock(L);  /* `Lumen::VM::ToString' may create a new string */
         if (!Lumen::VM::ToString(L, o)) {  /* conversion failed? */
@@ -323,8 +323,8 @@ const char *Lua::State::ToString(int idx, Lua::UInteger *len) {
 
 bool Lua::State::InstanceOf(int idxChild, int idxSuper) {
     auto L = LuaToLumen(this);
-    const Lumen::Value *oChild = index2addr(L, idxChild);
-    const Lumen::Value *oSuper = index2addr(L, idxSuper);
+    const Lumen::Object *oChild = index2addr(L, idxChild);
+    const Lumen::Object *oSuper = index2addr(L, idxSuper);
     if (oChild == Lumen::NilObject || oSuper == Lumen::NilObject) return false;
     int loop;
     for (loop = 0; loop < LumenMaxTagLoop; loop++) {
@@ -347,7 +347,7 @@ bool Lua::State::InstanceOf(int idxChild, int idxSuper) {
 
 Lua::UInteger Lua::State::ObjectLength(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     switch (LumenTypeOf(o)) {
         case Lua::TypeString:
             return LumenStringValue(o)->Length;
@@ -369,19 +369,19 @@ Lua::UInteger Lua::State::ObjectLength(int idx) {
 
 Lua::Delegate Lua::State::ToDelegate(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     return (!LumenIsCFunction(o)) ? nullptr : reinterpret_cast<Lua::Delegate>(LumenClosureValue(o)->AsC.Func);
 }
 
 Lua::Function Lua::State::ToFunction(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     return (!LumenIsCFunction(o)) ? nullptr : reinterpret_cast<Lua::Function>(LumenClosureValue(o)->AsC.Func);
 }
 
 void *Lua::State::ToUserdata(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     switch (LumenTypeOf(o)) {
         case Lua::TypeUserdata:
             return (LumenUDataValue(o) + 1);
@@ -394,13 +394,13 @@ void *Lua::State::ToUserdata(int idx) {
 
 Lua::State *Lua::State::ToThread(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     return (!LumenTypeIsThread(o)) ? nullptr : LumenToLua(LumenThreadValue(o));
 }
 
 const void *Lua::State::ToPointer(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     switch (LumenTypeOf(o)) {
         case Lua::TypeTable:
             return LumenTableValue(o);
@@ -545,7 +545,7 @@ int Lua::State::PushThread() {
 
 void Lua::State::GetTable(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId t;
+    Lumen::Value t;
     LumenLock(L);
     t = index2addr(L, idx);
     apiCheckValidIndex(L, t);
@@ -555,8 +555,8 @@ void Lua::State::GetTable(int idx) {
 
 void Lua::State::GetField(int idx, const char *k) {
     auto L = LuaToLumen(this);
-    Lumen::StkId t;
-    Lumen::Value key; // NOLINT
+    Lumen::Value t;
+    Lumen::Object key; // NOLINT
     LumenLock(L);
     t = index2addr(L, idx);
     apiCheckValidIndex(L, t);
@@ -568,7 +568,7 @@ void Lua::State::GetField(int idx, const char *k) {
 
 void Lua::State::RawGet(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId t;
+    Lumen::Value t;
     LumenLock(L);
     t = index2addr(L, idx);
     LumenApiCheck(L, LumenTypeIsTable(t));
@@ -578,7 +578,7 @@ void Lua::State::RawGet(int idx) {
 
 void Lua::State::RawGetAt(int idx, int n) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o;
+    Lumen::Value o;
     LumenLock(L);
     o = index2addr(L, idx);
     LumenApiCheck(L, LumenTypeIsTable(o));
@@ -610,7 +610,7 @@ void *Lua::State::NewUserdata(Lua::UInteger size) {
 
 bool Lua::State::GetMetatable(int objIndex) {
     auto L = LuaToLumen(this);
-    const Lumen::Value *obj;
+    const Lumen::Object *obj;
     Lumen::Table *mt = nullptr;
     int res;
     LumenLock(L);
@@ -639,7 +639,7 @@ bool Lua::State::GetMetatable(int objIndex) {
 
 void Lua::State::GetFEnv(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o;
+    Lumen::Value o;
     LumenLock(L);
     o = index2addr(L, idx);
     apiCheckValidIndex(L, o);
@@ -665,7 +665,7 @@ void Lua::State::GetFEnv(int idx) {
 
 void Lua::State::SetTable(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId t;
+    Lumen::Value t;
     LumenLock(L);
     apiCheckElementCount(L, 2);
     t = index2addr(L, idx);
@@ -677,8 +677,8 @@ void Lua::State::SetTable(int idx) {
 
 void Lua::State::SetField(int idx, const char *k) {
     auto L = LuaToLumen(this);
-    Lumen::StkId t;
-    Lumen::Value key; // NOLINT
+    Lumen::Value t;
+    Lumen::Object key; // NOLINT
     LumenLock(L);
     apiCheckElementCount(L, 1);
     t = index2addr(L, idx);
@@ -691,7 +691,7 @@ void Lua::State::SetField(int idx, const char *k) {
 
 void Lua::State::RawSet(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId t;
+    Lumen::Value t;
     LumenLock(L);
     apiCheckElementCount(L, 2);
     t = index2addr(L, idx);
@@ -704,7 +704,7 @@ void Lua::State::RawSet(int idx) {
 
 void Lua::State::RawSetAt(int idx, int n) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o;
+    Lumen::Value o;
     LumenLock(L);
     apiCheckElementCount(L, 1);
     o = index2addr(L, idx);
@@ -717,7 +717,7 @@ void Lua::State::RawSetAt(int idx, int n) {
 
 bool Lua::State::SetMetatable(int objIndex) {
     auto L = LuaToLumen(this);
-    Lumen::Value *obj;
+    Lumen::Object *obj;
     Lumen::Table *mt;
     LumenLock(L);
     apiCheckElementCount(L, 1);
@@ -754,7 +754,7 @@ bool Lua::State::SetMetatable(int objIndex) {
 
 bool Lua::State::SetFEnv(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId o;
+    Lumen::Value o;
     int res = 1;
     LumenLock(L);
     apiCheckElementCount(L, 1);
@@ -795,7 +795,7 @@ LumenDo(                         \
 
 void Lua::State::Call(int nargs, int nResults) {
     auto L = LuaToLumen(this);
-    Lumen::StkId func;
+    Lumen::Value func;
     LumenLock(L);
     apiCheckElementCount(L, nargs + 1);
     checkResults(L, nargs, nResults);
@@ -816,7 +816,7 @@ Lua::Ret Lua::State::TryCall(int nargs, int nResults, int errFunc) {
     if (errFunc == 0)
         func = 0;
     else {
-        Lumen::StkId o = index2addr(L, errFunc);
+        Lumen::Value o = index2addr(L, errFunc);
         apiCheckValidIndex(L, o);
         func = LumenSaveStack(L, o);
     }
@@ -873,7 +873,7 @@ Lua::Ret Lua::State::Load(Lua::Reader reader, void *data, const char *chunkName)
 Lua::Ret Lua::State::Dump(Lua::Writer writer, void *data) {
     auto L = LuaToLumen(this);
     int status;
-    Lumen::Value *o;
+    Lumen::Object *o;
     LumenLock(L);
     apiCheckElementCount(L, 1);
     o = L->Top - 1;
@@ -1005,7 +1005,7 @@ Lua::Ret Lua::State::Error() {
 
 bool Lua::State::Next(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::StkId t;
+    Lumen::Value t;
     int more;
     LumenLock(L);
     t = index2addr(L, idx);
@@ -1083,7 +1083,7 @@ bool Lua::State::GetInfo(const char *what, Lua::DebugInfo *ar) {
     Lumen::CallInfo *ci = nullptr;
     LumenLock(L);
     if (*what == '>') {
-        Lumen::StkId func = L->Top - 1;
+        Lumen::Value func = L->Top - 1;
         LumenApiCheck(L, LumenTypeIsFunction(func));
         what++;  /* skip the '>' */
         f = LumenClosureValue(func);
@@ -1129,7 +1129,7 @@ const char *Lua::State::SetLocal(const Lua::DebugInfo *ar, int n) {
     return name;
 }
 
-static const char *aux_upvalue(Lumen::StkId fi, int n, Lumen::Value **val) {
+static const char *aux_upvalue(Lumen::Value fi, int n, Lumen::Object **val) {
     Lumen::Closure *f;
     if (!LumenTypeIsFunction(fi)) return nullptr;
     f = LumenClosureValue(fi);
@@ -1148,7 +1148,7 @@ static const char *aux_upvalue(Lumen::StkId fi, int n, Lumen::Value **val) {
 const char *Lua::State::GetUpValue(int funcIndex, int n) {
     auto L = LuaToLumen(this);
     const char *name;
-    Lumen::Value *val;
+    Lumen::Object *val;
     LumenLock(L);
     name = aux_upvalue(index2addr(L, funcIndex), n, &val);
     if (name) {
@@ -1162,8 +1162,8 @@ const char *Lua::State::GetUpValue(int funcIndex, int n) {
 const char *Lua::State::SetUpValue(int funcIndex, int n) {
     auto L = LuaToLumen(this);
     const char *name;
-    Lumen::Value *val;
-    Lumen::StkId fi;
+    Lumen::Object *val;
+    Lumen::Value fi;
     LumenLock(L);
     fi = index2addr(L, funcIndex);
     apiCheckElementCount(L, 1);

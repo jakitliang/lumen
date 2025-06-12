@@ -80,7 +80,7 @@ void Lumen::LexState::LexError(Lumen::LexState *ls, const char *msg, int token) 
 Lumen::String *Lumen::LexState::NewString(Lumen::LexState *ls, const char *str, Lumen::UInteger l) {
     Lumen::State *L = ls->L;
     Lumen::String *ts = Lumen::String::New(L, str, l);
-    Lumen::Value *o = Lumen::Table::SetString(L, ls->fs->Constants, ts);  /* entry for `str' */
+    Lumen::Object *o = Lumen::Table::SetString(L, ls->fs->Constants, ts);  /* entry for `str' */
     if (LumenTypeIsNil(o)) {
         LumenSetBoolValue(o, 1);  /* make sure `str` will not be collected */
         LumenGCCheckGC(L);

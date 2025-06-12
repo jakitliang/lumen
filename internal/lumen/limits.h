@@ -110,7 +110,7 @@ namespace Lumen {
 
     using State = LumenState;
 
-    struct BasicObject {
+    struct TypeInfo {
         Lumen::Byte Type;
     };
 
@@ -129,15 +129,19 @@ namespace Lumen {
         int b;
     };
 
-    struct Value : BasicObject {
+    struct Object : TypeInfo {
         Variant value;
     };
 
-    typedef Lumen::Value *StkId;  /* index to stack elements */
+    /**
+     * Value is a pointer to Object
+     * and index to stack elements
+     */
+    typedef Lumen::Object *Value;
 
     /**
      * Type for virtual-machine instructions
-     * must be an unsigned with (at least) 4 bytes (see details in lopcodes.h)
+     * must be an unsigned with (at least) 4 bytes (see details in opcodes.h)
      */
     using Instruction = UInt32;
 

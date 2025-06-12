@@ -44,7 +44,7 @@ static void stackInit(Lumen::State *L1, Lumen::State *L) {
     L1->BaseCICount = Lumen::BasicCISize;
     L1->EndCI = L1->BaseCI + L1->BaseCICount - 1;
     /* initialize stack array */
-    L1->Stack = LumenMemoryNewVector(L, Lumen::BasicStackSize + Lumen::ExtraStack, Lumen::Value);
+    L1->Stack = LumenMemoryNewVector(L, Lumen::BasicStackSize + Lumen::ExtraStack, Lumen::Object);
     L1->StackCount = Lumen::BasicStackSize + Lumen::ExtraStack;
     L1->Top = L1->Stack;
     L1->StackLast = L1->Stack + (L1->StackCount - Lumen::ExtraStack) - 1;
@@ -58,7 +58,7 @@ static void stackInit(Lumen::State *L1, Lumen::State *L) {
 
 static void stackFree(Lumen::State *L, Lumen::State *L1) {
     LumenMemoryFreeArray(L, L1->BaseCI, L1->BaseCICount, Lumen::CallInfo);
-    LumenMemoryFreeArray(L, L1->Stack, L1->StackCount, Lumen::Value);
+    LumenMemoryFreeArray(L, L1->Stack, L1->StackCount, Lumen::Object);
 }
 
 

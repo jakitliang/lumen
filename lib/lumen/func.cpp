@@ -48,7 +48,7 @@ Lumen::UpValue *Lumen::UpValue::New(Lumen::State *L) {
 }
 
 
-Lumen::UpValue *Lumen::UpValue::Find(Lumen::State *L, Lumen::StkId level) {
+Lumen::UpValue *Lumen::UpValue::Find(Lumen::State *L, Lumen::Value level) {
     Lumen::GlobalState *g = LumenGlobal(L);
     Lumen::GCObject **pp = &L->OpenedUpValue;
     Lumen::UpValue *p;
@@ -91,7 +91,7 @@ void Lumen::UpValue::Free(Lumen::State *L, Lumen::UpValue *uv) {
 }
 
 
-void Lumen::UpValue::Close(Lumen::State *L, Lumen::StkId level) {
+void Lumen::UpValue::Close(Lumen::State *L, Lumen::Value level) {
     Lumen::UpValue *uv;
     Lumen::GlobalState *g = LumenGlobal(L);
     while (L->OpenedUpValue != nullptr && (uv = LumenNullGCObject2UpValue(L->OpenedUpValue))->SelfValue >= level) {
@@ -139,7 +139,7 @@ Lumen::Proto *Lumen::Proto::New(Lumen::State *L) {
 void Lumen::Proto::Free(Lumen::State *L, Lumen::Proto *f) {
     LumenMemoryFreeArray(L, f->Code, f->CodeCount, Lumen::Instruction);
     LumenMemoryFreeArray(L, f->SubProto, f->SubProtoCount, Lumen::Proto *);
-    LumenMemoryFreeArray(L, f->K, f->KCount, Lumen::Value);
+    LumenMemoryFreeArray(L, f->K, f->KCount, Lumen::Object);
     LumenMemoryFreeArray(L, f->LineInfo, f->LineInfoCount, int);
     LumenMemoryFreeArray(L, f->LocalVars, f->LocalVarsCount, struct Lumen::LocalVar);
     LumenMemoryFreeArray(L, f->UpValues, f->UpValuesCount, Lumen::String *);

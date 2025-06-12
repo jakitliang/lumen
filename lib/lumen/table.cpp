@@ -91,7 +91,7 @@ static Lumen::Node *hashNum(const Lumen::Table *t, Lumen::Number n) {
 ** returns the `main' position of an element in a table (that is, the index
 ** of its hash value)
 */
-static Lumen::Node *mainPosition(const Lumen::Table *t, const Lumen::Value *key) {
+static Lumen::Node *mainPosition(const Lumen::Table *t, const Lumen::Object *key) {
     switch (LumenTypeOf(key)) {
         case Lumen::TypeNumber:
             return hashNum(t, LumenNumberValue(key));
@@ -111,7 +111,7 @@ static Lumen::Node *mainPosition(const Lumen::Table *t, const Lumen::Value *key)
 ** returns the index for `key' if `key' is an appropriate key to live in
 ** the array part of the table, -1 otherwise.
 */
-static int arrayIndex(const Lumen::Value *key) {
+static int arrayIndex(const Lumen::Object *key) {
     if (LumenTypeIsNumber(key)) {
         Lumen::Number n = LumenNumberValue(key);
         int k;
@@ -128,7 +128,7 @@ static int arrayIndex(const Lumen::Value *key) {
 ** elements in the array part, then elements in the hash part. The
 ** beginning of a traversal is signalled by -1.
 */
-static int findIndex(Lumen::State *L, Lumen::Table *t, Lumen::StkId key) {
+static int findIndex(Lumen::State *L, Lumen::Table *t, Lumen::Value key) {
     int i;
     if (LumenTypeIsNil(key)) return -1;  /* first iteration */
     i = arrayIndex(key);
@@ -152,7 +152,7 @@ static int findIndex(Lumen::State *L, Lumen::Table *t, Lumen::StkId key) {
 }
 
 
-int Lumen::Table::Next(Lumen::State *L, Lumen::Table *t, Lumen::StkId key) {
+int Lumen::Table::Next(Lumen::State *L, Lumen::Table *t, Lumen::Value key) {
     int i = findIndex(L, t, key);  /* find original element */
     for (i++; i < t->ArrayCount; i++) {  /* try first array part */
         if (!LumenTypeIsNil(&t->Array[i])) {  /* a non-nil value? */
@@ -201,7 +201,7 @@ static int computeSizes(const int nums[], int *nArray) {
 }
 
 
-static int countInt(const Lumen::Value *key, int *nums) {
+static int countInt(const Lumen::Object *key, int *nums) {
     int k = arrayIndex(key);
     if (0 < k && k <= LUA_MAX_A_SIZE) {  /* is `key' an appropriate array index? */
         nums[LumenTableCeilLog2(k)]++;  /* count as such */
@@ -254,7 +254,7 @@ static int numUseHash(const Lumen::Table *t, int *nums, int *pnasize) {
 
 static void setArrayVector(Lumen::State *L, Lumen::Table *t, int size) {
     int i;
-    LumenMemoryReAllocVector(L, t->Array, t->ArrayCount, size, Lumen::Value);
+    LumenMemoryReAllocVector(L, t->Array, t->ArrayCount, size, Lumen::Object);
     for (i = t->ArrayCount; i < size; i++)
         LumenSetNilValue(&t->Array[i]);
     t->ArrayCount = size;
@@ -302,7 +302,7 @@ static void resize(Lumen::State *L, Lumen::Table *t, int nArraySize, int nHashSi
                 LumenSetObjectT2T (L, Lumen::Table::SetNum(L, t, i + 1), &t->Array[i]);
         }
         /* shrink array */
-        LumenMemoryReAllocVector(L, t->Array, oldArraySize, nArraySize, Lumen::Value);
+        LumenMemoryReAllocVector(L, t->Array, oldArraySize, nArraySize, Lumen::Object);
     }
     /* re-insert elements from hash part */
     for (i = LumenTableTwoTo(oldHashSize) - 1; i >= 0; i--) {
@@ -321,7 +321,7 @@ void Lumen::Table::ResizeArray(Lumen::State *L, Lumen::Table *t, int nArraySize)
 }
 
 
-static void rehash(Lumen::State *L, Lumen::Table *t, const Lumen::Value *ek) {
+static void rehash(Lumen::State *L, Lumen::Table *t, const Lumen::Object *ek) {
     int nArraySize, na;
     int nums[LUA_MAX_BITS + 1];  /* nums[i] = number of keys between 2^(i-1) and 2^i */
     int i;
@@ -364,7 +364,7 @@ Lumen::Table *Lumen::Table::New(Lumen::State *L, int nArray, int nHash) {
 void Lumen::Table::Free(Lumen::State *L, Lumen::Table *t) {
     if (t->Nodes != dummyNode)
         LumenMemoryFreeArray(L, t->Nodes, LumenTableNodeCount(t), Lumen::Node);
-    LumenMemoryFreeArray(L, t->Array, t->ArrayCount, Lumen::Value);
+    LumenMemoryFreeArray(L, t->Array, t->ArrayCount, Lumen::Object);
     LumenMemoryFree(L, t);
 }
 
@@ -385,7 +385,7 @@ static Lumen::Node *getfreepos(Lumen::Table *t) {
 ** put new key in its main position; otherwise (colliding node is in its main 
 ** position), new key goes to an empty position. 
 */
-static Lumen::Value *newKey(Lumen::State *L, Lumen::Table *t, const Lumen::Value *key) {
+static Lumen::Object *newKey(Lumen::State *L, Lumen::Table *t, const Lumen::Object *key) {
     Lumen::Node *mp = mainPosition(t, key);
     if (!LumenTypeIsNil(LumenTableGetValue(mp)) || mp == dummyNode) {
         Lumen::Node *otherN;
@@ -421,7 +421,7 @@ static Lumen::Value *newKey(Lumen::State *L, Lumen::Table *t, const Lumen::Value
 /*
 ** search function for integers
 */
-const Lumen::Value *Lumen::Table::GetNum(Lumen::Table *t, int key) {
+const Lumen::Object *Lumen::Table::GetNum(Lumen::Table *t, int key) {
     /* (1 <= key && key <= t->sizeArray) */
     if (cast(unsigned int, key - 1) < cast(unsigned int, t->ArrayCount))
         return &t->Array[key - 1];
@@ -441,7 +441,7 @@ const Lumen::Value *Lumen::Table::GetNum(Lumen::Table *t, int key) {
 /*
 ** search function for strings
 */
-const Lumen::Value *Lumen::Table::GetString(Lumen::Table *t, Lumen::String *key) {
+const Lumen::Object *Lumen::Table::GetString(Lumen::Table *t, Lumen::String *key) {
     Lumen::Node *n = hashString(t, key);
     do {  /* check whether `key' is somewhere in the chain */
         if (LumenTypeIsString(LumenTableGetKey(n)) && LumenStringValue(LumenTableGetKey(n)) == key)
@@ -455,7 +455,7 @@ const Lumen::Value *Lumen::Table::GetString(Lumen::Table *t, Lumen::String *key)
 /*
 ** main search function
 */
-const Lumen::Value *Lumen::Table::Get(Lumen::Table *t, const Lumen::Value *key) {
+const Lumen::Object *Lumen::Table::Get(Lumen::Table *t, const Lumen::Object *key) {
     switch (LumenTypeOf(key)) {
         case Lumen::TypeNil:
             return Lumen::NilObject;
@@ -482,11 +482,11 @@ const Lumen::Value *Lumen::Table::Get(Lumen::Table *t, const Lumen::Value *key) 
 }
 
 
-Lumen::Value *Lumen::Table::Set(Lumen::State *L, Lumen::Table *t, const Lumen::Value *key) {
-    const Lumen::Value *p = Lumen::Table::Get(t, key);
+Lumen::Object *Lumen::Table::Set(Lumen::State *L, Lumen::Table *t, const Lumen::Object *key) {
+    const Lumen::Object *p = Lumen::Table::Get(t, key);
     t->Flags = 0;
     if (p != Lumen::NilObject)
-        return cast(Lumen::Value *, p);
+        return cast(Lumen::Object *, p);
     else {
         if (LumenTypeIsNil(key)) Lumen::Debug::RunError(L, "table index is nil");
         else if (LumenTypeIsNumber(key) && luai_numisnan(LumenNumberValue(key)))
@@ -496,24 +496,24 @@ Lumen::Value *Lumen::Table::Set(Lumen::State *L, Lumen::Table *t, const Lumen::V
 }
 
 
-Lumen::Value *Lumen::Table::SetNum(Lumen::State *L, Lumen::Table *t, int key) {
-    const Lumen::Value *p = Lumen::Table::GetNum(t, key);
+Lumen::Object *Lumen::Table::SetNum(Lumen::State *L, Lumen::Table *t, int key) {
+    const Lumen::Object *p = Lumen::Table::GetNum(t, key);
     if (p != Lumen::NilObject)
-        return cast(Lumen::Value *, p);
+        return cast(Lumen::Object *, p);
     else {
-        Lumen::Value k;
+        Lumen::Object k;
         LumenSetNumberValue(&k, cast_num(key));
         return newKey(L, t, &k);
     }
 }
 
 
-Lumen::Value *Lumen::Table::SetString(Lumen::State *L, Lumen::Table *t, Lumen::String *key) {
-    const Lumen::Value *p = Lumen::Table::GetString(t, key);
+Lumen::Object *Lumen::Table::SetString(Lumen::State *L, Lumen::Table *t, Lumen::String *key) {
+    const Lumen::Object *p = Lumen::Table::GetString(t, key);
     if (p != Lumen::NilObject)
-        return cast(Lumen::Value *, p);
+        return cast(Lumen::Object *, p);
     else {
-        Lumen::Value k;
+        Lumen::Object k;
         LumenSetStringValue(L, &k, key);
         return newKey(L, t, &k);
     }
@@ -569,7 +569,7 @@ int Lumen::Table::GetN(Lumen::Table *t) {
 
 #if defined(LUA_DEBUG)
 
-Lumen::Node *Lumen::Table::MainPosition (const Lumen::Table *t, const Lumen::Value *key) {
+Lumen::Node *Lumen::Table::MainPosition (const Lumen::Table *t, const Lumen::Object *key) {
   return mainPosition(t, key);
 }
 

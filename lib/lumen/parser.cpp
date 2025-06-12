@@ -357,7 +357,7 @@ static void closeFunc(Lumen::LexState *ls) {
     f->CodeCount = fs->PC;
     LumenMemoryReAllocVector(L, f->LineInfo, f->LineInfoCount, fs->PC, int);
     f->LineInfoCount = fs->PC;
-    LumenMemoryReAllocVector(L, f->K, f->KCount, fs->ConstantsCount, Lumen::Value);
+    LumenMemoryReAllocVector(L, f->K, f->KCount, fs->ConstantsCount, Lumen::Object);
     f->KCount = fs->ConstantsCount;
     LumenMemoryReAllocVector(L, f->SubProto, f->SubProtoCount, fs->ProtoCount, Lumen::Proto *);
     f->SubProtoCount = fs->ProtoCount;

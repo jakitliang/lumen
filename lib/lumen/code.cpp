@@ -185,9 +185,9 @@ static inline void freeExp(Lumen::FuncState *fs, Lumen::ExpDesc *e) {
 }
 
 
-static int addK(Lumen::FuncState *fs, Lumen::Value *k, Lumen::Value *v) {
+static int addK(Lumen::FuncState *fs, Lumen::Object *k, Lumen::Object *v) {
     Lumen::State *L = fs->L;
-    Lumen::Value *idx = Lumen::Table::Set(L, fs->Constants, k);
+    Lumen::Object *idx = Lumen::Table::Set(L, fs->Constants, k);
     Lumen::Proto *f = fs->Func;
     int oldSize = f->KCount;
     if (LumenTypeIsNumber(idx)) {
@@ -195,7 +195,7 @@ static int addK(Lumen::FuncState *fs, Lumen::Value *k, Lumen::Value *v) {
         return cast_int(LumenNumberValue(idx));
     } else {  /* constant not found; create a new entry */
         LumenSetNumberValue(idx, cast_num(fs->ConstantsCount));
-        LumenMemoryGrowVector(L, f->K, fs->ConstantsCount, f->KCount, Lumen::Value,
+        LumenMemoryGrowVector(L, f->K, fs->ConstantsCount, f->KCount, Lumen::Object,
                             Lumen::Code::BxMaxArg, "constant table overflow");
         while (oldSize < f->KCount) LumenSetNilValue(&f->K[oldSize++]);
         LumenSetObject(L, &f->K[fs->ConstantsCount], v);
@@ -206,28 +206,28 @@ static int addK(Lumen::FuncState *fs, Lumen::Value *k, Lumen::Value *v) {
 
 
 int Lumen::FuncState::StringK(Lumen::FuncState *fs, Lumen::String *s) {
-    Lumen::Value o; // NOLINT
+    Lumen::Object o; // NOLINT
     LumenSetStringValue(fs->L, &o, s);
     return addK(fs, &o, &o);
 }
 
 
 int Lumen::FuncState::NumberK(Lumen::FuncState *fs, Lumen::Number r) {
-    Lumen::Value o; // NOLINT
+    Lumen::Object o; // NOLINT
     LumenSetNumberValue(&o, r);
     return addK(fs, &o, &o);
 }
 
 
 static inline int boolK(Lumen::FuncState *fs, int b) {
-    Lumen::Value o; // NOLINT
+    Lumen::Object o; // NOLINT
     LumenSetBoolValue(&o, b);
     return addK(fs, &o, &o);
 }
 
 
 static inline int nilK(Lumen::FuncState *fs) {
-    Lumen::Value k, v; // NOLINT
+    Lumen::Object k, v; // NOLINT
     LumenSetNilValue(&v);
     /* cannot use nil as key; instead use table itself to represent nil */
     LumenSetTableValue(fs->L, &k, fs->Constants);

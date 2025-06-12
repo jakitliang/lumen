@@ -17,7 +17,7 @@ namespace Lumen {
      * Execute a protected call.
      */
     struct ProtectedCall {
-        Lumen::StkId Func;
+        Lumen::Value Func;
         int NResults;
 
         static void Call(Lumen::State *L, void *ud);

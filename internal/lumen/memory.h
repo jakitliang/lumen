@@ -43,7 +43,7 @@
 
 /**
  * @param L Lumen::State
- * @param v Lumen::Value
+ * @param v Lumen::Object
  * @param oldN int old number of elements
  * @param n int new number of elements
  * @param t T type of elements

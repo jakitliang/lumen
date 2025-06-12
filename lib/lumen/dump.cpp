@@ -71,7 +71,7 @@ static void DumpConstants(const Lumen::Proto *f, DumpState *D) {
     int i, n = f->KCount;
     DumpInt(n, D);
     for (i = 0; i < n; i++) {
-        const Lumen::Value *o = &f->K[i];
+        const Lumen::Object *o = &f->K[i];
         DumpChar(LumenTypeOf(o), D);
         switch (LumenTypeOf(o)) {
             case Lumen::TypeNil:

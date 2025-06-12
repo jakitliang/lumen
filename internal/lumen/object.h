@@ -42,7 +42,7 @@ enum {
 };
 
 namespace Lumen {
-    struct Object : BasicObject {
+    struct BasicObject : TypeInfo {
         /**
          * Layout for bit use in `marked' field:\n
          * bit 0 - object is white (type 0)\n
@@ -59,7 +59,7 @@ namespace Lumen {
         Lumen::GCObject *GCNext;
     };
 
-    struct String : Object {
+    struct String : BasicObject {
         Lumen::Byte Reserved;
         unsigned int Hash;
         Lumen::UInteger Length;
@@ -74,38 +74,38 @@ namespace Lumen {
     };
 
     union Key {
-        struct Value : Lumen::Value {
+        struct Value : Lumen::Object {
             struct Node *Next;  /* for chaining */
         } KeyNext;
-        Lumen::Value KeyValue;
+        Lumen::Object KeyValue;
     };
 
     struct Node {
-        Lumen::Value Value;
+        Lumen::Object Value;
         Lumen::Key Key;
     };
 
-    struct Table : Object {
+    struct Table : BasicObject {
         Lumen::Byte Flags;  /* 1<<p means taggedMethod(p) is not present */
         Lumen::Byte NodeCount;  /* log2 of size of `node` array */
         Table *Metatable;
-        Lumen::Value *Array;  /* array part */
+        Lumen::Object *Array;  /* array part */
         Lumen::Node *Nodes;
         Lumen::Node *LastFreeNode;  /* any free position is before this position */
         Lumen::GCObject *GCList;
         int ArrayCount;  /* size of `array` array */
 
-        static const Lumen::Value *GetNum(Lumen::Table *t, int key);
+        static const Lumen::Object *GetNum(Lumen::Table *t, int key);
 
-        static Lumen::Value *SetNum(Lumen::State *L, Lumen::Table *t, int key);
+        static Lumen::Object *SetNum(Lumen::State *L, Lumen::Table *t, int key);
 
-        static const Lumen::Value *GetString(Lumen::Table *t, Lumen::String *key);
+        static const Lumen::Object *GetString(Lumen::Table *t, Lumen::String *key);
 
-        static Lumen::Value *SetString(Lumen::State *L, Lumen::Table *t, Lumen::String *key);
+        static Lumen::Object *SetString(Lumen::State *L, Lumen::Table *t, Lumen::String *key);
 
-        static const Lumen::Value *Get(Lumen::Table *t, const Lumen::Value *key);
+        static const Lumen::Object *Get(Lumen::Table *t, const Lumen::Object *key);
 
-        static Lumen::Value *Set(Lumen::State *L, Lumen::Table *t, const Lumen::Value *key);
+        static Lumen::Object *Set(Lumen::State *L, Lumen::Table *t, const Lumen::Object *key);
 
         static Lumen::Table *New(Lumen::State *L, int nArray, int nHash);
 
@@ -113,18 +113,18 @@ namespace Lumen {
 
         static void Free(Lumen::State *L, Lumen::Table *t);
 
-        static int Next(Lumen::State *L, Lumen::Table *t, Lumen::StkId key);
+        static int Next(Lumen::State *L, Lumen::Table *t, Lumen::Value key);
 
         static int GetN(Lumen::Table *t);
 
 #if defined(LUA_DEBUG)
-        static Lumen::Node *MainPosition(const Lumen::Table *t, const Lumen::Value *key);
+        static Lumen::Node *MainPosition(const Lumen::Table *t, const Lumen::Object *key);
 
         static int IsDummy(Lumen::Node *n);
 #endif
     };
 
-    struct Userdata : Object {
+    struct Userdata : BasicObject {
         Table *Metatable;
         Table *Env;
         Lumen::UInteger Length;
@@ -138,7 +138,7 @@ namespace Lumen {
         int EndPC;    /* first point where variable is dead */
     };
 
-    struct Proto : Object {
+    struct Proto : BasicObject {
         /**
          * masks for new-style vararg
          */
@@ -149,7 +149,7 @@ namespace Lumen {
             VarargIsNeedsArg = 4
         };
 
-        Lumen::Value *K;  /* constants used by the function */
+        Lumen::Object *K;  /* constants used by the function */
         Lumen::Instruction *Code;
         Lumen::Proto **SubProto;  /* functions defined inside the function */
         int *LineInfo;  /* map from opcodes to source lines */
@@ -178,10 +178,10 @@ namespace Lumen {
                                         int pc);
     };
 
-    struct UpValue : Object {
-        Lumen::Value *SelfValue;  /* points to stack or to its own value */
+    struct UpValue : BasicObject {
+        Lumen::Object *SelfValue;  /* points to stack or to its own value */
         union {
-            Lumen::Value Value;  /* the value (when closed) */
+            Lumen::Object Value;  /* the value (when closed) */
             struct {  /* double linked list (when open) */
                 Lumen::UpValue *Prev;
                 Lumen::UpValue *Next;
@@ -190,14 +190,14 @@ namespace Lumen {
 
         static Lumen::UpValue *New(Lumen::State *L);
 
-        static Lumen::UpValue *Find(Lumen::State *L, Lumen::StkId level);
+        static Lumen::UpValue *Find(Lumen::State *L, Lumen::Value level);
 
-        static void Close(Lumen::State *L, Lumen::StkId level);
+        static void Close(Lumen::State *L, Lumen::Value level);
 
         static void Free(Lumen::State *L, Lumen::UpValue *uv);
     };
 
-    struct BasicClosure : Lumen::Object {
+    struct BasicClosure : BasicObject {
         Lumen::Byte IsC;
         Lumen::Byte NUpValues;
         Lumen::GCObject *GCList;
@@ -208,7 +208,7 @@ namespace Lumen {
 
     struct CClosure : Lumen::BasicClosure {
         Lumen::Delegate Func;
-        Lumen::Value UpValues[1];
+        Lumen::Object UpValues[1];
 
         static Lumen::Closure *New(Lumen::State *L, int nElements, Lumen::Table *e);
     };
@@ -240,7 +240,7 @@ namespace Lumen {
 
     int FB2Int(int x);
 
-    int RawEqualObject(const Lumen::Value *t1, const Lumen::Value *t2);
+    int RawEqualObject(const Lumen::Object *t1, const Lumen::Object *t2);
 
     int String2Decimal(const char *s, Lumen::Number *result);
 
@@ -251,9 +251,9 @@ namespace Lumen {
 
     void ChunkId(char *out, const char *source, Lumen::UInteger buffLen);
 
-    LUAI_DATA const Lumen::Value NilValue;
+    LUAI_DATA const Lumen::Object NilValue;
 
-    inline const Lumen::Value *NilObject = &NilValue;
+    inline const Lumen::Object *NilObject = &NilValue;
 }
 
 
@@ -298,60 +298,60 @@ LumenAssert(!LumenIsCollectable(obj) || \
 #define LumenSetNilValue(obj) ((obj)->Type=Lumen::TypeNil)
 
 #define LumenSetNumberValue(obj, x) \
-LumenDo( Lumen::Value *i_o=(obj); i_o->value.n=(x); i_o->Type=Lumen::TypeNumber; )
+LumenDo( Lumen::Object *i_o=(obj); i_o->value.n=(x); i_o->Type=Lumen::TypeNumber; )
 
 #define LumenSetLUDataValue(obj, x) \
-LumenDo( Lumen::Value *i_o=(obj); i_o->value.p=(x); i_o->Type=Lumen::TypeLightUserdata; )
+LumenDo( Lumen::Object *i_o=(obj); i_o->value.p=(x); i_o->Type=Lumen::TypeLightUserdata; )
 
 #define LumenSetBoolValue(obj, x) \
-LumenDo( Lumen::Value *i_o=(obj); i_o->value.b=(x); i_o->Type=Lumen::TypeBool; )
+LumenDo( Lumen::Object *i_o=(obj); i_o->value.b=(x); i_o->Type=Lumen::TypeBool; )
 
 #define LumenSetStringValue(L, obj, x) \
 LumenDo(                               \
-    Lumen::Value *i_o=(obj);           \
+    Lumen::Object *i_o=(obj);           \
     i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeString; \
     LumenCheckLiveness(LumenGlobal(L), i_o);                              \
 )
 
 #define LumenSetUDataValue(L, obj, x) \
 LumenDo(                              \
-    Lumen::Value *i_o=(obj);          \
+    Lumen::Object *i_o=(obj);          \
     i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeUserdata; \
     LumenCheckLiveness(LumenGlobal(L), i_o);                                \
 )
 
 #define LumenSetThreadValue(L, obj, x) \
 LumenDo(                               \
-    Lumen::Value *i_o=(obj);           \
+    Lumen::Object *i_o=(obj);           \
     i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeThread; \
     LumenCheckLiveness(LumenGlobal(L), i_o);                              \
 )
 
 #define LumenSetClosureValue(L, obj, x) \
 LumenDo(                                \
-    Lumen::Value *i_o=(obj);            \
+    Lumen::Object *i_o=(obj);            \
     i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeFunction; \
     LumenCheckLiveness(LumenGlobal(L), i_o);                                \
 )
 
 #define LumenSetTableValue(L, obj, x) \
 LumenDo(                              \
-    Lumen::Value *i_o=(obj);          \
+    Lumen::Object *i_o=(obj);          \
     i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeTable; \
     LumenCheckLiveness(LumenGlobal(L), i_o);                             \
 )
 
 #define LumenSetProtoValue(L, obj, x) \
 LumenDo(                              \
-    Lumen::Value *i_o=(obj);          \
+    Lumen::Object *i_o=(obj);          \
     i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=LUA_TPROTO; \
     LumenCheckLiveness(LumenGlobal(L),i_o);                             \
 )
 
 #define LumenSetObject(L, obj1, obj2) \
 LumenDo(                              \
-    const Lumen::Value *o2=(obj2);    \
-    Lumen::Value *o1=(obj1);          \
+    const Lumen::Object *o2=(obj2);    \
+    Lumen::Object *o1=(obj1);          \
     o1->value = o2->value;          \
     o1->Type=o2->Type;              \
     LumenCheckLiveness(LumenGlobal(L),o1); \
@@ -391,10 +391,10 @@ LumenDo(                              \
 #define LumenIsLFunction(o)    (LumenTypeOf(o) == Lumen::TypeFunction && !LumenClosureValue(o)->AsC.IsC)
 
 #define LumenCClosureSize(n)    (cast(int, sizeof(Lumen::CClosure)) + \
-                         cast(int, sizeof(Lumen::Value)*((n)-1)))
+                         cast(int, sizeof(Lumen::Object)*((n)-1)))
 
 #define LumenLClosureSize(n)    (cast(int, sizeof(Lumen::LClosure)) + \
-                         cast(int, sizeof(Lumen::Value *)*((n)-1)))
+                         cast(int, sizeof(Lumen::Object *)*((n)-1)))
 
 // Other helpers
 
@@ -425,7 +425,7 @@ inline int Lumen::FB2Int(int x) {
     else return ((x & 7) + 8) << (e - 1);
 }
 
-inline int Lumen::RawEqualObject(const Lumen::Value *t1, const Lumen::Value *t2) {
+inline int Lumen::RawEqualObject(const Lumen::Object *t1, const Lumen::Object *t2) {
     if (LumenTypeOf(t1) != LumenTypeOf(t2)) return 0;
     switch (LumenTypeOf(t1)) {
         case Lumen::TypeNil:

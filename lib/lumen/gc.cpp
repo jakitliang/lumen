@@ -165,7 +165,7 @@ static int traverseTable(Lumen::GlobalState *g, Lumen::Table *h) {
     int i;
     int weakKey = 0;
     int weakValue = 0;
-    const Lumen::Value *mode;
+    const Lumen::Object *mode;
     if (h->Metatable) markObject(g, h->Metatable);
     mode = LumenTMGetGlobalFast(g, h->Metatable, Lumen::TM::NameMode);
     if (mode && LumenTypeIsString(mode)) {  /* is there a weak mode? */
@@ -239,7 +239,7 @@ static void traverseClosure(Lumen::GlobalState *g, Lumen::Closure *cl) {
 }
 
 
-static void checkStackSizes(Lumen::State *L, Lumen::StkId max) {
+static void checkStackSizes(Lumen::State *L, Lumen::Value max) {
     int ci_used = cast_int(L->CallInfo - L->BaseCI);  /* number of `ci' in use */
     int s_used = cast_int(max - L->Stack);  /* part of stack in use */
     if (L->BaseCICount > LUAI_MAXCALLS)  /* handling overflow? */
@@ -255,7 +255,7 @@ static void checkStackSizes(Lumen::State *L, Lumen::StkId max) {
 
 
 static void traverseStack(Lumen::GlobalState *g, Lumen::State *l) {
-    Lumen::StkId o, lim;
+    Lumen::Value o, lim;
     Lumen::CallInfo *ci;
     markValue(g, LumenGlobalTable(l));
     lim = l->Top;
@@ -284,7 +284,7 @@ static Lumen::MemoryDelta propagateMark(Lumen::GlobalState *g) {
             g->GCGray = h->GCList;
             if (traverseTable(g, h))  /* table is weak? */
                 black2gray(o);  /* keep it gray */
-            return sizeof(Lumen::Table) + sizeof(Lumen::Value) * h->ArrayCount +
+            return sizeof(Lumen::Table) + sizeof(Lumen::Object) * h->ArrayCount +
                    sizeof(Lumen::Node) * LumenTableNodeCount(h);
         }
         case Lumen::TypeFunction: {
@@ -301,7 +301,7 @@ static Lumen::MemoryDelta propagateMark(Lumen::GlobalState *g) {
             g->GCGrayAgain = o;
             black2gray(o);
             traverseStack(g, th);
-            return sizeof(Lumen::State) + sizeof(Lumen::Value) * th->StackCount +
+            return sizeof(Lumen::State) + sizeof(Lumen::Object) * th->StackCount +
                    sizeof(Lumen::CallInfo) * th->BaseCICount;
         }
         case LUA_TPROTO: {
@@ -310,7 +310,7 @@ static Lumen::MemoryDelta propagateMark(Lumen::GlobalState *g) {
             traverseProto(g, p);
             return sizeof(Lumen::Proto) + sizeof(Lumen::Instruction) * p->CodeCount +
                    sizeof(Lumen::Proto *) * p->SubProtoCount +
-                   sizeof(Lumen::Value) * p->KCount +
+                   sizeof(Lumen::Object) * p->KCount +
                    sizeof(int) * p->LineInfoCount +
                    sizeof(Lumen::LocalVar) * p->LocalVarsCount +
                    sizeof(Lumen::String *) * p->UpValuesCount;
@@ -336,7 +336,7 @@ static Lumen::UInteger propagateAll(Lumen::GlobalState *g) {
 ** other objects: if really collected, cannot keep them; for userdata
 ** being finalized, keep them in keys, but not in values
 */
-static int isCleared(const Lumen::Value *o, int isKey) {
+static int isCleared(const Lumen::Object *o, int isKey) {
     if (!LumenIsCollectable(o)) return 0;
     if (LumenTypeIsString(o)) {
         stringMark(LumenStringValue(o));  /* strings are `values', so are never weak */
@@ -358,7 +358,7 @@ static void clearTable(Lumen::GCObject *l) {
                    LumenGCTestBit(h->Marked, Lumen::GC::MarkKeyWeakBit));
         if (LumenGCTestBit(h->Marked, Lumen::GC::MarkValueWeakBit)) {
             while (i--) {
-                Lumen::Value *o = &h->Array[i];
+                Lumen::Object *o = &h->Array[i];
                 if (isCleared(o, 0))  /* value was collected? */
                     LumenSetNilValue(o);  /* remove value */
             }
@@ -455,7 +455,7 @@ static void doGCMetatable(Lumen::State *L) {
     Lumen::GlobalState *g = LumenGlobal(L);
     Lumen::GCObject *o = g->GCTMUData->AsObject.GCNext;  /* get first element */
     Lumen::Userdata *uData = LumenGCObject2Userdata(o);
-    const Lumen::Value *tm;
+    const Lumen::Object *tm;
     /* remove uData from `tmUData' */
     if (o == g->GCTMUData)  /* last element? */
         g->GCTMUData = nullptr;

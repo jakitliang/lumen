@@ -28,9 +28,9 @@ namespace Lumen {
      * Information about a call
      */
     struct CallInfo {
-        Lumen::StkId Base;  /* base for this function */
-        Lumen::StkId Func;  /* function index in the stack */
-        Lumen::StkId Top;  /* top for this function */
+        Lumen::Value Base;  /* base for this function */
+        Lumen::Value Func;  /* function index in the stack */
+        Lumen::Value Top;  /* top for this function */
         const Lumen::Instruction *SavedPC;
         int NResults;  /* expected number of results from this function */
         int NTailCalls;  /* number of tail calls lost under this entry */
@@ -60,7 +60,7 @@ namespace Lumen {
         int GCPause;  /* size of pause between successive GCs */
         int GCStepMul;  /* GC `granularity' */
         Lumen::Delegate Panic;  /* to be called in unprotected errors */
-        Lumen::Value Registry;
+        Lumen::Object Registry;
         Lumen::State *MainThread;
         Lumen::UpValue UpValueHead;  /* head of double-linked list of all open upValues */
         Lumen::Table *Metatable[LUA_NUM_TAGS];  /* metatables for basic types */
@@ -83,15 +83,15 @@ namespace Lumen {
 /*
 ** `per thread' state
 */
-struct LumenState : Lumen::Object {
+struct LumenState : Lumen::BasicObject {
     Lumen::Byte Status;
-    Lumen::StkId Top;  /* first free slot in the stack */
-    Lumen::StkId Base;  /* base of current function */
+    Lumen::Value Top;  /* first free slot in the stack */
+    Lumen::Value Base;  /* base of current function */
     Lumen::GlobalState *GlobalState;
     Lumen::CallInfo *CallInfo;  /* call info for current function */
     const Lumen::Instruction *SavedPC;  /* `SavedPC` (Saved Position of Code) of current function */
-    Lumen::StkId StackLast;  /* last free slot in the stack */
-    Lumen::StkId Stack;  /* stack base */
+    Lumen::Value StackLast;  /* last free slot in the stack */
+    Lumen::Value Stack;  /* stack base */
     Lumen::CallInfo *EndCI;  /* points after end of ci array*/
     Lumen::CallInfo *BaseCI;  /* array of Lumen::CallInfo's */
     int StackCount;
@@ -103,8 +103,8 @@ struct LumenState : Lumen::Object {
     int BaseHookCount;
     int HookCount;
     Lumen::Hook Hook;
-    Lumen::Value Global;  /* table of globals */
-    Lumen::Value Env;  /* temporary place for environments */
+    Lumen::Object Global;  /* table of globals */
+    Lumen::Object Env;  /* temporary place for environments */
     Lumen::GCObject *OpenedUpValue;  /* list of open upValues in this stack */
     Lumen::GCObject *GCList;
     Lumen::LongJump *ErrorJmp;  /* current error recover point */
@@ -131,7 +131,7 @@ namespace Lumen {
     */
     struct GCObject {
         union {
-            Lumen::Object AsObject;
+            Lumen::BasicObject AsObject;
             Lumen::String AsString;
             Lumen::Userdata AsUserdata;
             Lumen::Closure AsClosure;

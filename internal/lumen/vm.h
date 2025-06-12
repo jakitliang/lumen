@@ -18,19 +18,19 @@
 #include "lumen/tm.h"
 
 namespace Lumen::VM {
-    int LessThan(Lumen::State *L, const Lumen::Value *l, const Lumen::Value *r);
+    int LessThan(Lumen::State *L, const Lumen::Object *l, const Lumen::Object *r);
 
-    int EqualVal(Lumen::State *L, const Lumen::Value *t1, const Lumen::Value *t2);
+    int EqualVal(Lumen::State *L, const Lumen::Object *t1, const Lumen::Object *t2);
 
-    const Lumen::Value *ToNumber(const Lumen::Value *obj, Lumen::Value *n);
+    const Lumen::Object *ToNumber(const Lumen::Object *obj, Lumen::Object *n);
 
-    int ToString(Lumen::State *L, Lumen::StkId obj);
+    int ToString(Lumen::State *L, Lumen::Value obj);
 
-    void GetTable(Lumen::State *L, const Lumen::Value *t, Lumen::Value *key,
-                  Lumen::StkId val);
+    void GetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object *key,
+                  Lumen::Value val);
 
-    void SetTable(Lumen::State *L, const Lumen::Value *t, Lumen::Value *key,
-                  Lumen::StkId val);
+    void SetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object *key,
+                  Lumen::Value val);
 
     void Execute(Lumen::State *L, int nExecCalls);
 
@@ -44,7 +44,7 @@ namespace Lumen::VM {
 
 #define LumenVMEqualObj(L, o1, o2)    (LumenTypeOf(o1) == LumenTypeOf(o2) && Lumen::VM::EqualVal(L, o1, o2))
 
-inline const Lumen::Value *Lumen::VM::ToNumber(const Lumen::Value *obj, Lumen::Value *n) {
+inline const Lumen::Object *Lumen::VM::ToNumber(const Lumen::Object *obj, Lumen::Object *n) {
     Lumen::Number num;
     if (LumenTypeIsNumber(obj)) return obj;
     if (LumenTypeIsString(obj) && Lumen::String2Decimal(LumenStringValue2CString(obj), &num)) {
@@ -54,7 +54,7 @@ inline const Lumen::Value *Lumen::VM::ToNumber(const Lumen::Value *obj, Lumen::V
         return nullptr;
 }
 
-inline int Lumen::VM::ToString(Lumen::State *L, Lumen::StkId obj) {
+inline int Lumen::VM::ToString(Lumen::State *L, Lumen::Value obj) {
     if (!LumenTypeIsNumber(obj))
         return 0;
     else {

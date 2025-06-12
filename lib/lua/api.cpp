@@ -43,11 +43,11 @@ LumenDo(                \
     L->Top++;         \
 )
 
-static Lumen::Value *index2addr(Lumen::State *L, int idx) {
+static Lumen::Object *index2addr(Lumen::State *L, int idx) {
     if (idx > 0) {
-        Lumen::Value *o = L->Base + (idx - 1);
+        Lumen::Object *o = L->Base + (idx - 1);
         LumenApiCheck(L, idx <= L->CallInfo->Top - L->Base);
-        if (o >= L->Top) return cast(Lumen::Value *, Lumen::NilObject);
+        if (o >= L->Top) return cast(Lumen::Object *, Lumen::NilObject);
         else return o;
     } else if (idx > LUA_REGISTRYINDEX) {
         LumenApiCheck(L, idx != 0 && -idx <= L->Top - L->Base);
@@ -68,7 +68,7 @@ static Lumen::Value *index2addr(Lumen::State *L, int idx) {
                 idx = LUA_GLOBALSINDEX - idx;
                 return (idx <= func->AsC.NUpValues)
                        ? &func->AsC.UpValues[idx - 1]
-                       : cast(Lumen::Value *, Lumen::NilObject);
+                       : cast(Lumen::Object *, Lumen::NilObject);
             }
         }
 }
@@ -84,7 +84,7 @@ static Lumen::Table *getCurEnv(Lumen::State *L) {
 }
 
 
-void lua_PushObject(Lumen::State *L, const Lumen::Value *o) {
+void lua_PushObject(Lumen::State *L, const Lumen::Object *o) {
     LumenSetObject2S(L, L->Top, o);
     apiIncrTop(L);
 }
@@ -179,7 +179,7 @@ LUA_API void lua_settop(lua_State *L, int idx) {
 
 
 LUA_API void lua_remove(lua_State *L, int idx) {
-    Lumen::StkId p;
+    Lumen::Value p;
     LumenLock(L);
     p = index2addr(L, idx);
     apiCheckValidIndex(L, p);
@@ -190,8 +190,8 @@ LUA_API void lua_remove(lua_State *L, int idx) {
 
 
 LUA_API void lua_insert(lua_State *L, int idx) {
-    Lumen::StkId p;
-    Lumen::StkId q;
+    Lumen::Value p;
+    Lumen::Value q;
     LumenLock(L);
     p = index2addr(L, idx);
     apiCheckValidIndex(L, p);
@@ -202,7 +202,7 @@ LUA_API void lua_insert(lua_State *L, int idx) {
 
 
 LUA_API void lua_replace(lua_State *L, int idx) {
-    Lumen::StkId o;
+    Lumen::Value o;
     LumenLock(L);
     /* explicit test for incompatible code */
     if (idx == LUA_ENVIRONINDEX && L->CallInfo == L->BaseCI)
@@ -240,7 +240,7 @@ LUA_API void lua_pushvalue(lua_State *L, int idx) {
 
 
 LUA_API int lua_type(lua_State *L, int idx) {
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     return (o == Lumen::NilObject) ? LUA_TNONE : LumenTypeOf(o);
 }
 
@@ -252,14 +252,14 @@ LUA_API const char *lua_typename(lua_State *L, int t) {
 
 
 LUA_API int lua_iscfunction(lua_State *L, int idx) {
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     return LumenIsCFunction(o);
 }
 
 
 LUA_API int lua_isnumber(lua_State *L, int idx) {
-    Lumen::Value n; // NOLINT
-    const Lumen::Value *o = index2addr(L, idx);
+    Lumen::Object n; // NOLINT
+    const Lumen::Object *o = index2addr(L, idx);
     return LumenVMToNumber(o, &n);
 }
 
@@ -271,21 +271,21 @@ LUA_API int lua_isstring(lua_State *L, int idx) {
 
 
 LUA_API int lua_isuserdata(lua_State *L, int idx) {
-    const Lumen::Value *o = index2addr(L, idx);
+    const Lumen::Object *o = index2addr(L, idx);
     return (LumenTypeIsUData(o) || LumenTypeIsLUData(o));
 }
 
 
 LUA_API int lua_rawequal(lua_State *L, int index1, int index2) {
-    Lumen::StkId o1 = index2addr(L, index1);
-    Lumen::StkId o2 = index2addr(L, index2);
+    Lumen::Value o1 = index2addr(L, index1);
+    Lumen::Value o2 = index2addr(L, index2);
     return (o1 == Lumen::NilObject || o2 == Lumen::NilObject) ? 0
                                                               : Lumen::RawEqualObject(o1, o2);
 }
 
 
 LUA_API int lua_equal(lua_State *L, int index1, int index2) {
-    Lumen::StkId o1, o2;
+    Lumen::Value o1, o2;
     int i;
     LumenLock(L);  /* may call tag method */
     o1 = index2addr(L, index1);
@@ -297,7 +297,7 @@ LUA_API int lua_equal(lua_State *L, int index1, int index2) {
 
 
 LUA_API int lua_lessthan(lua_State *L, int index1, int index2) {
-    Lumen::StkId o1, o2;
+    Lumen::Value o1, o2;
     int i;
     LumenLock(L);  /* may call tag method */
     o1 = index2addr(L, index1);
@@ -311,8 +311,8 @@ LUA_API int lua_lessthan(lua_State *L, int index1, int index2) {
 
 
 LUA_API Lumen::Number lua_tonumber(lua_State *L, int idx) {
-    Lumen::Value n; // NOLINT
-    const Lumen::Value *o = index2addr(L, idx);
+    Lumen::Object n; // NOLINT
+    const Lumen::Object *o = index2addr(L, idx);
     if (LumenVMToNumber(o, &n))
         return LumenNumberValue(o);
     else
@@ -321,8 +321,8 @@ LUA_API Lumen::Number lua_tonumber(lua_State *L, int idx) {
 
 
 LUA_API Lumen::Integer lua_tointeger(lua_State *L, int idx) {
-    Lumen::Value n; // NOLINT
-    const Lumen::Value *o = index2addr(L, idx);
+    Lumen::Object n; // NOLINT
+    const Lumen::Object *o = index2addr(L, idx);
     if (LumenVMToNumber(o, &n)) {
         Lumen::Integer res;
         Lumen::Number num = LumenNumberValue(o);
@@ -334,13 +334,13 @@ LUA_API Lumen::Integer lua_tointeger(lua_State *L, int idx) {
 
 
 LUA_API int lua_toboolean(lua_State *L, int idx) {
-    const Lumen::Value *o = index2addr(L, idx);
+    const Lumen::Object *o = index2addr(L, idx);
     return !LumenIsFalse(o);
 }
 
 
 LUA_API const char *lua_tolstring(lua_State *L, int idx, size_t *len) {
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     if (!LumenTypeIsString(o)) {
         LumenLock(L);  /* `Lumen::VM::ToString' may create a new string */
         if (!Lumen::VM::ToString(L, o)) {  /* conversion failed? */
@@ -358,7 +358,7 @@ LUA_API const char *lua_tolstring(lua_State *L, int idx, size_t *len) {
 
 
 LUA_API size_t lua_objlen(lua_State *L, int idx) {
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     switch (LumenTypeOf(o)) {
         case LUA_TSTRING:
             return LumenStringValue(o)->Length;
@@ -380,13 +380,13 @@ LUA_API size_t lua_objlen(lua_State *L, int idx) {
 
 
 LUA_API lua_CFunction lua_tocfunction(lua_State *L, int idx) {
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     return (!LumenIsCFunction(o)) ? nullptr : reinterpret_cast<lua_CFunction>(LumenClosureValue(o)->AsC.Func);
 }
 
 
 LUA_API void *lua_touserdata(lua_State *L, int idx) {
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     switch (LumenTypeOf(o)) {
         case LUA_TUSERDATA:
             return (LumenUDataValue(o) + 1);
@@ -399,13 +399,13 @@ LUA_API void *lua_touserdata(lua_State *L, int idx) {
 
 
 LUA_API lua_State *lua_tothread(lua_State *L, int idx) {
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     return (!LumenTypeIsThread(o)) ? nullptr : LumenThreadValue(o);
 }
 
 
 LUA_API const void *lua_topointer(lua_State *L, int idx) {
-    Lumen::StkId o = index2addr(L, idx);
+    Lumen::Value o = index2addr(L, idx);
     switch (LumenTypeOf(o)) {
         case LUA_TTABLE:
             return LumenTableValue(o);
@@ -541,7 +541,7 @@ LUA_API int lua_pushthread(lua_State *L) {
 
 
 LUA_API void lua_gettable(lua_State *L, int idx) {
-    Lumen::StkId t;
+    Lumen::Value t;
     LumenLock(L);
     t = index2addr(L, idx);
     apiCheckValidIndex(L, t);
@@ -551,8 +551,8 @@ LUA_API void lua_gettable(lua_State *L, int idx) {
 
 
 LUA_API void lua_getfield(lua_State *L, int idx, const char *k) {
-    Lumen::StkId t;
-    Lumen::Value key; // NOLINT
+    Lumen::Value t;
+    Lumen::Object key; // NOLINT
     LumenLock(L);
     t = index2addr(L, idx);
     apiCheckValidIndex(L, t);
@@ -564,7 +564,7 @@ LUA_API void lua_getfield(lua_State *L, int idx, const char *k) {
 
 
 LUA_API void lua_rawget(lua_State *L, int idx) {
-    Lumen::StkId t;
+    Lumen::Value t;
     LumenLock(L);
     t = index2addr(L, idx);
     LumenApiCheck(L, LumenTypeIsTable(t));
@@ -574,7 +574,7 @@ LUA_API void lua_rawget(lua_State *L, int idx) {
 
 
 LUA_API void lua_rawgeti(lua_State *L, int idx, int n) {
-    Lumen::StkId o;
+    Lumen::Value o;
     LumenLock(L);
     o = index2addr(L, idx);
     LumenApiCheck(L, LumenTypeIsTable(o));
@@ -594,7 +594,7 @@ LUA_API void lua_createtable(lua_State *L, int nArray, int nRec) {
 
 
 LUA_API int lua_getmetatable(lua_State *L, int objIndex) {
-    const Lumen::Value *obj;
+    const Lumen::Object *obj;
     Lumen::Table *mt = nullptr;
     int res;
     LumenLock(L);
@@ -623,7 +623,7 @@ LUA_API int lua_getmetatable(lua_State *L, int objIndex) {
 
 
 LUA_API void lua_getfenv(lua_State *L, int idx) {
-    Lumen::StkId o;
+    Lumen::Value o;
     LumenLock(L);
     o = index2addr(L, idx);
     apiCheckValidIndex(L, o);
@@ -652,7 +652,7 @@ LUA_API void lua_getfenv(lua_State *L, int idx) {
 
 
 LUA_API void lua_settable(lua_State *L, int idx) {
-    Lumen::StkId t;
+    Lumen::Value t;
     LumenLock(L);
     apiCheckElementCount(L, 2);
     t = index2addr(L, idx);
@@ -664,8 +664,8 @@ LUA_API void lua_settable(lua_State *L, int idx) {
 
 
 LUA_API void lua_setfield(lua_State *L, int idx, const char *k) {
-    Lumen::StkId t;
-    Lumen::Value key; // NOLINT
+    Lumen::Value t;
+    Lumen::Object key; // NOLINT
     LumenLock(L);
     apiCheckElementCount(L, 1);
     t = index2addr(L, idx);
@@ -678,7 +678,7 @@ LUA_API void lua_setfield(lua_State *L, int idx, const char *k) {
 
 
 LUA_API void lua_rawset(lua_State *L, int idx) {
-    Lumen::StkId t;
+    Lumen::Value t;
     LumenLock(L);
     apiCheckElementCount(L, 2);
     t = index2addr(L, idx);
@@ -691,7 +691,7 @@ LUA_API void lua_rawset(lua_State *L, int idx) {
 
 
 LUA_API void lua_rawseti(lua_State *L, int idx, int n) {
-    Lumen::StkId o;
+    Lumen::Value o;
     LumenLock(L);
     apiCheckElementCount(L, 1);
     o = index2addr(L, idx);
@@ -704,7 +704,7 @@ LUA_API void lua_rawseti(lua_State *L, int idx, int n) {
 
 
 LUA_API int lua_setmetatable(lua_State *L, int objIndex) {
-    Lumen::Value *obj;
+    Lumen::Object *obj;
     Lumen::Table *mt;
     LumenLock(L);
     apiCheckElementCount(L, 1);
@@ -741,7 +741,7 @@ LUA_API int lua_setmetatable(lua_State *L, int objIndex) {
 
 
 LUA_API int lua_setfenv(lua_State *L, int idx) {
-    Lumen::StkId o;
+    Lumen::Value o;
     int res = 1;
     LumenLock(L);
     apiCheckElementCount(L, 1);
@@ -786,7 +786,7 @@ LumenDo(                         \
 
 
 LUA_API void lua_call(lua_State *L, int nargs, int nResults) {
-    Lumen::StkId func;
+    Lumen::Value func;
     LumenLock(L);
     apiCheckElementCount(L, nargs + 1);
     checkResults(L, nargs, nResults);
@@ -806,7 +806,7 @@ LUA_API int lua_pcall(lua_State *L, int nargs, int nResults, int errFunc) {
     if (errFunc == 0)
         func = 0;
     else {
-        Lumen::StkId o = index2addr(L, errFunc);
+        Lumen::Value o = index2addr(L, errFunc);
         apiCheckValidIndex(L, o);
         func = LumenSaveStack(L, o);
     }
@@ -849,7 +849,7 @@ LUA_API int lua_load(lua_State *L, lua_Reader reader, void *data,
 
 LUA_API int lua_dump(lua_State *L, lua_Writer writer, void *data) {
     int status;
-    Lumen::Value *o;
+    Lumen::Object *o;
     LumenLock(L);
     apiCheckElementCount(L, 1);
     o = L->Top - 1;
@@ -985,7 +985,7 @@ LUA_API int lua_error(lua_State *L) {
 
 
 LUA_API int lua_next(lua_State *L, int idx) {
-    Lumen::StkId t;
+    Lumen::Value t;
     int more;
     LumenLock(L);
     t = index2addr(L, idx);
@@ -1046,7 +1046,7 @@ LUA_API void *lua_newuserdata(lua_State *L, size_t size) {
 }
 
 
-static const char *aux_upvalue(Lumen::StkId fi, int n, Lumen::Value **val) {
+static const char *aux_upvalue(Lumen::Value fi, int n, Lumen::Object **val) {
     Lumen::Closure *f;
     if (!LumenTypeIsFunction(fi)) return nullptr;
     f = LumenClosureValue(fi);
@@ -1088,7 +1088,7 @@ LUA_API const char *lua_setlocal(lua_State *L, const lua_Debug *ar, int n) {
 
 LUA_API const char *lua_getupvalue(lua_State *L, int funcIndex, int n) {
     const char *name;
-    Lumen::Value *val;
+    Lumen::Object *val;
     LumenLock(L);
     name = aux_upvalue(index2addr(L, funcIndex), n, &val);
     if (name) {
@@ -1102,8 +1102,8 @@ LUA_API const char *lua_getupvalue(lua_State *L, int funcIndex, int n) {
 
 LUA_API const char *lua_setupvalue(lua_State *L, int funcIndex, int n) {
     const char *name;
-    Lumen::Value *val;
-    Lumen::StkId fi;
+    Lumen::Object *val;
+    Lumen::Value fi;
     LumenLock(L);
     fi = index2addr(L, funcIndex);
     apiCheckElementCount(L, 1);
@@ -1175,7 +1175,7 @@ LUA_API int lua_getinfo(lua_State *L, const char *what, lua_Debug *ar) {
     Lumen::CallInfo *ci = nullptr;
     LumenLock(L);
     if (*what == '>') {
-        Lumen::StkId func = L->Top - 1;
+        Lumen::Value func = L->Top - 1;
         LumenApiCheck(L, LumenTypeIsFunction(func));
         what++;  /* skip the '>' */
         f = LumenClosureValue(func);
@@ -1199,7 +1199,7 @@ LUA_API int lua_getinfo(lua_State *L, const char *what, lua_Debug *ar) {
 }
 
 LUA_API void *lua_upvalueid(lua_State *L, int idx, int n) {
-    Lumen::StkId func = index2addr(L, idx);
+    Lumen::Value func = index2addr(L, idx);
     if (!LumenTypeIsFunction(func)) return nullptr;
 
     auto cl = LumenClosureValue(func);

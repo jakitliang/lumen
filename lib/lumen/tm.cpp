@@ -41,7 +41,7 @@ void Lumen::TM::Init(Lumen::State *L) {
     }
 }
 
-const Lumen::Value *Lumen::TM::GetByObject(Lumen::State *L, const Lumen::Value *o, Lumen::TM::Name event) {
+const Lumen::Object *Lumen::TM::GetByObject(Lumen::State *L, const Lumen::Object *o, Lumen::TM::Name event) {
     Lumen::Table *mt;
     switch (LumenTypeOf(o)) {
         case Lumen::TypeTable:

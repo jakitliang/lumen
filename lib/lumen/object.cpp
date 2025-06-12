@@ -24,7 +24,7 @@
 #include "lumen/vm.h"
 
 
-const Lumen::Value Lumen::NilValue = {Lumen::TypeNil, {nullptr}};
+const Lumen::Object Lumen::NilValue = {Lumen::TypeNil, {nullptr}};
 
 int Lumen::Log2(unsigned int x) {
     static const Lumen::Byte log_2[256] = {
