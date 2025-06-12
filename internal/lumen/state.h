@@ -63,7 +63,7 @@ namespace Lumen {
         Lumen::Object Registry;
         Lumen::State *MainThread;
         Lumen::UpValue UpValueHead;  /* head of double-linked list of all open upValues */
-        Lumen::Table *Metatable[LUA_NUM_TAGS];  /* metatables for basic types */
+        Lumen::Table *Metatable[Lumen::TypeCount];  /* metatables for basic types */
         Lumen::String *MetatableName[Lumen::TM::NameN];  /* array with tag-method names */
     };
 
@@ -149,10 +149,10 @@ namespace Lumen {
 #define LumenGCObject2Userdata(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeUserdata, &((o)->AsUserdata))
 #define LumenGCObject2Closure(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeFunction, &((o)->AsClosure))
 #define LumenGCObject2Table(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeTable, &((o)->AsTable))
-#define LumenGCObject2Proto(o)    LumenCheckExp((o)->AsObject.Type == LUA_TPROTO, &((o)->AsProto))
-#define LumenGCObject2UpValue(o)    LumenCheckExp((o)->AsObject.Type == LUA_TUPVAL, &((o)->AsUpValue))
+#define LumenGCObject2Proto(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeProto, &((o)->AsProto))
+#define LumenGCObject2UpValue(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeUpValue, &((o)->AsUpValue))
 #define LumenNullGCObject2UpValue(o) \
-    LumenCheckExp((o) == nullptr || (o)->AsObject.Type == LUA_TUPVAL, &((o)->AsUpValue))
+    LumenCheckExp((o) == nullptr || (o)->AsObject.Type == Lumen::TypeUpValue, &((o)->AsUpValue))
 #define LumenGCObject2Thread(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeThread, &((o)->AsThread))
 
 /* macro to convert any Lua object into a Lumen::GCObject */

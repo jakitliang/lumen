@@ -41,7 +41,7 @@ Lumen::Closure *Lumen::LClosure::New(Lumen::State *L, int nElements, Lumen::Tabl
 
 Lumen::UpValue *Lumen::UpValue::New(Lumen::State *L) {
     Lumen::UpValue *uv = LumenMemoryNew(L, Lumen::UpValue);
-    Lumen::GC::Link(L, LumenObject2GCObject(uv), LUA_TUPVAL);
+    Lumen::GC::Link(L, LumenObject2GCObject(uv), Lumen::TypeUpValue);
     uv->SelfValue = &uv->Value;
     LumenSetNilValue(uv->SelfValue);
     return uv;
@@ -63,7 +63,7 @@ Lumen::UpValue *Lumen::UpValue::Find(Lumen::State *L, Lumen::Value level) {
         pp = &p->GCNext;
     }
     uv = LumenMemoryNew(L, Lumen::UpValue);  /* not found: create a new one */
-    uv->Type = LUA_TUPVAL;
+    uv->Type = Lumen::TypeUpValue;
     uv->Marked = LumenGCWhite(g);
     uv->SelfValue = level;  /* current value lives in the stack */
     uv->GCNext = *pp;  /* chain it in the proper position */
@@ -112,7 +112,7 @@ void Lumen::UpValue::Close(Lumen::State *L, Lumen::Value level) {
 
 Lumen::Proto *Lumen::Proto::New(Lumen::State *L) {
     Lumen::Proto *f = LumenMemoryNew(L, Lumen::Proto);
-    Lumen::GC::Link(L, LumenObject2GCObject(f), LUA_TPROTO);
+    Lumen::GC::Link(L, LumenObject2GCObject(f), Lumen::TypeProto);
     f->K = nullptr;
     f->KCount = 0;
     f->SubProto = nullptr;

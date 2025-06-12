@@ -73,7 +73,10 @@ namespace Lumen {
         TypeTable = 5,
         TypeFunction = 6,
         TypeUserdata = 7,
-        TypeThread = 8
+        TypeThread = 8,
+        TypeProto = 9,
+        TypeUpValue = 10,
+        TypeDeadKey = 11
     };
 
     typedef LUA_ENUM(int, GCAction) {
@@ -195,6 +198,11 @@ namespace Lumen {
 #endif
 
     inline constexpr Lumen::UInteger BitsInt = sizeof(int);
+
+    /* tags for values visible from Lua */
+    inline constexpr Lumen::UInteger LastType = Lumen::TypeThread;
+
+    inline constexpr Lumen::UInteger TypeCount = LastType + 1;
 }
 
 #define LumenDo(block) do { block } while(0)

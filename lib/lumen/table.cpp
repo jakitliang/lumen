@@ -139,7 +139,7 @@ static int findIndex(Lumen::State *L, Lumen::Table *t, Lumen::Value key) {
         do {  /* check whether `key' is somewhere in the chain */
             /* key may be dead already, but it is ok to use it in `next' */
             if (Lumen::RawEqualObject(LumenTableKey2KeyValue(n), key) ||
-                (LumenTypeOf(LumenTableGetKey(n)) == LUA_TDEADKEY && LumenIsCollectable(key) &&
+                (LumenTypeOf(LumenTableGetKey(n)) == Lumen::TypeDeadKey && LumenIsCollectable(key) &&
                  LumenGCValue(LumenTableGetKey(n)) == LumenGCValue(key))) {
                 i = cast_int(n - LumenTableGetNode(t, 0));  /* key index in hash table */
                 /* hash elements are numbered after array ones */

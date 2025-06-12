@@ -68,7 +68,7 @@ LumenDo(                   \
 static void removeEntry(Lumen::Node *n) {
     LumenAssert(LumenTypeIsNil(LumenTableGetValue(n)));
     if (LumenIsCollectable(LumenTableGetKey(n)))
-        LumenSetType(LumenTableGetKey(n), LUA_TDEADKEY);  /* dead key; remove it */
+        LumenSetType(LumenTableGetKey(n), Lumen::TypeDeadKey);  /* dead key; remove it */
 }
 
 
@@ -86,7 +86,7 @@ static void reallyMarkObject(Lumen::GlobalState *g, Lumen::GCObject *o) {
             markObject(g, LumenGCObject2Userdata(o)->Env);
             return;
         }
-        case LUA_TUPVAL: {
+        case Lumen::TypeUpValue: {
             Lumen::UpValue *uv = LumenGCObject2UpValue(o);
             markValue(g, uv->SelfValue);
             if (uv->SelfValue == &uv->Value)  /* closed? */
@@ -108,7 +108,7 @@ static void reallyMarkObject(Lumen::GlobalState *g, Lumen::GCObject *o) {
             g->GCGray = o;
             break;
         }
-        case LUA_TPROTO: {
+        case Lumen::TypeProto: {
             LumenGCObject2Proto(o)->GCList = g->GCGray;
             g->GCGray = o;
             break;
@@ -187,7 +187,7 @@ static int traverseTable(Lumen::GlobalState *g, Lumen::Table *h) {
     i = LumenTableNodeCount(h);
     while (i--) {
         Lumen::Node *n = LumenTableGetNode(h, i);
-        LumenAssert(LumenTypeOf(LumenTableGetKey(n)) != LUA_TDEADKEY || LumenTypeIsNil(LumenTableGetValue(n)));
+        LumenAssert(LumenTypeOf(LumenTableGetKey(n)) != Lumen::TypeDeadKey || LumenTypeIsNil(LumenTableGetValue(n)));
         if (LumenTypeIsNil(LumenTableGetValue(n)))
             removeEntry(n);  /* remove empty entries */
         else {
@@ -304,7 +304,7 @@ static Lumen::MemoryDelta propagateMark(Lumen::GlobalState *g) {
             return sizeof(Lumen::State) + sizeof(Lumen::Object) * th->StackCount +
                    sizeof(Lumen::CallInfo) * th->BaseCICount;
         }
-        case LUA_TPROTO: {
+        case Lumen::TypeProto: {
             Lumen::Proto *p = LumenGCObject2Proto(o);
             g->GCGray = p->GCList;
             traverseProto(g, p);
@@ -379,13 +379,13 @@ static void clearTable(Lumen::GCObject *l) {
 
 static void freeObject(Lumen::State *L, Lumen::GCObject *o) {
     switch (o->AsObject.Type) {
-        case LUA_TPROTO:
+        case Lumen::TypeProto:
             Lumen::Proto::Free(L, LumenGCObject2Proto(o));
             break;
         case Lumen::TypeFunction:
             Lumen::Closure::Free(L, LumenGCObject2Closure(o));
             break;
-        case LUA_TUPVAL:
+        case Lumen::TypeUpValue:
             Lumen::UpValue::Free(L, LumenGCObject2UpValue(o));
             break;
         case Lumen::TypeTable:
@@ -501,7 +501,7 @@ void Lumen::GC::FreeAll(Lumen::State *L) {
 
 static void markMetatable(Lumen::GlobalState *g) {
     int i;
-    for (i = 0; i < LUA_NUM_TAGS; i++)
+    for (i = 0; i < Lumen::TypeCount; i++)
         if (g->Metatable[i]) markObject(g, g->Metatable[i]);
 }
 

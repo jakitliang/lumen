@@ -18,12 +18,6 @@
 
 #include "lumen/limits.h"
 
-
-/* tags for values visible from Lua */
-#define LUA_LAST_TAG    Lumen::TypeThread
-
-#define LUA_NUM_TAGS    (LUA_LAST_TAG+1)
-
 /* table of globals */
 #define LumenGlobalTable(L)    (&L->Global)
 
@@ -31,15 +25,6 @@
 #define LumenRegistry(L)    (&LumenGlobal(L)->Registry)
 
 #define LumenGlobal(L)    (L->GlobalState)
-
-/*
-** Extra tags for non-values
-*/
-enum {
-    LUA_TPROTO = LUA_LAST_TAG + 1,
-    LUA_TUPVAL = LUA_LAST_TAG + 2,
-    LUA_TDEADKEY = LUA_LAST_TAG + 3
-};
 
 namespace Lumen {
     struct BasicObject : TypeInfo {
@@ -344,7 +329,7 @@ LumenDo(                              \
 #define LumenSetProtoValue(L, obj, x) \
 LumenDo(                              \
     Lumen::Object *i_o=(obj);          \
-    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=LUA_TPROTO; \
+    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeProto; \
     LumenCheckLiveness(LumenGlobal(L),i_o);                             \
 )
 

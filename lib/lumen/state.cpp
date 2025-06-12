@@ -176,7 +176,7 @@ Lumen::State *Lumen::State::New(Lumen::Allocator allocator, void *userData) {
     g->GCPause = LUAI_GCPAUSE;
     g->GCStepMul = LUAI_GCMUL;
     g->GCDept = 0;
-    for (i = 0; i < LUA_NUM_TAGS; i++) g->Metatable[i] = nullptr;
+    for (i = 0; i < Lumen::TypeCount; i++) g->Metatable[i] = nullptr;
     if (Lumen::Do::RawRunProtected(L, LuaStateOpenFile, nullptr) != 0) {
         /* memory allocation error: free partial state */
         LuaStateClose(L);
