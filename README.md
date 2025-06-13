@@ -6,18 +6,18 @@
 
 ## Intro
 
-**Lumen** is a modernized and refined version of **Lua**, based on and fully compatible with Lua 5.1.
+**Lumen** is a modernized reinvention of **Lua**, based on and fully compatible with Lua 5.1.
 
-Designed for developers who love Lua, Lumen offers a modern, maintainable, and system-adaptive reimplementation for today's environments.
+Designed for developers who love Lua, Lumen offers a state-of-the-art reimplementation for today's OS environments.
 
 ## Features
 
-- **Full Compatibility**: Fully compatible with Lua 5.1 scripts and C libraries.
-- **Performance Optimizations**: Includes multiple low-level optimizations to improve runtime efficiency, suitable for high-performance applications.
-- **Ease of Use**: Retains the simplicity, readability, and easy integration of the original Lua 5.1.
-- **Extensibility**: Offers a richer API surface, making it easier for developers to extend and customize Lua.
-- **Lightweight**: A compact and efficient core that stays true to Lua’s lightweight philosophy.
-- **Modernization**: Modernized internal architecture to better suit today's systems and development needs.
+- **Full Compatibility**: Fully compatible with Lua 5.1 and C / C++ libraries
+- **Performance Optimizations**: Some low-level optimizations done for the efficiency of the runtime
+- **Easy to use**: Keeps the simplicity and readability
+- **Extensibility**: Offers richer APIs, making it easier for developers to extend and customize
+- **Lightweight**: Keeps the implementation of core tiny and efficient
+- **Modernization**: A new designed architecture that suit for today's OSs and compilers.
 
 ## Architecture
 
@@ -48,9 +48,9 @@ The [/src/lightc](/src/lightc) is the implementation for the Compiler entry of `
 
 ## Extensions
 
-- Some of Lua 5.2, 5.3 APIs and Aux APIs are added
-- Bitwise library is included by default.
-- Modern C++ APis are added
+- Some of Lua 5.2, 5.3 APIs and Aux APIs are included
+- Bitwise library is included by default
+- The new and modernized APIs are base on C++17. See [lua.hpp](./include/lua.hpp).
 
 ## License
 

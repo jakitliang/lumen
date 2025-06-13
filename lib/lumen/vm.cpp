@@ -51,7 +51,7 @@ static void traceExec(Lumen::State *L, const Lumen::Instruction *pc) {
 
 
 static inline void callTMRes(Lumen::State *L, Lumen::Value res, const Lumen::Object *f,
-                             const Lumen::Object *p1, const Lumen::Object *p2) {
+                      const Lumen::Object *p1, const Lumen::Object *p2) {
     Lumen::Integer result = LumenSaveStack(L, res);
     LumenSetObject2S(L, L->Top, f);  /* push function */
     LumenSetObject2S(L, L->Top + 1, p1);  /* 1st argument */
@@ -66,7 +66,7 @@ static inline void callTMRes(Lumen::State *L, Lumen::Value res, const Lumen::Obj
 
 
 static inline void callTM(Lumen::State *L, const Lumen::Object *f, const Lumen::Object *p1,
-                          const Lumen::Object *p2, const Lumen::Object *p3) {
+                   const Lumen::Object *p2, const Lumen::Object *p3) {
     LumenSetObject2S(L, L->Top, f);  /* push function */
     LumenSetObject2S(L, L->Top + 1, p1);  /* 1st argument */
     LumenSetObject2S(L, L->Top + 2, p2);  /* 2nd argument */
@@ -133,7 +133,7 @@ void Lumen::VM::SetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object 
 
 
 static inline int call_binTM(Lumen::State *L, const Lumen::Object *p1, const Lumen::Object *p2,
-                             Lumen::Value res, Lumen::TM::Name event) {
+                      Lumen::Value res, Lumen::TM::Name event) {
     const Lumen::Object *tm = Lumen::TM::GetByObject(L, p1, event);  /* try first operand */
     if (LumenTypeIsNil(tm))
         tm = Lumen::TM::GetByObject(L, p2, event);  /* try second operand */
@@ -144,7 +144,7 @@ static inline int call_binTM(Lumen::State *L, const Lumen::Object *p1, const Lum
 
 
 static inline const Lumen::Object *get_compTM(Lumen::State *L, Lumen::Table *mt1, Lumen::Table *mt2,
-                                              Lumen::TM::Name event) {
+                                    Lumen::TM::Name event) {
     const Lumen::Object *tm1 = LumenTMGetFast(L, mt1, event);
     const Lumen::Object *tm2;
     if (tm1 == nullptr) return nullptr;  /* no metamethod */
@@ -158,7 +158,7 @@ static inline const Lumen::Object *get_compTM(Lumen::State *L, Lumen::Table *mt1
 
 
 static inline int callOrderTM(Lumen::State *L, const Lumen::Object *p1, const Lumen::Object *p2,
-                              Lumen::TM::Name event) {
+                       Lumen::TM::Name event) {
     const Lumen::Object *tm1 = Lumen::TM::GetByObject(L, p1, event);
     const Lumen::Object *tm2;
     if (LumenTypeIsNil(tm1)) return -1;  /* no metamethod? */
@@ -261,39 +261,42 @@ void Lumen::VM::Concat(Lumen::State *L, int total, int last) {
     do {
         Lumen::Value top = L->Base + last + 1;
         int n = 2;  /* number of elements handled in this pass (at least 2) */
-        if (!(LumenTypeIsString(top - 2) || LumenTypeIsNumber(top - 2)) || !LumenVMToString(L, top - 1)) {
+
+        Lumen::String *s1 = nullptr;
+        Lumen::String *s2 = nullptr;
+        bool is_str1 = LumenVMToString(L, top - 2);
+        bool is_str2 = LumenVMToString(L, top - 1);
+
+        if (!(is_str1 || LumenTypeIsNumber(top - 2)) || !is_str2) {
             if (!call_binTM(L, top - 2, top - 1, top - 2, Lumen::TM::NameConcat))
                 Lumen::Debug::ConcatError(L, top - 2, top - 1);
-        } else if (LumenStringValue(top - 1)->Length == 0)  /* second op is empty? */
-            (void) LumenVMToString(L, top - 2);  /* result is first op (as string) */
-        else {
-            /* at least two string values; get as many as possible */
-            Lumen::UInteger tl = LumenStringValue(top - 1)->Length;
-            int i;
-            Lumen::String *ts;
-            /* collect total length */
-            for (n = 1; n < total && LumenVMToString(L, top - n - 1); n++) {
-                Lumen::UInteger l = LumenStringValue(top - n - 1)->Length;
-                if (l >= Lumen::MaxSize - tl) Lumen::Debug::RunError(L, "string length overflow");
-                tl += l;
-            }
-            if (tl == 0) {
-                LumenSetStringValue2S(L, top - n, Lumen::String::New(L, "", tl));
-            } else {
-                ts = Lumen::String::NewRaw(L, nullptr, tl);
-                auto buffer = reinterpret_cast<char *>(ts + 1);
-                tl = 0;
-                for (i = n; i > 0; i--) {  /* concat all strings */
-                    Lumen::UInteger l = LumenStringValue(top - i)->Length;
-                    memcpy(buffer + tl, LumenStringValue2CString(top - i), l);
+        } else {
+            s1 = LumenStringValue(top - 2);
+            s2 = LumenStringValue(top - 1);
+
+            if (s2->Length != 0) { /* second op is not empty? */
+                /* at least two string values; get as many as possible */
+                Lumen::UInteger tl = s2->Length;
+                char *buffer;
+                int i;
+                /* collect total length */
+                for (n = 1; n < total && LumenVMToString(L, top - n - 1); n++) {
+                    Lumen::UInteger l = LumenStringValue(top - n - 1)->Length;
+                    if (l >= Lumen::MaxSize - tl) Lumen::Debug::RunError(L, "string length overflow");
                     tl += l;
                 }
-                buffer[tl] = '\0';
-                ts->Intern(L);
-                LumenSetStringValue2S(L, top - n, ts);
+                buffer = Lumen::ZBuffer::OpenSpace(L, &LumenGlobal(L)->Buff, tl);
+                tl = 0;
+                for (i = n; i > 0; i--) {  /* concat all strings */
+                    auto s3 = LumenStringValue(top - i);
+                    Lumen::UInteger l = s3->Length;
+                    memcpy(buffer + tl, reinterpret_cast<char *>(s3 + 1), l);
+                    tl += l;
+                }
+                LumenSetStringValue2S(L, top - n, Lumen::String::New(L, buffer, tl));
             }
         }
-        total -= n - 1;  /* got `n` strings to create 1 new */
+        total -= n - 1;  /* got `n' strings to create 1 new */
         last -= n - 1;
     } while (total > 1);  /* repeat until only 1 result left */
 }
@@ -530,8 +533,8 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                     }
                     default: {  /* try metamethod */
                         Protect(
-                            if (!call_binTM(L, rb, Lumen::NilObject, ra, Lumen::TM::NameLen))
-                                Lumen::Debug::TypeError(L, rb, "get length of");
+                                if (!call_binTM(L, rb, Lumen::NilObject, ra, Lumen::TM::NameLen))
+                                    Lumen::Debug::TypeError(L, rb, "get length of");
                         );
                     }
                 }
@@ -552,24 +555,24 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 Lumen::Object *rb = RKB(i);
                 Lumen::Object *rc = RKC(i);
                 Protect(
-                    if (LumenVMEqualObj(L, rb, rc) == LumenOpCodeGetArgA(i))
-                        doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
+                        if (LumenVMEqualObj(L, rb, rc) == LumenOpCodeGetArgA(i))
+                            doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
                 );
                 pc++;
                 continue;
             }
             case Lumen::OpCodeLT: {
                 Protect(
-                    if (Lumen::VM::LessThan(L, RKB(i), RKC(i)) == LumenOpCodeGetArgA(i))
-                        doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
+                        if (Lumen::VM::LessThan(L, RKB(i), RKC(i)) == LumenOpCodeGetArgA(i))
+                            doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
                 );
                 pc++;
                 continue;
             }
             case Lumen::OpCodeLE: {
                 Protect(
-                    if (lessEqual(L, RKB(i), RKC(i)) == LumenOpCodeGetArgA(i))
-                        doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
+                        if (lessEqual(L, RKB(i), RKC(i)) == LumenOpCodeGetArgA(i))
+                            doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
                 );
                 pc++;
                 continue;
