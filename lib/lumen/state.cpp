@@ -21,6 +21,7 @@
 #include "lumen/string.h"
 #include "lumen/table.h"
 #include "lumen/tm.h"
+#include "lumen/api.h"
 
 
 #define sizeOfState(x)    (sizeof(x) + LUAI_EXTRASPACE)
@@ -113,6 +114,49 @@ static void LuaStateClose(Lumen::State *L) {
     (*g->ReAllocator)(g->ReAllocatorUData, fromState(L), sizeOfState(LG), 0);
 }
 
+void Lumen::State::PushObject(const Lumen::Object *o) {
+    LumenSetObject2S(this, Top, o);
+    LumenApiIncrTop(this);
+}
+
+Lumen::Object *Lumen::State::ToObject(int idx) {
+    if (idx > 0) {
+        Lumen::Object *o = Base + (idx - 1);
+        LumenApiCheck(this, idx <= CallInfo->Top - Base);
+        if (o >= Top) return cast(Lumen::Object *, Lumen::NilObject);
+        else return o;
+    } else if (idx > Lumen::RegistryIndex) {
+        LumenApiCheck(this, idx != 0 && -idx <= Top - Base);
+        return Top + idx;
+    } else
+        switch (idx) {  /* pseudo-indices */
+            case Lumen::RegistryIndex:
+                return LumenRegistry(this);
+            case Lumen::EnvIndex: {
+                Lumen::Closure *func = LumenCurFunc(this);
+                LumenSetTableValue(L, &Env, func->AsC.Env);
+                return &Env;
+            }
+            case Lumen::GlobalIndex:
+                return LumenGlobalTable(this);
+            default: {
+                Lumen::Closure *func = LumenCurFunc(this);
+                idx = Lumen::GlobalIndex - idx;
+                return (idx <= func->AsC.NUpValues)
+                       ? &func->AsC.UpValues[idx - 1]
+                       : cast(Lumen::Object *, Lumen::NilObject);
+            }
+        }
+}
+
+Lumen::Table *Lumen::State::GetCurrentEnv() {
+    if (CallInfo == BaseCI)  /* no enclosing function? */
+        return LumenTableValue(LumenGlobalTable(this));  /* use global table as environment */
+    else {
+        Lumen::Closure *func = LumenCurFunc(this);
+        return func->AsC.Env;
+    }
+}
 
 Lumen::State *Lumen::State::NewThread(Lumen::State *L) {
     Lumen::State *L1 = toState(LumenMemoryAlloc(L, sizeOfState(Lumen::State)));
@@ -185,9 +229,6 @@ Lumen::State *Lumen::State::New(Lumen::Allocator allocator, void *userData) {
         luai_userstateopen(L);
     return L;
 }
-
-
-
 
 static void LuaStateCallAllGcTM(Lumen::State *L, void *ud) {
     UNUSED(ud);

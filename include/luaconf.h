@@ -348,11 +348,8 @@
 #define LUA_COMPAT_OPENLIB
 
 /*
-@@ luai_apicheck is the assert macro used by the Lua-C API.
-** CHANGE luai_apicheck if you want Lua to perform some checks in the
-** parameters it gets from API calls. This may slow down the interpreter
-** a bit, but may be quite useful when debugging C code that interfaces
-** with Lua. A useful redefinition is to use assert.h.
+@@ LUA_USE_APICHECK turns on several consistency checks on the C API.
+** Define it as a help when debugging C code.
 */
 #ifdef LUA_USE_APICHECK
 #ifdef LUA_CPP
@@ -360,9 +357,11 @@
 #else
 #include <assert.h>
 #endif
-#define luai_apicheck(L,o)	do { (void)L; assert(o); } while(0)
+#define luai_apicheck(L, e)    assert(e)
+#define LumenApiCheck(L, e)    assert(e)
 #else
-#define luai_apicheck(L, o)    do { (void)L; } while(0)
+#define luai_apicheck(L, e)    ((void) 0)
+#define LumenApiCheck(L, e)    ((void) 0)
 #endif
 
 // MARK: Integer configuration

@@ -27,15 +27,12 @@
 
 static const char *getFuncName(Lumen::State *L, Lumen::CallInfo *ci, const char **name);
 
-void lua_PushObject(Lumen::State *L, const Lumen::Object *o);
-
 static int currentPC(Lumen::State *L, Lumen::CallInfo *ci) {
     if (!LumenFuncIsLua(ci)) return -1;  /* function is not a Lua function? */
     if (ci == L->CallInfo)
         ci->SavedPC = L->SavedPC;
     return LumenDebugPCRel(ci->SavedPC, LumenCIFunc(ci)->AsLua.Func);
 }
-
 
 static int currentLine(Lumen::State *L, Lumen::CallInfo *ci) {
     int pc = currentPC(L, ci);
@@ -45,11 +42,9 @@ static int currentLine(Lumen::State *L, Lumen::CallInfo *ci) {
         return LumenDebugGetLine(LumenCIFunc(ci)->AsLua.Func, pc);
 }
 
-
-static Lumen::Proto *getLuaProto(Lumen::CallInfo *ci) {
+static inline Lumen::Proto *getLuaProto(Lumen::CallInfo *ci) {
     return (LumenFuncIsLua(ci) ? LumenCIFunc(ci)->AsLua.Func : nullptr);
 }
-
 
 const char *Lumen::State::FindLocal(Lumen::CallInfo *ci, int n) {
     const char *name;
@@ -66,7 +61,7 @@ const char *Lumen::State::FindLocal(Lumen::CallInfo *ci, int n) {
 }
 
 
-static void funcInfo(Lumen::DebugInfo *ar, Lumen::Closure *cl) {
+static inline void funcInfo(Lumen::DebugInfo *ar, Lumen::Closure *cl) {
     if (cl->AsC.IsC) {
         ar->Source = "=[C]";
         ar->LineDefined = -1;
@@ -82,7 +77,7 @@ static void funcInfo(Lumen::DebugInfo *ar, Lumen::Closure *cl) {
 }
 
 
-static void infoTailCall(Lumen::DebugInfo *ar) {
+static inline void infoTailCall(Lumen::DebugInfo *ar) {
     ar->Name = ar->NameSpace = "";
     ar->Space = "tail";
     ar->LastLineDefined = ar->LineDefined = ar->CurrentLine = -1;
@@ -160,7 +155,7 @@ int Lumen::Debug::GetInfo(Lumen::State *L, const char *what, Lumen::DebugInfo *a
 #define checkReg(pt, reg)    check((reg) < (pt)->MaxStackSize)
 
 
-static int preCheck(const Lumen::Proto *pt) {
+static inline int preCheck(const Lumen::Proto *pt) {
     check(pt->MaxStackSize <= Lumen::MaxStack);
     check(pt->NUmParams + (pt->IsVararg & Lumen::Proto::VarargHasArg) <= pt->MaxStackSize);
     check(!(pt->IsVararg & Lumen::Proto::VarargIsNeedsArg) ||
@@ -378,14 +373,12 @@ int Lumen::Debug::CheckCode(const Lumen::Proto *pt) {
     return (symbolExec(pt, pt->CodeCount, NO_REG) != 0);
 }
 
-
-static const char *kName(Lumen::Proto *p, int c) {
+static inline const char *kName(Lumen::Proto *p, int c) {
     if (LumenOpCodeIsK(c) && LumenTypeIsString(&p->K[LumenOpCodeIndexK(c)]))
         return LumenStringValue2CString(&p->K[LumenOpCodeIndexK(c)]);
     else
         return "?";
 }
-
 
 static const char *getObjName(Lumen::State *L, Lumen::CallInfo *ci, int stackPos,
                               const char **name) {

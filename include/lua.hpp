@@ -150,7 +150,7 @@ namespace Lua {
     };
 
     struct TypeInfo {
-        Lua::Byte Type;
+        Lua::Type Type;
     };
 
     struct Object : TypeInfo {
@@ -197,7 +197,7 @@ namespace Lua {
 
         LPP_API Lua::Type Type(int idx);
 
-        LPP_API const char *TypeName(int t) const;
+        LPP_API const char *TypeName(int t) const; // NOLINT
 
         LPP_API bool Equal(int idx1, int idx2);
 
@@ -307,6 +307,8 @@ namespace Lua {
 
         LPP_API Lua::Ret Status();
 
+        LPP_API bool CanYield();
+
         // MARK: garbage-collection function and options
 
         LPP_API int GC(GCAction what, int data);
@@ -404,6 +406,12 @@ namespace Lua {
 
         LPP_API bool InstanceOf(int idxChild, int idxSuper);
 
+        inline int AbsIndex(int idx) {
+            return (idx > 0 || idx <= Lua::RegistryIndex ? idx : GetTop() + idx + 1);
+        }
+
+        LPP_API void Copy(int fromIdx, int toIdx);
+
         // MARK: compatibility fast call functions
 
         inline void GetRegistry() {
@@ -466,7 +474,7 @@ namespace Lua {
 
         LPP_API void CheckStack(int sz, const char *msg);
 
-        LPP_API void CheckType(int nArg, int t);
+        LPP_API void CheckType(int nArg, Lua::Type t);
 
         LPP_API void CheckAny(int nArg);
 
@@ -501,7 +509,7 @@ namespace Lua {
         // MARK: Auxiliary miscellaneous functions
 
         inline void ArgCheck(int cond, int numArg, const char *extraMsg) {
-            (cond) || ArgError(numArg, extraMsg);
+            cond || ArgError(numArg, extraMsg);
         }
 
         inline const char *CheckString(int arg) {

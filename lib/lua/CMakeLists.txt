@@ -9,9 +9,10 @@ add_library(
     dblib.c
     init.c
     iolib.c
-    mathlib.c
     loadlib.c
+    mathlib.c
     oslib.c
+    state.cpp
     string.cpp
     tablib.c
     bitlib.c

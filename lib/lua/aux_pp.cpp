@@ -25,10 +25,6 @@
 
 #define FREELIST_REF    0    /* free list of references */
 
-/* convert a stack index to positive */
-#define absIndex(i)    \
-((i) > 0 || (i) <= Lua::RegistryIndex ? (i) : GetTop() + (i) + 1)
-
 #define LuaToLumen(L) reinterpret_cast<Lumen::State *>(L)
 #define LumenToLua(L) reinterpret_cast<Lua::State *>(L)
 
@@ -67,25 +63,25 @@ void Lua::State::OpenLib(const char *name, const Lua::Interface *inf, int nUpVal
 
 bool Lua::State::GetMetaField(int obj, const char *e) {
     if (!GetMetatable(obj))  /* no metatable? */
-        return 0;
+        return false;
     PushString(e);
     RawGet(-2);
     if (IsNil(-1)) {
         Pop(2);  /* remove metatable and metaField */
-        return 0;
+        return false;
     } else {
         Remove(-2);  /* remove only metatable */
-        return 1;
+        return true;
     }
 }
 
 bool Lua::State::CallMeta(int obj, const char *e) {
-    obj = absIndex(obj);
+    obj = AbsIndex(obj);
     if (!GetMetaField(obj, e))  /* no metaField? */
-        return 0;
+        return false;
     PushValue(obj);
     Call(1, 1);
-    return 1;
+    return true;
 }
 
 int Lua::State::TypeError(int nArg, const char *tName) {
@@ -95,12 +91,12 @@ int Lua::State::TypeError(int nArg, const char *tName) {
 }
 
 int Lua::State::ArgError(int nArg, const char *extraMsg) {
-    Lua::DebugInfo ar;
+    Lua::DebugInfo ar; // NOLINT
     if (!GetStack(0, &ar))  /* no stack frame? */
         return Error("bad argument #%d (%s)", nArg, extraMsg);
     GetInfo("n", &ar);
     if (strcmp(ar.NameSpace, "method") == 0) {
-        nArg--;  /* do not count `self' */
+        nArg--;  /* do not count `self` */
         if (nArg == 0)  /* error is in the self argument itself? */
             return Error("calling " LUA_QS " on bad self (%s)",
                          ar.Name, extraMsg);
@@ -157,7 +153,7 @@ void Lua::State::CheckStack(int sz, const char *msg) {
         Error("stack overflow (%s)", msg);
 }
 
-void Lua::State::CheckType(int nArg, int t) {
+void Lua::State::CheckType(int nArg, Lua::Type t) {
     if (Type(nArg) != t)
         tagError(this, nArg, t);
 }
@@ -170,12 +166,12 @@ void Lua::State::CheckAny(int nArg) {
 bool Lua::State::NewMetatable(const char *tName) {
     GetField(Lua::RegistryIndex, tName);  /* get registry.name */
     if (!IsNil(-1))  /* name already in use? */
-        return 0;  /* leave previous value on top, but return 0 */
+        return false;  /* leave previous value on top, but return false */
     Pop(1);
     NewTable();  /* create metatable */
     PushValue(-1);
     SetField(Lua::RegistryIndex, tName);  /* registry.name = metatable */
-    return 1;
+    return true;
 }
 
 void *Lua::State::CheckUserdata(int ud, const char *tName) {
@@ -194,7 +190,7 @@ void *Lua::State::CheckUserdata(int ud, const char *tName) {
 }
 
 void Lua::State::Where(int level) {
-    Lua::DebugInfo ar;
+    Lua::DebugInfo ar; // NOLINT
     if (GetStack(level, &ar)) {  /* check function at level */
         GetInfo("Sl", &ar);  /* get info about it */
         if (ar.CurrentLine > 0) {  /* is there info? */
@@ -226,7 +222,7 @@ int Lua::State::CheckOption(int nArg, const char *def, const char *const *lst) {
 
 Lua::Ref Lua::State::Ref(int t) {
     int ref;
-    t = absIndex(t);
+    t = AbsIndex(t);
     if (IsNil(-1)) {
         Pop(1);  /* remove from stack */
         return Lua::RefNil;  /* `nil' has a unique fixed reference */
@@ -247,7 +243,7 @@ Lua::Ref Lua::State::Ref(int t) {
 
 void Lua::State::Unref(int t, Lua::Ref ref) {
     if (ref >= 0) {
-        t = absIndex(t);
+        t = AbsIndex(t);
         RawGetAt(t, FREELIST_REF);
         RawSetAt(t, ref);  /* t[ref] = t[FREELIST_REF] */
         PushInteger(ref);
@@ -334,9 +330,7 @@ static const char *getS(Lua::State *, void *ud, size_t *size) {
 }
 
 Lua::Ret Lua::State::LoadBuffer(const char *buff, size_t size, const char *name) {
-    LoadState ls;
-    ls.s = buff;
-    ls.size = size;
+    LoadState ls{buff, size};
     return Load(reinterpret_cast<Lua::Reader>(getS), &ls, name);
 }
 
@@ -348,7 +342,7 @@ static int panic(Lua::State *L) {
     (void) L;  /* to avoid warnings */
     fprintf(stderr, "PANIC: unprotected error in call to Lua API (%s)\n",
             L->ToString(-1));
-    return 0;
+    return false;
 }
 
 Lua::State *Lua::State::New() {
@@ -402,31 +396,31 @@ const char *Lua::State::FindTable(int idx, const char *name, int hintSize) {
 }
 
 #define LUA_COLIBNAME    "coroutine"
-LUALIB_API int (luaopen_base)(Lua::CState *L);
+LUALIB_API int luaopen_base(Lua::CState *L);
 
 #define LUA_TABLIBNAME    "table"
-LUALIB_API int (luaopen_table)(Lua::CState *L);
+LUALIB_API int luaopen_table(Lua::CState *L);
 
 #define LUA_IOLIBNAME    "io"
-LUALIB_API int (luaopen_io)(Lua::CState *L);
+LUALIB_API int luaopen_io(Lua::CState *L);
 
 #define LUA_OSLIBNAME    "os"
-LUALIB_API int (luaopen_os)(Lua::CState *L);
+LUALIB_API int luaopen_os(Lua::CState *L);
 
 #define LUA_STRLIBNAME    "string"
-LUALIB_API int (luaopen_string)(Lua::CState *L);
+LUALIB_API int luaopen_string(Lua::CState *L);
 
 #define LUA_MATHLIBNAME    "math"
-LUALIB_API int (luaopen_math)(Lua::CState *L);
+LUALIB_API int luaopen_math(Lua::CState *L);
 
 #define LUA_DBLIBNAME    "debug"
-LUALIB_API int (luaopen_debug)(Lua::CState *L);
+LUALIB_API int luaopen_debug(Lua::CState *L);
 
 #define LUA_BITLIBNAME    "bit"
-LUALIB_API int (luaopen_bit)(Lua::CState *L);
+LUALIB_API int luaopen_bit(Lua::CState *L);
 
 #define LUA_LOADLIBNAME    "package"
-LUALIB_API int (luaopen_package)(Lua::CState *L);
+LUALIB_API int luaopen_package(Lua::CState *L);
 
 int Lua::State::OpenBase() {
     return luaopen_base(LuaToLumen(this));

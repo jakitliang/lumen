@@ -15,6 +15,10 @@
 #include <cstddef>
 #include <limits>
 
+#if defined(LUA_CORE_DEBUG)
+#include <cassert>
+#endif
+
 struct LumenState;
 
 #define LUAI_DELEGATE Lumen::Delegate
@@ -64,7 +68,6 @@ namespace Lumen {
      * basic types
      */
     typedef LUA_ENUM(int, Type) {
-        TypeNone = -1,
         TypeNil = 0,
         TypeBool = 1,
         TypeLightUserdata = 2,
@@ -114,7 +117,7 @@ namespace Lumen {
     using State = LumenState;
 
     struct TypeInfo {
-        Lumen::Byte Type;
+        Lumen::Type Type;
     };
 
     /*
@@ -134,6 +137,8 @@ namespace Lumen {
 
     struct Object : TypeInfo {
         Variant value;
+
+        const char *GetUpValueInfo(int n, Lumen::Object **val);
     };
 
     /**
@@ -216,17 +221,11 @@ namespace Lumen {
 
 /* internal assertions for in-house debugging */
 #if defined(LUA_CORE_DEBUG)
-#ifdef lua_assert
-#define LumenAssert(e)         lua_assert(e)
-#else
 #define LumenAssert(e)         assert(e)
-#endif
 #define LumenCheckExp(c, e)    (LumenAssert(c), (e))
-#define LumenApiCheck(L, e)    luai_apicheck(L, e)
 #else
-#define LumenAssert(e)         ((void)0)
+#define LumenAssert(e)         ((void) 0)
 #define LumenCheckExp(c, e)    (e)
-#define LumenApiCheck(L, o)    luai_apicheck(L, o)
 #endif
 
 

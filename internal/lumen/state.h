@@ -110,6 +110,12 @@ struct LumenState : Lumen::BasicObject {
     Lumen::LongJump *ErrorJmp;  /* current error recover point */
     Lumen::Integer ErrFunc;  /* current error handling function (stack index) */
 
+    void PushObject(const Lumen::Object *o);
+
+    Lumen::Object *ToObject(int idx);
+
+    Lumen::Table *GetCurrentEnv();
+
     // MARK: Debug
 
     const char *FindLocal(Lumen::CallInfo *ci, int n);

@@ -153,3 +153,19 @@ void Lumen::ChunkId(char *out, const char *source, Lumen::UInteger buffLen) {
         }
     }
 }
+
+const char *Lumen::Object::GetUpValueInfo(int n, Lumen::Object **val) {
+    Lumen::Closure *f;
+    if (!LumenTypeIsFunction(this)) return nullptr;
+    f = LumenClosureValue(this);
+    if (f->AsC.IsC) {
+        if (!(1 <= n && n <= f->AsC.NUpValues)) return nullptr;
+        *val = &f->AsC.UpValues[n - 1];
+        return "";
+    } else {
+        Lumen::Proto *p = f->AsLua.Func;
+        if (!(1 <= n && n <= p->UpValuesCount)) return nullptr;
+        *val = f->AsLua.UpValues[n - 1]->SelfValue;
+        return LumenStringCString(p->UpValues[n - 1]);
+    }
+}
