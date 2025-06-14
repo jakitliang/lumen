@@ -53,8 +53,8 @@ Lua::Delegate Lua::State::AtPanic(Lua::Delegate pInvoke) {
     auto L = LuaToLumen(this);
     Lua::Delegate old;
     LumenLock(L);
-    old = reinterpret_cast<Lua::Delegate>(LumenGlobal(L)->Panic);
-    LumenGlobal(L)->Panic = reinterpret_cast<Lumen::Delegate>(pInvoke);
+    old = reinterpret_cast<Lua::Delegate>(LumenGlobalState(L)->Panic);
+    LumenGlobalState(L)->Panic = reinterpret_cast<Lumen::Delegate>(pInvoke);
     LumenUnlock(L);
     return old;
 }
@@ -493,7 +493,7 @@ int Lua::State::PushThread() {
     LumenSetThreadValue(L, L->Top, L);
     LumenApiIncrTop(L);
     LumenUnlock(L);
-    return (LumenGlobal(L)->MainThread == L);
+    return (LumenGlobalState(L)->MainThread == L);
 }
 
 // MARK: get functions (LuaToState(this)ua -> stack)
@@ -578,7 +578,7 @@ bool Lua::State::GetMetatable(int objIndex) {
             mt = LumenUDataValue(obj)->Metatable;
             break;
         default:
-            mt = LumenGlobal(L)->Metatable[LumenTypeOf(obj)];
+            mt = LumenGlobalState(L)->Metatable[LumenTypeOf(obj)];
             break;
     }
     if (mt == nullptr)
@@ -698,7 +698,7 @@ bool Lua::State::SetMetatable(int objIndex) {
             break;
         }
         default: {
-            LumenGlobal(L)->Metatable[LumenTypeOf(obj)] = mt;
+            LumenGlobalState(L)->Metatable[LumenTypeOf(obj)] = mt;
             break;
         }
     }
@@ -886,7 +886,7 @@ int Lua::State::GC(Lua::GCAction what, int data) {
     int res = 0;
     Lumen::GlobalState *g;
     LumenLock(L);
-    g = LumenGlobal(L);
+    g = LumenGlobalState(L);
     switch (what) {
         case Lua::GCStop: {
             g->GCThreshold = Lumen::MaxUMemory;
@@ -988,8 +988,8 @@ Lua::Allocator Lua::State::GetAllocator(void **ud) {
     auto L = LuaToLumen(this);
     Lumen::Allocator f;
     LumenLock(L);
-    if (ud) *ud = LumenGlobal(L)->ReAllocatorUData;
-    f = LumenGlobal(L)->ReAllocator;
+    if (ud) *ud = LumenGlobalState(L)->ReAllocatorUData;
+    f = LumenGlobalState(L)->ReAllocator;
     LumenUnlock(L);
     return f;
 }
@@ -997,8 +997,8 @@ Lua::Allocator Lua::State::GetAllocator(void **ud) {
 void Lua::State::SetAllocator(Lua::Allocator f, void *ud) {
     auto L = LuaToLumen(this);
     LumenLock(L);
-    LumenGlobal(L)->ReAllocatorUData = ud;
-    LumenGlobal(L)->ReAllocator = f;
+    LumenGlobalState(L)->ReAllocatorUData = ud;
+    LumenGlobalState(L)->ReAllocator = f;
     LumenUnlock(L);
 }
 

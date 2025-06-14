@@ -55,7 +55,7 @@ namespace Lumen::TM {
 #define LumenTMGetGlobalFast(g, et, e) ((et) == NULL ? NULL : \
     ((et)->Flags & (1u<<(e))) ? NULL : Lumen::TM::Get(et, e, (g)->MetatableName[e]))
 
-#define LumenTMGetFast(l, et, e)    LumenTMGetGlobalFast(LumenGlobal(l), et, e)
+#define LumenTMGetFast(l, et, e)    LumenTMGetGlobalFast(LumenGlobalState(l), et, e)
 
 /*
 ** function to be used with macro "LumenTMGetFast": optimized for absence of

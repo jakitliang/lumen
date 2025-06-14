@@ -90,7 +90,7 @@ namespace Lumen::GC {
 #define LumenGCCheckGC(L) \
 LumenDo(                  \
     LumenCondHardStackTests(Lumen::Do::ReAllocStack(L, L->StackCount - Lumen::ExtraStack - 1)); \
-    if (LumenGlobal(L)->TotalBytes >= LumenGlobal(L)->GCThreshold)                       \
+    if (LumenGlobalState(L)->TotalBytes >= LumenGlobalState(L)->GCThreshold)                       \
         Lumen::GC::Step(L);   \
 )
 

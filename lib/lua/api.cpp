@@ -49,8 +49,8 @@ LUA_API void lua_close(lua_State *L) {
 LUA_API lua_CFunction lua_atpanic(lua_State *L, lua_CFunction fPanic) {
     lua_CFunction old;
     LumenLock(L);
-    old = reinterpret_cast<lua_CFunction>(LumenGlobal(L)->Panic);
-    LumenGlobal(L)->Panic = reinterpret_cast<Lumen::Delegate>(fPanic);
+    old = reinterpret_cast<lua_CFunction>(LumenGlobalState(L)->Panic);
+    LumenGlobalState(L)->Panic = reinterpret_cast<Lumen::Delegate>(fPanic);
     LumenUnlock(L);
     return old;
 }
@@ -87,7 +87,7 @@ LUA_API void lua_xmove(lua_State *from, lua_State *to, int n) {
     if (from == to) return;
     LumenLock(to);
     LumenApiCheckElementCount(from, n);
-    LumenApiCheck(from, LumenGlobal(from) == LumenGlobal(to));
+    LumenApiCheck(from, LumenGlobalState(from) == LumenGlobalState(to));
     LumenApiCheck(from, to->CallInfo->Top - to->Top >= n);
     from->Top -= n;
     for (i = 0; i < n; i++) {
@@ -472,7 +472,7 @@ LUA_API int lua_pushthread(lua_State *L) {
     LumenSetThreadValue(L, L->Top, L);
     LumenApiIncrTop(L);
     LumenUnlock(L);
-    return (LumenGlobal(L)->MainThread == L);
+    return (LumenGlobalState(L)->MainThread == L);
 }
 
 
@@ -548,7 +548,7 @@ LUA_API int lua_getmetatable(lua_State *L, int objIndex) {
             mt = LumenUDataValue(obj)->Metatable;
             break;
         default:
-            mt = LumenGlobal(L)->Metatable[LumenTypeOf(obj)];
+            mt = LumenGlobalState(L)->Metatable[LumenTypeOf(obj)];
             break;
     }
     if (mt == nullptr)
@@ -671,7 +671,7 @@ LUA_API int lua_setmetatable(lua_State *L, int objIndex) {
             break;
         }
         default: {
-            LumenGlobal(L)->Metatable[LumenTypeOf(obj)] = mt;
+            LumenGlobalState(L)->Metatable[LumenTypeOf(obj)] = mt;
             break;
         }
     }
@@ -842,7 +842,7 @@ LUA_API int lua_gc(lua_State *L, int what, int data) {
     int res = 0;
     Lumen::GlobalState *g;
     LumenLock(L);
-    g = LumenGlobal(L);
+    g = LumenGlobalState(L);
     switch (what) {
         case LUA_GCSTOP: {
             g->GCThreshold = Lumen::MaxUMemory;
@@ -948,8 +948,8 @@ LUA_API void lua_concat(lua_State *L, int n) {
 LUA_API Lumen::Allocator lua_getallocf(lua_State *L, void **ud) {
     Lumen::Allocator f;
     LumenLock(L);
-    if (ud) *ud = LumenGlobal(L)->ReAllocatorUData;
-    f = LumenGlobal(L)->ReAllocator;
+    if (ud) *ud = LumenGlobalState(L)->ReAllocatorUData;
+    f = LumenGlobalState(L)->ReAllocator;
     LumenUnlock(L);
     return f;
 }
@@ -957,8 +957,8 @@ LUA_API Lumen::Allocator lua_getallocf(lua_State *L, void **ud) {
 
 LUA_API void lua_setallocf(lua_State *L, Lumen::Allocator f, void *ud) {
     LumenLock(L);
-    LumenGlobal(L)->ReAllocatorUData = ud;
-    LumenGlobal(L)->ReAllocator = f;
+    LumenGlobalState(L)->ReAllocatorUData = ud;
+    LumenGlobalState(L)->ReAllocator = f;
     LumenUnlock(L);
 }
 

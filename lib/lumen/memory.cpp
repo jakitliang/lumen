@@ -71,7 +71,7 @@ void *Lumen::Memory::TooBig(Lumen::State *L) {
 ** generic allocation routine.
 */
 void *Lumen::Memory::ReAlloc(Lumen::State *L, void *block, Lumen::UInteger oldSize, Lumen::UInteger newSize) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     LumenAssert((oldSize == 0) == (block == nullptr));
     block = (*g->ReAllocator)(g->ReAllocatorUData, block, oldSize, newSize);
     if (block == nullptr && newSize > 0)

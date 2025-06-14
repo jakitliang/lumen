@@ -22,9 +22,9 @@
 #define LumenGlobalTable(L)    (&L->Global)
 
 /* registry */
-#define LumenRegistry(L)    (&LumenGlobal(L)->Registry)
+#define LumenRegistryTable(L)    (&LumenGlobalState(L)->Registry)
 
-#define LumenGlobal(L)    (L->GlobalState)
+#define LumenGlobalState(L)    (L->GlobalState)
 
 namespace Lumen {
     struct BasicObject : TypeInfo {
@@ -299,42 +299,42 @@ LumenDo( Lumen::Object *i_o=(obj); i_o->value.b=(x); i_o->Type=Lumen::TypeBool; 
 LumenDo(                               \
     Lumen::Object *i_o=(obj);           \
     i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeString; \
-    LumenCheckLiveness(LumenGlobal(L), i_o);                              \
+    LumenCheckLiveness(LumenGlobalState(L), i_o);                              \
 )
 
 #define LumenSetUDataValue(L, obj, x) \
 LumenDo(                              \
     Lumen::Object *i_o=(obj);          \
     i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeUserdata; \
-    LumenCheckLiveness(LumenGlobal(L), i_o);                                \
+    LumenCheckLiveness(LumenGlobalState(L), i_o);                                \
 )
 
 #define LumenSetThreadValue(L, obj, x) \
 LumenDo(                               \
     Lumen::Object *i_o=(obj);           \
     i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeThread; \
-    LumenCheckLiveness(LumenGlobal(L), i_o);                              \
+    LumenCheckLiveness(LumenGlobalState(L), i_o);                              \
 )
 
 #define LumenSetClosureValue(L, obj, x) \
 LumenDo(                                \
     Lumen::Object *i_o=(obj);            \
     i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeFunction; \
-    LumenCheckLiveness(LumenGlobal(L), i_o);                                \
+    LumenCheckLiveness(LumenGlobalState(L), i_o);                                \
 )
 
 #define LumenSetTableValue(L, obj, x) \
 LumenDo(                              \
     Lumen::Object *i_o=(obj);          \
     i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeTable; \
-    LumenCheckLiveness(LumenGlobal(L), i_o);                             \
+    LumenCheckLiveness(LumenGlobalState(L), i_o);                             \
 )
 
 #define LumenSetProtoValue(L, obj, x) \
 LumenDo(                              \
     Lumen::Object *i_o=(obj);          \
     i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeProto; \
-    LumenCheckLiveness(LumenGlobal(L),i_o);                             \
+    LumenCheckLiveness(LumenGlobalState(L),i_o);                             \
 )
 
 #define LumenSetObject(L, obj1, obj2) \
@@ -343,7 +343,7 @@ LumenDo(                              \
     Lumen::Object *o1=(obj1);          \
     o1->value = o2->value;          \
     o1->Type=o2->Type;              \
-    LumenCheckLiveness(LumenGlobal(L),o1); \
+    LumenCheckLiveness(LumenGlobalState(L),o1); \
 )
 
 
@@ -371,8 +371,8 @@ LumenDo(                              \
 
 // String helpers
 
-#define LumenStringCString(ts)    cast(const char *, (ts) + 1)
-#define LumenStringValue2CString(o)       LumenStringCString(LumenStringValue(o))
+#define LumenStringCString(ts)         cast(const char *, (ts) + 1)
+#define LumenStringValue2CString(o)    LumenStringCString(LumenStringValue(o))
 
 // Closure helpers
 
@@ -380,10 +380,10 @@ LumenDo(                              \
 #define LumenIsLFunction(o)    (LumenTypeOf(o) == Lumen::TypeFunction && !LumenClosureValue(o)->AsC.IsC)
 
 #define LumenCClosureSize(n)    (cast(int, sizeof(Lumen::CClosure)) + \
-                         cast(int, sizeof(Lumen::Object)*((n)-1)))
+                         cast(int, sizeof(Lumen::Object) * ((n) - 1)))
 
 #define LumenLClosureSize(n)    (cast(int, sizeof(Lumen::LClosure)) + \
-                         cast(int, sizeof(Lumen::Object *)*((n)-1)))
+                         cast(int, sizeof(Lumen::Object *) * ((n) - 1)))
 
 // Other helpers
 
@@ -391,7 +391,7 @@ LumenDo(                              \
  * `module` operation for hashing (size is always a power of 2)
  */
 #define LumenLogMod(s, size) \
-    (LumenCheckExp((size&(size-1))==0, (cast(int, (s) & ((size)-1)))))
+    (LumenCheckExp((size & (size - 1)) == 0, (cast(int, (s) & (size - 1)))))
 
 #define LumenTableTwoTo(x)    (1 << (x))
 #define LumenTableNodeCount(t)    (LumenTableTwoTo((t)->NodeCount))
@@ -442,8 +442,6 @@ inline int Lumen::String2Decimal(const char *s, Lumen::Number *result) {
     if (*endPtr != '\0') return 0;  /* invalid trailing characters? */
     return 1;
 }
-
-
 
 #endif
 

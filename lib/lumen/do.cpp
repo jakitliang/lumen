@@ -93,10 +93,10 @@ void Lumen::Do::Throw(Lumen::State *L, int errcode) {
         LUAI_THROW(L, L->ErrorJmp);
     } else {
         L->Status = cast_byte(errcode);
-        if (LumenGlobal(L)->Panic) {
+        if (LumenGlobalState(L)->Panic) {
             resetStack(L, errcode);
             LumenUnlock(L);
-            LumenGlobal(L)->Panic(L);
+            LumenGlobalState(L)->Panic(L);
         }
         exit(EXIT_FAILURE);
     }

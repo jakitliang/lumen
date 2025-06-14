@@ -133,7 +133,7 @@ static void markTMUData(Lumen::GlobalState *g) {
 
 /* move `dead` UData that need finalization to list `TMUData` */
 Lumen::UInteger Lumen::GC::SeparateUserdata(Lumen::State *L, int all) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     Lumen::UInteger deadMem = 0;
     Lumen::GCObject **p = &g->MainThread->GCNext;
     Lumen::GCObject *curr;
@@ -392,12 +392,12 @@ static void freeObject(Lumen::State *L, Lumen::GCObject *o) {
             Lumen::Table::Free(L, LumenGCObject2Table(o));
             break;
         case Lumen::TypeThread: {
-            LumenAssert(LumenGCObject2Thread(o) != L && LumenGCObject2Thread(o) != LumenGlobal(L)->MainThread);
+            LumenAssert(LumenGCObject2Thread(o) != L && LumenGCObject2Thread(o) != LumenGlobalState(L)->MainThread);
             Lumen::State::FreeThread(L, LumenGCObject2Thread(o));
             break;
         }
         case Lumen::TypeString: {
-            LumenGlobal(L)->StringMap.Count--;
+            LumenGlobalState(L)->StringMap.Count--;
             LumenMemoryFreeMemory(L, o, LumenStringSize(LumenGCObject2String(o)));
             break;
         }
@@ -416,7 +416,7 @@ static void freeObject(Lumen::State *L, Lumen::GCObject *o) {
 
 static Lumen::GCObject **sweepList(Lumen::State *L, Lumen::GCObject **p, Lumen::MemorySize count) {
     Lumen::GCObject *curr;
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     int deadMask = LumenGCOtherWhite(g);
     while ((curr = *p) != nullptr && count-- > 0) {
         if (curr->AsObject.Type == Lumen::TypeThread)  /* sweep open upvalues of each thread */
@@ -438,7 +438,7 @@ static Lumen::GCObject **sweepList(Lumen::State *L, Lumen::GCObject **p, Lumen::
 
 
 static void checkSizes(Lumen::State *L) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     /* check size of string hash */
     if (g->StringMap.Count < cast(Lumen::UInt32, g->StringMap.Capacity / 4) &&
         g->StringMap.Capacity > Lumen::MinStringTableSize * 2)
@@ -452,7 +452,7 @@ static void checkSizes(Lumen::State *L) {
 
 
 static void doGCMetatable(Lumen::State *L) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     Lumen::GCObject *o = g->GCTMUData->AsObject.GCNext;  /* get first element */
     Lumen::Userdata *uData = LumenGCObject2Userdata(o);
     const Lumen::Object *tm;
@@ -484,13 +484,13 @@ static void doGCMetatable(Lumen::State *L) {
 ** Call all GC tag methods
 */
 void Lumen::GC::CallGCTM(Lumen::State *L) {
-    while (LumenGlobal(L)->GCTMUData)
+    while (LumenGlobalState(L)->GCTMUData)
         doGCMetatable(L);
 }
 
 
 void Lumen::GC::FreeAll(Lumen::State *L) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     int i;
     g->CurrentWhite = Lumen::GC::MarkWhiteBits | LumenGCBitMask(Lumen::GC::MarkSFixedBit); // mask to collect all elements
     sweepWholeList(L, &g->GCRoot);
@@ -508,14 +508,14 @@ static void markMetatable(Lumen::GlobalState *g) {
 
 /* mark root set */
 static void markRoot(Lumen::State *L) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     g->GCGray = nullptr;
     g->GCGrayAgain = nullptr;
     g->GCWeak = nullptr;
     markObject(g, g->MainThread);
     /* make global table be traversed before main stack */
     markValue(g, LumenGlobalTable(g->MainThread));
-    markValue(g, LumenRegistry(L));
+    markValue(g, LumenRegistryTable(L));
     markMetatable(g);
     g->GCState = Lumen::GC::StatePropagate;
 }
@@ -531,7 +531,7 @@ static void remarkUpValues(Lumen::GlobalState *g) {
 
 
 static void atomic(Lumen::State *L) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     Lumen::UInteger uDataSize;  /* total size of userdata to be finalized */
     /* remark occasional upValues of (maybe) dead threads */
     remarkUpValues(g);
@@ -562,7 +562,7 @@ static void atomic(Lumen::State *L) {
 
 
 static Lumen::MemoryDelta singleStep(Lumen::State *L) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     /*lua_checkmemory(L);*/
     switch (g->GCState) {
         case Lumen::GC::StatePause: {
@@ -617,7 +617,7 @@ static Lumen::MemoryDelta singleStep(Lumen::State *L) {
 
 
 void Lumen::GC::Step(Lumen::State *L) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     Lumen::MemoryDelta lim = (LUA_GC_STEP_SIZE / 100) * g->GCStepMul;
     if (lim == 0)
         lim = (Lumen::MaxUMemory - 1) / 2;  /* no limit */
@@ -641,7 +641,7 @@ void Lumen::GC::Step(Lumen::State *L) {
 
 
 void Lumen::GC::FullGC(Lumen::State *L) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     if (g->GCState <= Lumen::GC::StatePropagate) {
         /* reset sweep marks to sweep all elements (returning them to white) */
         g->GCStringMap = 0;
@@ -667,7 +667,7 @@ void Lumen::GC::FullGC(Lumen::State *L) {
 
 
 void Lumen::GC::BarrierF(Lumen::State *L, Lumen::GCObject *o, Lumen::GCObject *v) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     LumenAssert(LumenGCIsBlack(o) && LumenGCIsWhite(v) && !LumenGCIsDead(g, v) && !LumenGCIsDead(g, o));
     LumenAssert(g->GCState != Lumen::GC::StateFinalize && g->GCState != Lumen::GC::StatePause);
     LumenAssert(LumenTypeOf(&o->AsObject) != Lumen::TypeTable);
@@ -680,7 +680,7 @@ void Lumen::GC::BarrierF(Lumen::State *L, Lumen::GCObject *o, Lumen::GCObject *v
 
 
 void Lumen::GC::BarrierBack(Lumen::State *L, Lumen::Table *t) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     Lumen::GCObject *o = LumenObject2GCObject(t);
     LumenAssert(LumenGCIsBlack(o) && !LumenGCIsDead(g, o));
     LumenAssert(g->GCState != Lumen::GC::StateFinalize && g->GCState != Lumen::GC::StatePause);
@@ -691,7 +691,7 @@ void Lumen::GC::BarrierBack(Lumen::State *L, Lumen::Table *t) {
 
 
 void Lumen::GC::Link(Lumen::State *L, Lumen::GCObject *o, Lumen::Byte Type) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     o->AsObject.GCNext = g->GCRoot;
     g->GCRoot = o;
     o->AsObject.Marked = LumenGCWhite(g);
@@ -700,7 +700,7 @@ void Lumen::GC::Link(Lumen::State *L, Lumen::GCObject *o, Lumen::Byte Type) {
 
 
 void Lumen::GC::LinkUpValue(Lumen::State *L, Lumen::UpValue *uv) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     Lumen::GCObject *o = LumenObject2GCObject(uv);
     o->AsObject.GCNext = g->GCRoot;  /* link upValue into `GCRoot` list */
     g->GCRoot = o;

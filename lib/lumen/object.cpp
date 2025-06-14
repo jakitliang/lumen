@@ -27,7 +27,7 @@
 const Lumen::Object Lumen::NilValue = {Lumen::TypeNil, {nullptr}};
 
 int Lumen::Log2(unsigned int x) {
-    static const Lumen::Byte log_2[256] = {
+    static const Lumen::Byte log2[256] = {
         0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
         6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
         7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
@@ -42,7 +42,7 @@ int Lumen::Log2(unsigned int x) {
         l += 8;
         x >>= 8;
     }
-    return l + log_2[x];
+    return l + log2[x];
 }
 
 static void pushCString(Lumen::State *L, const char *str) {

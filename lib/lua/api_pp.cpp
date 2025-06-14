@@ -37,7 +37,7 @@ void Lua::XMove(Lua::State *fromL, Lua::State *toL, int n) {
     if (from == to) return;
     LumenLock(to);
     LumenApiCheckElementCount(from, n);
-    LumenApiCheck(from, LumenGlobal(from) == LumenGlobal(to));
+    LumenApiCheck(from, LumenGlobalState(from) == LumenGlobalState(to));
     LumenApiCheck(from, to->CallInfo->Top - to->Top >= n);
     from->Top -= n;
     for (i = 0; i < n; i++) {

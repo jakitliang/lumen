@@ -67,11 +67,11 @@ static void stackFree(Lumen::State *L, Lumen::State *L1) {
 ** open parts that may cause memory-allocation errors
 */
 static void LuaStateOpenFile(Lumen::State *L, void *ud) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     UNUSED(ud);
     stackInit(L, L);  /* init stack */
     LumenSetTableValue(L, LumenGlobalTable(L), Lumen::Table::New(L, 0, 2));  /* table of globals */
-    LumenSetTableValue(L, LumenRegistry(L), Lumen::Table::New(L, 0, 2));  /* LumenRegistry */
+    LumenSetTableValue(L, LumenRegistryTable(L), Lumen::Table::New(L, 0, 2));  /* LumenRegistryTable */
     Lumen::String::Resize(L, Lumen::MinStringTableSize);  /* initial size of string table */
     Lumen::TM::Init(L);
     Lumen::LexState::Init(L);
@@ -81,7 +81,7 @@ static void LuaStateOpenFile(Lumen::State *L, void *ud) {
 
 
 static void LuaStatePreInit(Lumen::State *L, Lumen::GlobalState *g) {
-    LumenGlobal(L) = g;
+    LumenGlobalState(L) = g;
     L->Stack = nullptr;
     L->StackCount = 0;
     L->ErrorJmp = nullptr;
@@ -102,12 +102,12 @@ static void LuaStatePreInit(Lumen::State *L, Lumen::GlobalState *g) {
 
 
 static void LuaStateClose(Lumen::State *L) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     Lumen::UpValue::Close(L, L->Stack);  /* close all upvalues for this thread */
     Lumen::GC::FreeAll(L);  /* collect all objects */
     LumenAssert(g->GCRoot == LumenObject2GCObject(L));
     LumenAssert(g->StringMap.Count == 0);
-    LumenMemoryFreeArray(L, LumenGlobal(L)->StringMap.HashTable, LumenGlobal(L)->StringMap.Capacity, Lumen::String *);
+    LumenMemoryFreeArray(L, LumenGlobalState(L)->StringMap.HashTable, LumenGlobalState(L)->StringMap.Capacity, Lumen::String *);
     LumenZBufferFree(L, &g->Buff);
     stackFree(L, L);
     LumenAssert(g->TotalBytes == sizeof(LG));
@@ -131,7 +131,7 @@ Lumen::Object *Lumen::State::ToObject(int idx) {
     } else
         switch (idx) {  /* pseudo-indices */
             case Lumen::RegistryIndex:
-                return LumenRegistry(this);
+                return LumenRegistryTable(this);
             case Lumen::EnvIndex: {
                 Lumen::Closure *func = LumenCurFunc(this);
                 LumenSetTableValue(L, &Env, func->AsC.Env);
@@ -161,7 +161,7 @@ Lumen::Table *Lumen::State::GetCurrentEnv() {
 Lumen::State *Lumen::State::NewThread(Lumen::State *L) {
     Lumen::State *L1 = toState(LumenMemoryAlloc(L, sizeOfState(Lumen::State)));
     Lumen::GC::Link(L, LumenObject2GCObject(L1), Lumen::TypeThread);
-    LuaStatePreInit(L1, LumenGlobal(L));
+    LuaStatePreInit(L1, LumenGlobalState(L));
     stackInit(L1, L);  /* init stack */
     LumenSetObject2N(L, LumenGlobalTable(L1), LumenGlobalTable(L));  /* share table of globals */
     L1->HookMask = L->HookMask;
@@ -205,7 +205,7 @@ Lumen::State *Lumen::State::New(Lumen::Allocator allocator, void *userData) {
     g->StringMap.Capacity = 0;
     g->StringMap.Count = 0;
     g->StringMap.HashTable = nullptr;
-    LumenSetNilValue(LumenRegistry(L));
+    LumenSetNilValue(LumenRegistryTable(L));
     LumenZBufferInit(L, &g->Buff);
     g->Panic = nullptr;
     g->GCState = Lumen::GC::StatePause;
@@ -236,7 +236,7 @@ static void LuaStateCallAllGcTM(Lumen::State *L, void *ud) {
 }
 
 void Lumen::State::Close(Lumen::State *L) {
-    L = LumenGlobal(L)->MainThread;  /* only the main thread can be closed */
+    L = LumenGlobalState(L)->MainThread;  /* only the main thread can be closed */
     LumenLock(L);
     Lumen::UpValue::Close(L, L->Stack);  /* close all upvalues for this thread */
     Lumen::GC::SeparateUserdata(L, 1);  /* separate uData that have GC metaMethods */
@@ -246,7 +246,7 @@ void Lumen::State::Close(Lumen::State *L) {
         L->Base = L->Top = L->CallInfo->Base;
         L->NCCalls = L->BaseCCalls = 0;
     } while (Lumen::Do::RawRunProtected(L, LuaStateCallAllGcTM, nullptr) != 0);
-    LumenAssert(LumenGlobal(L)->GCTMUData == nullptr);
+    LumenAssert(LumenGlobalState(L)->GCTMUData == nullptr);
     luai_userstateclose(L);
     LuaStateClose(L);
 }

@@ -64,7 +64,7 @@ void Lumen::String::Intern(Lumen::State *L) {
     unsigned int h = Lumen::Hash::State::DoHash((uint8_t *) LumenStringCString(this), Length, (uint32_t) Length);
     Hash = h;
 
-    Lumen::StringTable *tb = &LumenGlobal(L)->StringMap;
+    Lumen::StringTable *tb = &LumenGlobalState(L)->StringMap;
     h = LumenLogMod(h, tb->Capacity);
 
     GCNext = tb->HashTable[h];
@@ -80,10 +80,10 @@ void Lumen::String::Resize(Lumen::State *L, int newSize) {
     Lumen::GCObject **newHash;
     Lumen::StringTable *tb;
     int i;
-    if (LumenGlobal(L)->GCState == Lumen::GC::StateSweepString)
+    if (LumenGlobalState(L)->GCState == Lumen::GC::StateSweepString)
         return;  /* cannot resize during GC traverse */
     newHash = LumenMemoryNewVector(L, newSize, Lumen::GCObject *);
-    tb = &LumenGlobal(L)->StringMap;
+    tb = &LumenGlobalState(L)->StringMap;
     for (i = 0; i < newSize; i++) newHash[i] = nullptr;
     /* rehash */
     for (i = 0; i < tb->Capacity; i++) {
@@ -113,12 +113,12 @@ static Lumen::String *newStringWithLength(Lumen::State *L, const char *str, Lume
     ts = cast(Lumen::String *, LumenMemoryAlloc(L, (l + 1) * sizeof(char) + sizeof(Lumen::String)));
     ts->Length = l;
     ts->Hash = h;
-    ts->Marked = LumenGCWhite(LumenGlobal(L));
+    ts->Marked = LumenGCWhite(LumenGlobalState(L));
     ts->Type = Lumen::TypeString;
     ts->Reserved = 0;
     memcpy(ts + 1, str, l * sizeof(char));
     ((char *) (ts + 1))[l] = '\0';  /* ending 0 */
-    tb = &LumenGlobal(L)->StringMap;
+    tb = &LumenGlobalState(L)->StringMap;
     h = LumenLogMod(h, tb->Capacity);
     ts->GCNext = tb->HashTable[h];  /* chain new entry */
     tb->HashTable[h] = LumenObject2GCObject(ts);
@@ -131,13 +131,13 @@ static Lumen::String *newStringWithLength(Lumen::State *L, const char *str, Lume
 Lumen::String *Lumen::String::New(Lumen::State *L, const char *str, Lumen::UInteger l) {
     Lumen::GCObject *o;
     unsigned int h = Lumen::Hash::State::DoHash((uint8_t *) str, l, (uint32_t) l);
-    for (o = LumenGlobal(L)->StringMap.HashTable[LumenLogMod(h, LumenGlobal(L)->StringMap.Capacity)];
+    for (o = LumenGlobalState(L)->StringMap.HashTable[LumenLogMod(h, LumenGlobalState(L)->StringMap.Capacity)];
          o != nullptr;
          o = o->AsObject.GCNext) {
         Lumen::String *ts = LumenGCObject2String(o);
         if (ts->Length == l && (memcmp(str, LumenStringCString(ts), l) == 0)) {
             /* string may be dead */
-            if (LumenGCIsDead(LumenGlobal(L), o)) LumenGCChangeWhite(o);
+            if (LumenGCIsDead(LumenGlobalState(L), o)) LumenGCChangeWhite(o);
             return ts;
         }
     }
@@ -148,13 +148,13 @@ Lumen::String *Lumen::String::New(Lumen::State *L, const char *str) {
     Lumen::GCObject *o;
     Lumen::UInteger l = LengthOf(str);
     unsigned int h = Lumen::Hash::State::DoHash((uint8_t *) str, l, (uint32_t) l);
-    for (o = LumenGlobal(L)->StringMap.HashTable[LumenLogMod(h, LumenGlobal(L)->StringMap.Capacity)];
+    for (o = LumenGlobalState(L)->StringMap.HashTable[LumenLogMod(h, LumenGlobalState(L)->StringMap.Capacity)];
          o != nullptr;
          o = o->AsObject.GCNext) {
         Lumen::String *ts = LumenGCObject2String(o);
         if (ts->Length == l && (memcmp(str, LumenStringCString(ts), l) == 0)) {
             /* string may be dead */
-            if (LumenGCIsDead(LumenGlobal(L), o)) LumenGCChangeWhite(o);
+            if (LumenGCIsDead(LumenGlobalState(L), o)) LumenGCChangeWhite(o);
             return ts;
         }
     }
@@ -170,7 +170,7 @@ Lumen::String *Lumen::String::NewRaw(Lumen::State *L, const char *str, Lumen::UI
 
     ts->Length = l;
     ts->Hash = 0;
-    ts->Marked = LumenGCWhite(LumenGlobal(L));
+    ts->Marked = LumenGCWhite(LumenGlobalState(L));
     ts->Type = Lumen::TypeString;
     ts->Reserved = 0;
 
@@ -191,14 +191,14 @@ Lumen::Userdata *Lumen::Userdata::New(Lumen::State *L, Lumen::UInteger s, Lumen:
     if (s > Lumen::MaxSize - sizeof(Lumen::Userdata))
         Lumen::Memory::TooBig(L);
     u = cast(Lumen::Userdata *, LumenMemoryAlloc(L, s + sizeof(Lumen::Userdata)));
-    u->Marked = LumenGCWhite(LumenGlobal(L));  /* is not finalized */
+    u->Marked = LumenGCWhite(LumenGlobalState(L));  /* is not finalized */
     u->Type = Lumen::TypeUserdata;
     u->Length = s;
     u->Metatable = nullptr;
     u->Env = e;
     /* chain it on uData list (after main thread) */
-    u->GCNext = LumenGlobal(L)->MainThread->GCNext;
-    LumenGlobal(L)->MainThread->GCNext = LumenObject2GCObject(u);
+    u->GCNext = LumenGlobalState(L)->MainThread->GCNext;
+    LumenGlobalState(L)->MainThread->GCNext = LumenObject2GCObject(u);
     return u;
 }
 

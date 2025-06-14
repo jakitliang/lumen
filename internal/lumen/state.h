@@ -60,7 +60,7 @@ namespace Lumen {
         int GCPause;  /* size of pause between successive GCs */
         int GCStepMul;  /* GC `granularity' */
         Lumen::Delegate Panic;  /* to be called in unprotected errors */
-        Lumen::Object Registry;
+        Lumen::Object Registry; /* table of registry `Lumen::RegistryIndex` */
         Lumen::State *MainThread;
         Lumen::UpValue UpValueHead;  /* head of double-linked list of all open upValues */
         Lumen::Table *Metatable[Lumen::TypeCount];  /* metatables for basic types */
@@ -103,7 +103,7 @@ struct LumenState : Lumen::BasicObject {
     int BaseHookCount;
     int HookCount;
     Lumen::Hook Hook;
-    Lumen::Object Global;  /* table of globals */
+    Lumen::Object Global;  /* table of globals `_G` */
     Lumen::Object Env;  /* temporary place for environments */
     Lumen::GCObject *OpenedUpValue;  /* list of open upValues in this stack */
     Lumen::GCObject *GCList;

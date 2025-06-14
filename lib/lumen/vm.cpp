@@ -285,7 +285,7 @@ void Lumen::VM::Concat(Lumen::State *L, int total, int last) {
                     if (l >= Lumen::MaxSize - tl) Lumen::Debug::RunError(L, "string length overflow");
                     tl += l;
                 }
-                buffer = Lumen::ZBuffer::OpenSpace(L, &LumenGlobal(L)->Buff, tl);
+                buffer = Lumen::ZBuffer::OpenSpace(L, &LumenGlobalState(L)->Buff, tl);
                 tl = 0;
                 for (i = n; i > 0; i--) {  /* concat all strings */
                     auto s3 = LumenStringValue(top - i);

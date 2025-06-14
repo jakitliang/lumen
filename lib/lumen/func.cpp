@@ -49,7 +49,7 @@ Lumen::UpValue *Lumen::UpValue::New(Lumen::State *L) {
 
 
 Lumen::UpValue *Lumen::UpValue::Find(Lumen::State *L, Lumen::Value level) {
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     Lumen::GCObject **pp = &L->OpenedUpValue;
     Lumen::UpValue *p;
     Lumen::UpValue *uv;
@@ -93,7 +93,7 @@ void Lumen::UpValue::Free(Lumen::State *L, Lumen::UpValue *uv) {
 
 void Lumen::UpValue::Close(Lumen::State *L, Lumen::Value level) {
     Lumen::UpValue *uv;
-    Lumen::GlobalState *g = LumenGlobal(L);
+    Lumen::GlobalState *g = LumenGlobalState(L);
     while (L->OpenedUpValue != nullptr && (uv = LumenNullGCObject2UpValue(L->OpenedUpValue))->SelfValue >= level) {
         Lumen::GCObject *o = LumenObject2GCObject(uv);
         LumenAssert(!LumenGCIsBlack(o) && uv->SelfValue != &uv->Value);

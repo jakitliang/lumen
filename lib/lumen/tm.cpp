@@ -36,8 +36,8 @@ void Lumen::TM::Init(Lumen::State *L) {
     };
     int i;
     for (i = 0; i < Lumen::TM::NameN; i++) {
-        LumenGlobal(L)->MetatableName[i] = Lumen::String::New(L, luaT_eventname[i]);
-        LumenStringFix(LumenGlobal(L)->MetatableName[i]);  /* never collect these names */
+        LumenGlobalState(L)->MetatableName[i] = Lumen::String::New(L, luaT_eventname[i]);
+        LumenStringFix(LumenGlobalState(L)->MetatableName[i]);  /* never collect these names */
     }
 }
 
@@ -51,8 +51,8 @@ const Lumen::Object *Lumen::TM::GetByObject(Lumen::State *L, const Lumen::Object
             mt = LumenUDataValue(o)->Metatable;
             break;
         default:
-            mt = LumenGlobal(L)->Metatable[LumenTypeOf(o)];
+            mt = LumenGlobalState(L)->Metatable[LumenTypeOf(o)];
     }
-    return (mt ? Lumen::Table::GetString(mt, LumenGlobal(L)->MetatableName[event]) : Lumen::NilObject);
+    return (mt ? Lumen::Table::GetString(mt, LumenGlobalState(L)->MetatableName[event]) : Lumen::NilObject);
 }
 
