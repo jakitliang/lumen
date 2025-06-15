@@ -22,6 +22,7 @@
 #include "lumen/opcodes.h"
 #include "lumen/string.h"
 #include "lumen/undump.h"
+#include "lumen/version.h"
 
 #include "lua.h"
 #include "lauxlib.h"
