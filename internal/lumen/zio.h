@@ -38,8 +38,9 @@ namespace Lumen {
     };
 
     struct ZIO {
-        Lumen::UInteger n;            /* bytes still unread */
+        bool eoz; /* true if reader has no more data */
         const char *p;        /* current position in buffer */
+        Lumen::UInteger n;            /* bytes still unread */
         Lumen::Reader reader;
         void *data;            /* additional data */
         Lumen::State *L;            /* Lua state (for reader) */
@@ -69,6 +70,7 @@ inline void Lumen::ZIO::Init(Lumen::State *L, Lumen::ZIO *z, Lumen::Reader reade
     z->data = data;
     z->n = 0;
     z->p = nullptr;
+    z->eoz = false;
 }
 
 inline int Lumen::ZIO::LookAhead(Lumen::ZIO *z) {

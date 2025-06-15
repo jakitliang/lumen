@@ -21,10 +21,14 @@ int Lumen::ZIO::Fill(Lumen::ZIO *z) {
     Lumen::UInteger size;
     Lumen::State *L = z->L;
     const char *buff;
+    if (z->eoz) return EOZ;
     LumenUnlock(L);
     buff = z->reader(L, z->data, &size);
     LumenLock(L);
-    if (buff == nullptr || size == 0) return EOZ;
+    if (buff == nullptr || size == 0) {
+        z->eoz = true; /* avoid calling reader function next time */
+        return EOZ;
+    }
     z->n = size - 1;
     z->p = buff;
     return LumenChar2Int(*(z->p++));

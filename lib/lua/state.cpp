@@ -1006,7 +1006,7 @@ void Lua::State::SetAllocator(Lua::Allocator f, void *ud) {
 
 bool Lua::State::GetStack(int level, Lua::DebugInfo *ar) {
     auto L = LuaToLumen(this);
-    int status;
+    bool status;
     Lumen::CallInfo *ci;
     LumenLock(L);
     for (ci = L->CallInfo; level > 0 && ci > L->BaseCI; ci--) {
@@ -1015,12 +1015,12 @@ bool Lua::State::GetStack(int level, Lua::DebugInfo *ar) {
             level -= ci->NTailCalls;  /* skip lost tail calls */
     }
     if (level == 0 && ci > L->BaseCI) {  /* level found? */
-        status = 1;
+        status = true;
         reinterpret_cast<Lumen::DebugInfo *>(ar)->CurrentCI = cast_int(ci - L->BaseCI);
     } else if (level < 0) {  /* level is of a lost tail call? */
-        status = 1;
+        status = true;
         reinterpret_cast<Lumen::DebugInfo *>(ar)->CurrentCI = 0;
-    } else status = 0;  /* no such level */
+    } else status = false;  /* no such level */
     LumenUnlock(L);
     return status;
 }

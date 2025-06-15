@@ -4,7 +4,8 @@ add_library(
     api_pp.cpp
     auxlib.cpp
     aux_pp.cpp
-    baselib.c
+#    baselib.c
+    base.cpp
     buffer.cpp
     dblib.c
     init.c

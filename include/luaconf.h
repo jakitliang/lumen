@@ -348,6 +348,11 @@
 #define LUA_COMPAT_OPENLIB
 
 /*
+@@ LUA_COMPAT_PAIRS controls the effectiveness of the __ipairs and __pairs metamethod.
+*/
+#define LUA_COMPAT_PAIRS
+
+/*
 @@ LUA_USE_APICHECK turns on several consistency checks on the C API.
 ** Define it as a help when debugging C code.
 */

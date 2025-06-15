@@ -241,9 +241,9 @@ namespace Lua {
 
         LPP_API const char *PushFString(const char *fmt, ...);
 
-        LPP_API void PushDelegate(Delegate invoke, int n);
+        LPP_API void PushDelegate(Delegate invoke, int n = 0);
 
-        LPP_API void PushFunction(Function invoke, int n);
+        LPP_API void PushFunction(Function invoke, int n = 0);
 
         LPP_API void PushBoolean(int b);
 
@@ -343,14 +343,6 @@ namespace Lua {
             SetGlobal(name);
         }
 
-        inline void PushDelegate(Delegate invoke) {
-            PushDelegate(invoke, 0);
-        }
-
-        inline void PushFunction(Function invoke) {
-            PushFunction(invoke, 0);
-        }
-
         inline UInteger StringLength(int idx) {
             return ObjectLength(idx);
         }
@@ -446,6 +438,10 @@ namespace Lua {
 
         // MARK: Auxiliary basic APIs
 
+        inline int GetN(int idx) {
+            return static_cast<int>(ObjectLength(idx));
+        }
+
         LPP_API void OpenLib(const char *name, const Interface *i, int nUpValue);
 
         inline void Register(const char *name, const Interface *i) {
@@ -508,7 +504,7 @@ namespace Lua {
 
         // MARK: Auxiliary miscellaneous functions
 
-        inline void ArgCheck(int cond, int numArg, const char *extraMsg) {
+        inline void ArgCheck(bool cond, int numArg, const char *extraMsg) {
             cond || ArgError(numArg, extraMsg);
         }
 
