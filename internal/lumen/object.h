@@ -187,7 +187,12 @@ namespace Lumen {
     };
 
     struct BasicClosure : BasicObject {
-        Lumen::Byte IsC;
+        typedef LUA_ENUM(Lumen::Byte, Kind) {
+            KindLua = 0,
+            KindC = 1
+        };
+
+        BasicClosure::Kind IsC;
         Lumen::Byte NUpValues;
         Lumen::GCObject *GCList;
         Lumen::Table *Env;
@@ -268,6 +273,8 @@ namespace Lumen {
 #define LumenStringValue(o)    LumenCheckExp(LumenTypeIsString(o), &(o)->value.gc->AsString)
 #define LumenUDataValue(o)    LumenCheckExp(LumenTypeIsUData(o), &(o)->value.gc->AsUserdata)
 #define LumenClosureValue(o)    LumenCheckExp(LumenTypeIsFunction(o), &(o)->value.gc->AsClosure)
+#define LumenLClosureValue(o)    LumenCheckExp(LumenTypeIsFunction(o), &(o)->value.gc->AsClosure.AsLua)
+#define LumenCClosureValue(o)    LumenCheckExp(LumenTypeIsFunction(o), &(o)->value.gc->AsClosure.AsC)
 #define LumenTableValue(o)    LumenCheckExp(LumenTypeIsTable(o), &(o)->value.gc->AsTable)
 #define LumenBoolValue(o)    LumenCheckExp(LumenTypeIsBoolean(o), (o)->value.b)
 #define LumenThreadValue(o)    LumenCheckExp(LumenTypeIsThread(o), &(o)->value.gc->AsThread)

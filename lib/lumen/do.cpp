@@ -301,7 +301,7 @@ int Lumen::Do::PreCall(Lumen::State *L, Lumen::Value func, int nResults) {
         Lumen::CallInfo *ci;
         int n;
         LumenDoCheckStack(L, Lumen::MinStack);  /* ensure minimum stack size */
-        ci = incrCI(L);  /* now `enter' new function */
+        ci = incrCI(L);  /* now `enter` new function */
         ci->Func = LumenRestoreStack(L, funcR);
         L->Base = ci->Base = ci->Func + 1;
         ci->Top = L->Top + Lumen::MinStack;

@@ -59,6 +59,11 @@ Lua::Delegate Lua::State::AtPanic(Lua::Delegate pInvoke) {
     return old;
 }
 
+const Lua::Number *Lua::State::Version() {
+    static const Lumen::Number lua_version_number = LUA_VERSION_NUM;
+    return &lua_version_number;
+}
+
 // MARK: basic stack manipulation
 
 int Lua::State::GetTop() {
@@ -595,6 +600,19 @@ void Lua::State::RawGetAt(int idx, int n) {
     LumenUnlock(L);
 }
 
+void Lua::State::RawGetPtr(int idx, int n, const void *p) {
+    auto L = LuaToLumen(this);
+    Lumen::Value t;
+    Lumen::Object k; // NOLINT
+    LumenLock(L);
+    t = L->ToObject( idx);
+    LumenApiCheck(L, LumenTypeIsTable(t));
+    LumenSetLUDataValue(&k, cast(void *, p));
+    LumenSetObject2S(L, L->Top, Lumen::Table::Get(LumenTableValue(t), &k));
+    LumenApiIncrTop(L);
+    LumenUnlock(L);
+}
+
 void Lua::State::CreateTable(int nArray, int nRec) {
     auto L = LuaToLumen(this);
     LumenLock(L);
@@ -719,6 +737,21 @@ void Lua::State::RawSetAt(int idx, int n) {
     LumenApiCheck(L, LumenTypeIsTable(o));
     LumenSetObject2T(L, Lumen::Table::SetNum(L, LumenTableValue(o), n), L->Top - 1);
     LumenGCBarrierTable(L, LumenTableValue(o), L->Top - 1);
+    L->Top--;
+    LumenUnlock(L);
+}
+
+void Lua::State::RawSetPtr(int idx, int n, const void *p) {
+    auto L = LuaToLumen(this);
+    Lumen::Value t;
+    Lumen::Object k; // NOLINT
+    LumenLock(L);
+    LumenApiCheckElementCount(L, 1);
+    t = L->ToObject(idx);
+    LumenApiCheck(L, LumenTypeIsTable(t));
+    LumenSetLUDataValue(&k, cast(void *, p));
+    LumenSetObject2T(L, Lumen::Table::Set(L, LumenTableValue(t), &k), L->Top - 1);
+    LumenGCBarrierTable(L, LumenTableValue(t), L->Top - 1);
     L->Top--;
     LumenUnlock(L);
 }
@@ -1037,6 +1070,16 @@ void Lua::State::Concat(int n) {
     LumenUnlock(L);
 }
 
+void Lua::State::LengthOf(int idx) {
+    auto L = LuaToLumen(this);
+    Lumen::Value t;
+    LumenLock(L);
+    t = L->ToObject(idx);
+    Lumen::VM::ObjectLength(L, L->Top, t);
+    LumenApiIncrTop(L);
+    LumenUnlock(L);
+}
+
 Lua::Allocator Lua::State::GetAllocator(void **ud) {
     auto L = LuaToLumen(this);
     Lumen::Allocator f;
@@ -1161,6 +1204,40 @@ const char *Lua::State::SetUpValue(int funcIndex, int n) {
     }
     LumenUnlock(L);
     return name;
+}
+
+static Lumen::UpValue **getUpValueRef(Lumen::State *L, int fIdx, int n, Lumen::LClosure **pf) {
+    Lumen::LClosure *f;
+    Lumen::Value fi = L->ToObject(fIdx);
+    LumenApiCheck(L, LumenIsLFunction(fi));
+    f = LumenLClosureValue(fi);
+    LumenApiCheck(L, (1 <= n && n <= f->Func->UpValuesCount));
+    if (pf) *pf = f;
+    return &f->UpValues[n - 1];  /* get its upvalue pointer */
+}
+
+void *Lua::State::GetUpValueId(int fIdx, int n) {
+    auto L = LuaToLumen(this);
+    Lumen::Value fi = L->ToObject(fIdx);
+    if (LumenIsLFunction(fi)) { /* lua closure */
+        return *getUpValueRef(L, fIdx, n, nullptr);
+    } else if (LumenIsCFunction(fi)) { /* C closure */
+        Lumen::CClosure *f = LumenCClosureValue(fi);
+        LumenApiCheck(L, 1 <= n && n <= f->NUpValues);
+        return &f->UpValues[n - 1];
+    } else {
+        LumenApiCheck(L, 0);
+        return nullptr;
+    }
+}
+
+void Lua::State::JoinUpValue(int fIdx1, int n1, int fIdx2, int n2) {
+    auto L = LuaToLumen(this);
+    Lumen::LClosure *f1;
+    Lumen::UpValue **up1 = getUpValueRef(L, fIdx1, n1, &f1);
+    Lumen::UpValue **up2 = getUpValueRef(L, fIdx2, n2, nullptr);
+    *up1 = *up2;
+    LumenGCObjectBarrier(L, f1, *up2);
 }
 
 bool Lua::State::SetHook(Lua::Hook func, Lua::HookMask mask, int count) {

@@ -688,6 +688,14 @@ struct LumenState;
 #define LUA_TO_STRING_HELPER(x)    #x
 #define LUA_TO_STRING(x)           LUA_TO_STRING_HELPER(x)
 
+// MARK: Version Info
+
+#define LUA_VERSION_MAJOR_N      5
+#define LUA_VERSION_MINOR_N      1
+#define LUA_VERSION_RELEASE_N    0
+#define LUA_VERSION_NUM    (LUA_VERSION_MAJOR_N * 100 + LUA_VERSION_MINOR_N)
+#define LUA_VERSION_RELEASE_NUM  (LUA_VERSION_NUM * 100 + LUA_VERSION_RELEASE_N)
+
 /*
 ** Local configuration. You can use this space to add your redefinitions
 ** without modifying the main part of the file.

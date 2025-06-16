@@ -314,6 +314,23 @@ void Lumen::VM::ArithValue(Lumen::State *L, Lumen::Value ra, const Lumen::Object
         Lumen::Debug::ArithError(L, rb, rc);
 }
 
+void Lumen::VM::ObjectLength(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb) {
+    switch (LumenTypeOf(rb)) {
+        case Lumen::TypeTable: {
+            LumenSetNumberValue(ra, cast_num(Lumen::Table::GetN(LumenTableValue(rb))));
+            break;
+        }
+        case Lumen::TypeString: {
+            LumenSetNumberValue(ra, cast_num(LumenStringValue(rb)->Length));
+            break;
+        }
+        default: {  /* try metamethod */
+            if (!call_binTM(L, rb, Lumen::NilObject, ra, Lumen::TM::NameLen))
+                Lumen::Debug::TypeError(L, rb, "get length of");
+        }
+    }
+}
+
 static void arith(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb,
                   const Lumen::Object *rc, Lumen::TM::Name op) {
     Lumen::Object tempB, tempC;

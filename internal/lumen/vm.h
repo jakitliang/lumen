@@ -40,6 +40,8 @@ namespace Lumen::VM {
 
     void ArithValue(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb,
                     const Lumen::Object *rc, Lumen::TM::Name op);
+
+    void ObjectLength(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb);
 }
 
 #define LumenVMToString(L, o) ((LumenTypeOf(o) == Lumen::TypeString) || (Lumen::VM::ToString(L, o)))

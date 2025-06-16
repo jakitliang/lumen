@@ -56,6 +56,11 @@ LUA_API lua_CFunction lua_atpanic(lua_State *L, lua_CFunction fPanic) {
     return old;
 }
 
+LUA_API const Lumen::Number *lua_version(lua_State *) {
+    static const Lumen::Number lua_version_number = LUA_VERSION_NUM;
+    return &lua_version_number;
+}
+
 LUA_API lua_State *lua_newthread(lua_State *L) {
     Lumen::State *L1;
     LumenLock(L);
@@ -572,6 +577,17 @@ LUA_API void lua_rawgeti(lua_State *L, int idx, int n) {
     LumenUnlock(L);
 }
 
+LUA_API void lua_rawgetp(lua_State *L, int idx, const void *p) {
+    Lumen::Value t;
+    Lumen::Object k; // NOLINT
+    LumenLock(L);
+    t = L->ToObject(idx);
+    LumenApiCheck(L, LumenTypeIsTable(t));
+    LumenSetLUDataValue(&k, cast(void * , p));
+    LumenSetObject2S(L, L->Top, Lumen::Table::Get(LumenTableValue(t), &k));
+    LumenApiIncrTop(L);
+    LumenUnlock(L);
+}
 
 LUA_API void lua_createtable(lua_State *L, int nArray, int nRec) {
     LumenLock(L);
@@ -691,6 +707,19 @@ LUA_API void lua_rawseti(lua_State *L, int idx, int n) {
     LumenUnlock(L);
 }
 
+LUA_API void lua_rawsetp(lua_State *L, int idx, const void *p) {
+    Lumen::Value t;
+    Lumen::Object k; // NOLINT
+    LumenLock(L);
+    LumenApiCheckElementCount(L, 1);
+    t = L->ToObject(idx);
+    LumenApiCheck(L, LumenTypeIsTable(t));
+    LumenSetLUDataValue(&k, cast(void * , p));
+    LumenSetObject2T(L, Lumen::Table::Set(L, LumenTableValue(t), &k), L->Top - 1);
+    LumenGCBarrierTable(L, LumenTableValue(t), L->Top - 1);
+    L->Top--;
+    LumenUnlock(L);
+}
 
 LUA_API int lua_setmetatable(lua_State *L, int objIndex) {
     Lumen::Object *obj;
@@ -992,6 +1021,15 @@ LUA_API void lua_concat(lua_State *L, int n) {
     LumenUnlock(L);
 }
 
+LUA_API void lua_len(lua_State *L, int idx) {
+    Lumen::Value t;
+    LumenLock(L);
+    t = L->ToObject(idx);
+    Lumen::VM::ObjectLength(L, L->Top, t);
+    LumenApiIncrTop(L);
+    LumenUnlock(L);
+}
+
 
 LUA_API Lumen::Allocator lua_getallocf(lua_State *L, void **ud) {
     Lumen::Allocator f;
@@ -1077,6 +1115,38 @@ LUA_API const char *lua_setupvalue(lua_State *L, int funcIndex, int n) {
     return name;
 }
 
+static Lumen::UpValue **getUpValueRef(lua_State *L, int fIdx, int n, Lumen::LClosure **pf) {
+    Lumen::LClosure *f;
+    Lumen::Value fi = L->ToObject(fIdx);
+    LumenApiCheck(L, LumenIsLFunction(fi));
+    f = LumenLClosureValue(fi);
+    LumenApiCheck(L, (1 <= n && n <= f->Func->UpValuesCount));
+    if (pf) *pf = f;
+    return &f->UpValues[n - 1];  /* get its upvalue pointer */
+}
+
+LUA_API void *lua_upvalueid(lua_State *L, int fIdx, int n) {
+    Lumen::Value fi = L->ToObject(fIdx);
+    if (LumenIsLFunction(fi)) { /* lua closure */
+        return *getUpValueRef(L, fIdx, n, nullptr);
+    } else if (LumenIsCFunction(fi)) { /* C closure */
+        Lumen::CClosure *f = LumenCClosureValue(fi);
+        LumenApiCheck(L, 1 <= n && n <= f->NUpValues);
+        return &f->UpValues[n - 1];
+    } else {
+        LumenApiCheck(L, 0);
+        return nullptr;
+    }
+}
+
+LUA_API void lua_upvaluejoin(lua_State *L, int fIdx1, int n1,
+                             int fIdx2, int n2) {
+    Lumen::LClosure *f1;
+    Lumen::UpValue **up1 = getUpValueRef(L, fIdx1, n1, &f1);
+    Lumen::UpValue **up2 = getUpValueRef(L, fIdx2, n2, nullptr);
+    *up1 = *up2;
+    LumenGCObjectBarrier(L, f1, *up2);
+}
 
 /*
 ** this function can be called asynchronous (e.g. during a signal)
@@ -1158,49 +1228,10 @@ LUA_API int lua_getinfo(lua_State *L, const char *what, lua_Debug *ar) {
     return status;
 }
 
-LUA_API void *lua_upvalueid(lua_State *L, int idx, int n) {
-    Lumen::Value func = L->ToObject(idx);
-    if (!LumenTypeIsFunction(func)) return nullptr;
-
-    auto cl = LumenClosureValue(func);
-    if (LumenIsCFunction(func)) {
-        if (n <= 0 || n > cl->AsC.NUpValues)
-            return nullptr;
-        return &cl->AsC.UpValues[n - 1];
-    } else {
-        if (n <= 0 || n > cl->AsLua.NUpValues)
-            return nullptr;
-        return cl->AsLua.UpValues[n - 1];
-    }
-}
-
-LUA_API void lua_upvaluejoin(lua_State *L, int idx1, int n1, int idx2, int n2) {
-    auto o1 = L->ToObject(idx1);
-    auto o2 = L->ToObject(idx2);
-    LumenAssert(LumenTypeIsFunction(o1) && LumenTypeIsFunction(o2));
-    auto cl1 = LumenClosureValue(o1);
-    auto cl2 = LumenClosureValue(o2);
-    LumenAssert(cl1->AsC.NUpValues >= n1 && cl2->AsC.NUpValues >= n2);
-    if (LumenIsCFunction(o1) && LumenIsCFunction(o2)) {
-        cl1->AsC.UpValues[n1 - 1] = cl2->AsC.UpValues[n2 - 1];
-    } else if (LumenIsLFunction(o1) && LumenIsLFunction(o2)) {
-        cl1->AsLua.UpValues[n1 - 1] = cl2->AsLua.UpValues[n2 - 1];
-    } else {
-        LumenAssert(0 && "mismatched function types in lua_upvaluejoin");
-    }
-}
-
 LUA_API int lua_loadx(lua_State *L, lua_Reader reader, void *data,
                       const char *chunkName, const char *mode) {
     (void) mode;  /* Lua 5.1 Can't specify mode */
     return lua_load(L, reader, data, chunkName);
-}
-
-static const Lumen::Number lua_version_number = 5.1;
-
-LUA_API const Lumen::Number *lua_version(lua_State *L) {
-    (void) L;
-    return &lua_version_number;
 }
 
 LUA_API int lua_absindex(lua_State *L, int i) {

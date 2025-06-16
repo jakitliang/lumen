@@ -191,6 +191,8 @@ namespace Lua {
 
         LPP_API Delegate AtPanic(Delegate pInvoke);
 
+        LPP_API const Lua::Number *Version();
+
         // MARK: basic stack manipulation
 
         LPP_API int GetTop();
@@ -287,6 +289,8 @@ namespace Lua {
 
         LPP_API void RawGetAt(int idx, int n);
 
+        LPP_API void RawGetPtr(int idx, int n, const void *p);
+
         LPP_API void CreateTable(int nArray, int nRec);
 
         LPP_API void *NewUserdata(UInteger size);
@@ -304,6 +308,8 @@ namespace Lua {
         LPP_API void RawSet(int idx);
 
         LPP_API void RawSetAt(int idx, int n);
+
+        LPP_API void RawSetPtr(int idx, int n, const void *p);
 
         LPP_API bool SetMetatable(int objIndex);
 
@@ -346,6 +352,8 @@ namespace Lua {
         LPP_API bool Next(int idx);
 
         LPP_API void Concat(int n);
+
+        LPP_API void LengthOf(int idx);
 
         LPP_API Allocator GetAllocator(void **ud);
 
@@ -453,6 +461,10 @@ namespace Lua {
         LPP_API const char *GetUpValue(int funcIndex, int n);
 
         LPP_API const char *SetUpValue(int funcIndex, int n);
+
+        LPP_API void *GetUpValueId(int fIdx, int n);
+
+        LPP_API void JoinUpValue(int fIdx1, int n1, int fIdx2, int n2);
 
         LPP_API bool SetHook(Hook func, HookMask mask, int count);
 

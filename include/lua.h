@@ -26,12 +26,6 @@
 #define LUA_VERSION    "Lua 5.1"
 #define LUA_RELEASE    "Lua 5.1.5"
 
-#define LUA_VERSION_MAJOR_N      5
-#define LUA_VERSION_MINOR_N      1
-#define LUA_VERSION_RELEASE_N    0
-#define LUA_VERSION_NUM    (LUA_VERSION_MAJOR_N * 100 + LUA_VERSION_MINOR_N)
-#define LUA_VERSION_RELEASE_NUM  (LUA_VERSION_NUM * 100 + LUA_VERSION_RELEASE_N)
-
 /* option for multiple returns in `lua_pcall' and `lua_call' */
 #define LUA_MULTRET    (-1)
 
@@ -144,6 +138,7 @@ LUA_API lua_State *lua_newthread(lua_State *L);
 
 LUA_API lua_CFunction lua_atpanic(lua_State *L, lua_CFunction fPanic);
 
+LUA_API const lua_Number *lua_version(lua_State *L);
 
 /*
 ** basic stack manipulation
@@ -263,6 +258,8 @@ LUA_API void lua_rawget(lua_State *L, int idx);
 
 LUA_API void lua_rawgeti(lua_State *L, int idx, int n);
 
+LUA_API void lua_rawgetp(lua_State *L, int idx, const void *p);
+
 LUA_API void lua_createtable(lua_State *L, int nArray, int nRec);
 
 LUA_API void *lua_newuserdata(lua_State *L, size_t sz);
@@ -282,6 +279,8 @@ LUA_API void lua_setfield(lua_State *L, int idx, const char *k);
 LUA_API void lua_rawset(lua_State *L, int idx);
 
 LUA_API void lua_rawseti(lua_State *L, int idx, int n);
+
+LUA_API void lua_rawsetp(lua_State *L, int idx, const void *p);
 
 LUA_API int lua_setmetatable(lua_State *L, int objIndex);
 
@@ -339,6 +338,8 @@ LUA_API int lua_error(lua_State *L);
 LUA_API int lua_next(lua_State *L, int idx);
 
 LUA_API void lua_concat(lua_State *L, int n);
+
+LUA_API void lua_len(lua_State *L, int idx);
 
 LUA_API lua_Alloc lua_getallocf(lua_State *L, void **ud);
 
@@ -468,6 +469,11 @@ LUA_API const char *lua_getupvalue(lua_State *L, int funcIndex, int n);
 
 LUA_API const char *lua_setupvalue(lua_State *L, int funcIndex, int n);
 
+LUA_API void *lua_upvalueid(lua_State *L, int fIdx, int n);
+
+LUA_API void lua_upvaluejoin(lua_State *L, int fIdx1, int n1,
+                             int fIdx2, int n2);
+
 LUA_API int lua_sethook(lua_State *L, lua_Hook func, int mask, int count);
 
 LUA_API lua_Hook lua_gethook(lua_State *L);
@@ -479,14 +485,8 @@ LUA_API int lua_gethookcount(lua_State *L);
 /* From Lua 5.2. */
 LUA_API int lua_absindex(lua_State *L, int i);
 
-LUA_API void *lua_upvalueid(lua_State *L, int idx, int n);
-
-LUA_API void lua_upvaluejoin(lua_State *L, int idx1, int n1, int idx2, int n2);
-
 LUA_API int lua_loadx(lua_State *L, lua_Reader reader, void *dt,
                       const char *chunkName, const char *mode);
-
-LUA_API const lua_Number *lua_version(lua_State *L);
 
 LUA_API void lua_copy(lua_State *L, int fromIdx, int toIdx);
 

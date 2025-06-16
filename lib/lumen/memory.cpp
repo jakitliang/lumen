@@ -9,6 +9,8 @@
 
 
 #include <cstddef>
+#include <cstdlib>
+#include <unordered_map>
 
 #define LUA_CORE
 
@@ -43,7 +45,7 @@
 
 
 void *Lumen::Memory::GrowAux(Lumen::State *L, void *block, int *size, Lumen::UInteger size_elems,
-                           int limit, const char *errorMsg) {
+                             int limit, const char *errorMsg) {
     void *newBlock;
     int newSize;
     if (*size >= limit / 2) {  /* cannot double it? */
@@ -106,5 +108,6 @@ void *Lumen::Memory::Alloc(void *userData, void *ptr, Lumen::UInteger originSize
         free(ptr);
         return nullptr;
     }
+
     return realloc(ptr, newSize);
 }
