@@ -51,7 +51,7 @@ static void traceExec(Lumen::State *L, const Lumen::Instruction *pc) {
 
 
 static inline void callTMRes(Lumen::State *L, Lumen::Value res, const Lumen::Object *f,
-                      const Lumen::Object *p1, const Lumen::Object *p2) {
+                             const Lumen::Object *p1, const Lumen::Object *p2) {
     Lumen::Integer result = LumenSaveStack(L, res);
     LumenSetObject2S(L, L->Top, f);  /* push function */
     LumenSetObject2S(L, L->Top + 1, p1);  /* 1st argument */
@@ -66,7 +66,7 @@ static inline void callTMRes(Lumen::State *L, Lumen::Value res, const Lumen::Obj
 
 
 static inline void callTM(Lumen::State *L, const Lumen::Object *f, const Lumen::Object *p1,
-                   const Lumen::Object *p2, const Lumen::Object *p3) {
+                          const Lumen::Object *p2, const Lumen::Object *p3) {
     LumenSetObject2S(L, L->Top, f);  /* push function */
     LumenSetObject2S(L, L->Top + 1, p1);  /* 1st argument */
     LumenSetObject2S(L, L->Top + 2, p2);  /* 2nd argument */
@@ -133,7 +133,7 @@ void Lumen::VM::SetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object 
 
 
 static inline int call_binTM(Lumen::State *L, const Lumen::Object *p1, const Lumen::Object *p2,
-                      Lumen::Value res, Lumen::TM::Name event) {
+                             Lumen::Value res, Lumen::TM::Name event) {
     const Lumen::Object *tm = Lumen::TM::GetByObject(L, p1, event);  /* try first operand */
     if (LumenTypeIsNil(tm))
         tm = Lumen::TM::GetByObject(L, p2, event);  /* try second operand */
@@ -144,7 +144,7 @@ static inline int call_binTM(Lumen::State *L, const Lumen::Object *p1, const Lum
 
 
 static inline const Lumen::Object *get_compTM(Lumen::State *L, Lumen::Table *mt1, Lumen::Table *mt2,
-                                    Lumen::TM::Name event) {
+                                              Lumen::TM::Name event) {
     const Lumen::Object *tm1 = LumenTMGetFast(L, mt1, event);
     const Lumen::Object *tm2;
     if (tm1 == nullptr) return nullptr;  /* no metamethod */
@@ -158,7 +158,7 @@ static inline const Lumen::Object *get_compTM(Lumen::State *L, Lumen::Table *mt1
 
 
 static inline int callOrderTM(Lumen::State *L, const Lumen::Object *p1, const Lumen::Object *p2,
-                       Lumen::TM::Name event) {
+                              Lumen::TM::Name event) {
     const Lumen::Object *tm1 = Lumen::TM::GetByObject(L, p1, event);
     const Lumen::Object *tm2;
     if (LumenTypeIsNil(tm1)) return -1;  /* no metamethod? */
@@ -209,7 +209,7 @@ int Lumen::VM::LessThan(Lumen::State *L, const Lumen::Object *l, const Lumen::Ob
 }
 
 
-static inline int lessEqual(Lumen::State *L, const Lumen::Object *l, const Lumen::Object *r) {
+int Lumen::VM::LessEqual(Lumen::State *L, const Lumen::Object *l, const Lumen::Object *r) {
     int res;
     if (LumenTypeOf(l) != LumenTypeOf(r))
         return Lumen::Debug::OrderError(L, l, r);
@@ -225,7 +225,7 @@ static inline int lessEqual(Lumen::State *L, const Lumen::Object *l, const Lumen
 }
 
 
-int Lumen::VM::EqualVal(Lumen::State *L, const Lumen::Object *t1, const Lumen::Object *t2) {
+int Lumen::VM::EqualObject(Lumen::State *L, const Lumen::Object *t1, const Lumen::Object *t2) {
     const Lumen::Object *tm;
     LumenAssert(LumenTypeOf(t1) == LumenTypeOf(t2));
     switch (LumenTypeOf(t1)) {
@@ -301,8 +301,20 @@ void Lumen::VM::Concat(Lumen::State *L, int total, int last) {
     } while (total > 1);  /* repeat until only 1 result left */
 }
 
+void Lumen::VM::ArithValue(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb, const Lumen::Object *rc,
+                           Lumen::TM::Name op) {
+    Lumen::Object tempB, tempC; // NOLINT
+    const Lumen::Object *b, *c;
+    if ((b = ToNumber(rb, &tempB)) != nullptr &&
+        (c = ToNumber(rc, &tempC)) != nullptr) {
+        Lumen::Number res = Lumen::Arith(op - Lumen::TM::NameAdd + Lumen::ArithOpAdd,
+                                         LumenNumberValue(b), LumenNumberValue(c));
+        LumenSetNumberValue(ra, res);
+    } else if (!call_binTM(L, rb, rc, ra, op))
+        Lumen::Debug::ArithError(L, rb, rc);
+}
 
-static void Arith(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb,
+static void arith(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb,
                   const Lumen::Object *rc, Lumen::TM::Name op) {
     Lumen::Object tempB, tempC;
     const Lumen::Object *b, *c;
@@ -379,7 +391,7 @@ LumenDo(                   \
         Lumen::Number nb = LumenNumberValue(rb), nc = LumenNumberValue(rc); \
         LumenSetNumberValue(ra, op(nb, nc));            \
     } else {                  \
-        Protect(Arith(L, ra, rb, rc, tm));            \
+        Protect(arith(L, ra, rb, rc, tm));            \
     }                         \
 } while (0)
 
@@ -511,7 +523,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                     Lumen::Number nb = LumenNumberValue(rb);
                     LumenSetNumberValue(ra, luai_numunm(nb));
                 } else {
-                    Protect(Arith(L, ra, rb, rb, Lumen::TM::NameUnm));
+                    Protect(arith(L, ra, rb, rb, Lumen::TM::NameUnm));
                 }
                 continue;
             }
@@ -533,8 +545,8 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                     }
                     default: {  /* try metamethod */
                         Protect(
-                                if (!call_binTM(L, rb, Lumen::NilObject, ra, Lumen::TM::NameLen))
-                                    Lumen::Debug::TypeError(L, rb, "get length of");
+                            if (!call_binTM(L, rb, Lumen::NilObject, ra, Lumen::TM::NameLen))
+                                Lumen::Debug::TypeError(L, rb, "get length of");
                         );
                     }
                 }
@@ -555,24 +567,24 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 Lumen::Object *rb = RKB(i);
                 Lumen::Object *rc = RKC(i);
                 Protect(
-                        if (LumenVMEqualObj(L, rb, rc) == LumenOpCodeGetArgA(i))
-                            doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
+                    if (LumenVMEqualObj(L, rb, rc) == LumenOpCodeGetArgA(i))
+                        doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
                 );
                 pc++;
                 continue;
             }
             case Lumen::OpCodeLT: {
                 Protect(
-                        if (Lumen::VM::LessThan(L, RKB(i), RKC(i)) == LumenOpCodeGetArgA(i))
-                            doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
+                    if (Lumen::VM::LessThan(L, RKB(i), RKC(i)) == LumenOpCodeGetArgA(i))
+                        doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
                 );
                 pc++;
                 continue;
             }
             case Lumen::OpCodeLE: {
                 Protect(
-                        if (lessEqual(L, RKB(i), RKC(i)) == LumenOpCodeGetArgA(i))
-                            doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
+                    if (LessEqual(L, RKB(i), RKC(i)) == LumenOpCodeGetArgA(i))
+                        doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
                 );
                 pc++;
                 continue;

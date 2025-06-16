@@ -183,8 +183,6 @@ LUA_API const char *lua_typename(lua_State *L, int tp);
 
 LUA_API int lua_equal(lua_State *L, int idx1, int idx2);
 
-LUA_API int lua_rawequal(lua_State *L, int idx1, int idx2);
-
 LUA_API int lua_lessthan(lua_State *L, int idx1, int idx2);
 
 LUA_API lua_Number lua_tonumber(lua_State *L, int idx);
@@ -205,6 +203,27 @@ LUA_API lua_State *lua_tothread(lua_State *L, int idx);
 
 LUA_API const void *lua_topointer(lua_State *L, int idx);
 
+/*
+** Comparison and arithmetic functions
+*/
+
+#define LUA_OPADD    0    /* ORDER TM */
+#define LUA_OPSUB    1
+#define LUA_OPMUL    2
+#define LUA_OPDIV    3
+#define LUA_OPMOD    4
+#define LUA_OPPOW    5
+#define LUA_OPUNM    6
+
+LUA_API void lua_arith(lua_State *L, int op);
+
+#define LUA_OPEQ    0
+#define LUA_OPLT    1
+#define LUA_OPLE    2
+
+LUA_API int lua_rawequal(lua_State *L, int idx1, int idx2);
+
+LUA_API int lua_compare(lua_State *L, int idx1, int idx2, int op);
 
 /*
 ** push functions (C -> stack)

@@ -114,6 +114,26 @@ namespace Lumen {
         HookMaskCount = (1 << HookCount)
     };
 
+    /*
+    ** Comparison and arithmetic functions
+    */
+
+    typedef LUA_ENUM(int, ArithOp) {
+        ArithOpAdd = 0,    /* ORDER TM */
+        ArithOpSub = 1,
+        ArithOpMul = 2,
+        ArithOpDiv = 3,
+        ArithOpMod = 4,
+        ArithOpPow = 5,
+        ArithOpUnm = 6
+    };
+
+    typedef LUA_ENUM(int, CompareOp) {
+        CompareOpEQ = 0,
+        CompareOpLT = 1,
+        CompareOpLE = 2
+    };
+
     using State = LumenState;
 
     struct TypeInfo {

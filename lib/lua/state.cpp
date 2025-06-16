@@ -112,26 +112,29 @@ void Lua::State::Insert(int idx) {
     LumenUnlock(L);
 }
 
+static void moveTo(Lumen::State *L, Lumen::Object *from, int idx) {
+    Lumen::Object *to = L->ToObject(idx);
+    LumenApiCheckValidIndex(L, to);
+    if (idx == Lumen::EnvIndex) {
+        Lumen::Closure *func = LumenCurFunc(L);
+        LumenApiCheck(L, LumenTypeIsTable(from));
+        func->AsC.Env = LumenTableValue(from);
+        LumenGCBarrier(L, func, from);
+    } else {
+        LumenSetObject(L, to, from);
+        if (idx < Lumen::GlobalIndex)  /* function upvalue? */
+            LumenGCBarrier(L, LumenCurFunc(L), from);
+    }
+}
+
 void Lua::State::Replace(int idx) {
     auto L = LuaToLumen(this);
-    Lumen::Value o;
     LumenLock(L);
     /* explicit test for incompatible code */
-    if (idx == Lua::EnvIndex && L->CallInfo == L->BaseCI)
+    if (idx == Lumen::EnvIndex && L->CallInfo == L->BaseCI)
         Lumen::Debug::RunError(L, "no calling environment");
     LumenApiCheckElementCount(L, 1);
-    o = L->ToObject(idx);
-    LumenApiCheckValidIndex(L, o);
-    if (idx == Lua::EnvIndex) {
-        Lumen::Closure *func = LumenCurFunc(L);
-        LumenApiCheck(L, LumenTypeIsTable(L->Top - 1));
-        func->AsC.Env = LumenTableValue(L->Top - 1);
-        LumenGCBarrier(L, func, L->Top - 1);
-    } else {
-        LumenSetObject(L, o, L->Top - 1);
-        if (idx < Lua::GlobalIndex)  /* function upvalue? */
-            LumenGCBarrier(L, LumenCurFunc(L), L->Top - 1);
-    }
+    moveTo(L, L->Top - 1, idx);
     L->Top--;
     LumenUnlock(L);
 }
@@ -186,6 +189,54 @@ Lua::Type Lua::State::Type(int idx) {
 
 const char *Lua::State::TypeName(int t) const { // NOLINT
     return (t == Lua::TypeNone) ? "no value" : Lumen::TM::TypeNames[t];
+}
+
+void Lua::State::Arith(Lua::ArithOp op) {
+    auto L = LuaToLumen(this);
+    Lumen::Value o1;  /* 1st operand */
+    Lumen::Value o2;  /* 2nd operand */
+    LumenLock(L);
+    if (op != Lua::ArithOpUnm) /* all other operations expect two operands */
+        LumenApiCheckElementCount(L, 2);
+    else {  /* for unary minus, add fake 2nd operand */
+        LumenApiCheckElementCount(L, 1);
+        LumenSetObjectS2S(L, L->Top, L->Top - 1);
+        L->Top++;
+    }
+    o1 = L->Top - 2;
+    o2 = L->Top - 1;
+    if (LumenTypeIsNumber(o1) && LumenTypeIsNumber(o2)) {
+        LumenSetNumberValue(o1, Lumen::Arith(op, LumenNumberValue(o1), LumenNumberValue(o2)));
+    } else
+        Lumen::VM::ArithValue(L, o1, o1, o2, cast(Lumen::TM::Name, op - Lua::ArithOpAdd + Lumen::TM::NameAdd));
+    L->Top--;
+    LumenUnlock(L);
+}
+
+int Lua::State::Compare(int idx1, int idx2, Lua::ArithOp op) {
+    auto L = LuaToLumen(this);
+    Lumen::Value o1, o2;
+    int i = 0;
+    LumenLock(L);  /* may call tag method */
+    o1 = L->ToObject(idx1);
+    o2 = L->ToObject(idx2);
+    if (LumenApiIsValid(o1) && LumenApiIsValid(o2)) {
+        switch (op) {
+            case Lua::CompareOpEQ:
+                i = Lumen::VM::EqualObject(L, o1, o2);
+                break;
+            case Lua::CompareOpLT:
+                i = Lumen::VM::LessThan(L, o1, o2);
+                break;
+            case Lua::CompareOpLE:
+                i = Lumen::VM::LessEqual(L, o1, o2);
+                break;
+            default:
+                LumenApiCheck(L, 0);
+        }
+    }
+    LumenUnlock(L);
+    return i;
 }
 
 bool Lua::State::Equal(int idx1, int idx2) {
@@ -293,11 +344,13 @@ bool Lua::State::InstanceOf(int idxChild, int idxSuper) {
 
 void Lua::State::Copy(int fromIdx, int toIdx) {
     auto L = LuaToLumen(this);
-    int absTo = AbsIndex(toIdx);
-    if (!CheckStack(1))
-        Lumen::Debug::RunError(L, "stack overflow (%s)", "not enough stack slots");
-    PushValue(fromIdx);
-    Replace(absTo);
+    Lumen::Object *from;
+    LumenLock(L);
+    if (toIdx == Lumen::EnvIndex && L->CallInfo == L->BaseCI)
+        Lumen::Debug::RunError(L, "no calling environment");
+    from = L->ToObject(fromIdx);
+    moveTo(L, from, toIdx);
+    LumenUnlock(L);
 }
 
 Lua::UInteger Lua::State::ObjectLength(int idx) {

@@ -231,6 +231,8 @@ namespace Lumen {
 
     int RawEqualObject(const Lumen::Object *t1, const Lumen::Object *t2);
 
+    Lumen::Number Arith(Lumen::ArithOp op, Lumen::Number v1, Lumen::Number v2);
+
     int String2Decimal(const char *s, Lumen::Number *result);
 
     const char *PushVFString(Lumen::State *L, const char *fmt,
@@ -247,6 +249,7 @@ namespace Lumen {
 
 
 /* Macros to test type */
+#define LumenTypeOf(o)    (o)->Type
 #define LumenTypeIsNil(o)    (LumenTypeOf(o) == Lumen::TypeNil)
 #define LumenTypeIsNumber(o)    (LumenTypeOf(o) == Lumen::TypeNumber)
 #define LumenTypeIsString(o)    (LumenTypeOf(o) == Lumen::TypeString)
@@ -256,9 +259,9 @@ namespace Lumen {
 #define LumenTypeIsUData(o)    (LumenTypeOf(o) == Lumen::TypeUserdata)
 #define LumenTypeIsThread(o)    (LumenTypeOf(o) == Lumen::TypeThread)
 #define LumenTypeIsLUData(o)    (LumenTypeOf(o) == Lumen::TypeLightUserdata)
+#define LumenTypeIsEqual(o1, o2)    (LumenTypeOf(o1) == LumenTypeOf(o2))
 
 /* Macros to access values */
-#define LumenTypeOf(o)    (o)->Type
 #define LumenGCValue(o)    LumenCheckExp(LumenIsCollectable(o), (o)->value.gc)
 #define LumenLUDataValue(o)    LumenCheckExp(LumenTypeIsLUData(o), (o)->value.p)
 #define LumenNumberValue(o)    LumenCheckExp(LumenTypeIsNumber(o), (o)->value.n)
@@ -339,11 +342,11 @@ LumenDo(                              \
 
 #define LumenSetObject(L, obj1, obj2) \
 LumenDo(                              \
-    const Lumen::Object *o2=(obj2);    \
-    Lumen::Object *o1=(obj1);          \
-    o1->value = o2->value;          \
-    o1->Type=o2->Type;              \
-    LumenCheckLiveness(LumenGlobalState(L),o1); \
+    const Lumen::Object *i_o2=(obj2); \
+    Lumen::Object *i_o1=(obj1);       \
+    i_o1->value = i_o2->value;        \
+    i_o1->Type = i_o2->Type;          \
+    LumenCheckLiveness(LumenGlobalState(L), i_o1); \
 )
 
 

@@ -138,6 +138,28 @@ namespace Lua {
         TypeThread = 8
     };
 
+    /**
+     * Comparison and arithmetic functions
+     */
+    typedef LUA_ENUM(int, ArithOp) {
+        ArithOpAdd = 0,    /* ORDER TM */
+        ArithOpSub = 1,
+        ArithOpMul = 2,
+        ArithOpDiv = 3,
+        ArithOpMod = 4,
+        ArithOpPow = 5,
+        ArithOpUnm = 6
+    };
+
+    typedef LUA_ENUM(int, CompareOp) {
+        CompareOpEQ = 0,
+        CompareOpLT = 1,
+        CompareOpLE = 2
+    };
+
+    /**
+     * GC Actions
+     */
     typedef LUA_ENUM(int, GCAction) {
         GCStop = 0,
         GCRestart = 1,
@@ -198,6 +220,10 @@ namespace Lua {
         LPP_API Lua::Type Type(int idx);
 
         LPP_API const char *TypeName(int t) const; // NOLINT
+
+        LPP_API void Arith(ArithOp op);
+
+        LPP_API int Compare(int idx1, int idx2, ArithOp op);
 
         LPP_API bool Equal(int idx1, int idx2);
 
@@ -487,8 +513,6 @@ namespace Lua {
         LPP_API Lua::Ref Ref(int t);
 
         LPP_API void Unref(int t, Lua::Ref ref);
-
-//        void Unref(int ref);
 
         LPP_API Lua::Ret LoadFile(const char *filename);
 

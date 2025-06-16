@@ -34,12 +34,15 @@ LumenDo(                       \
 #define LumenApiCheckResults(L, na, nr) \
      LumenApiCheck(L, (nr) == Lumen::RetMul || (L->CallInfo->Top - L->Top >= (nr) - (na)))
 
-#define LumenApiIsValid(L, o)    ((o) != &G(L)->nilvalue)
+/* corresponding test */
+#define LumenApiIsValid(o)    ((o) != Lumen::NilObject)
 
 /* test for pseudo index */
 #define LumenApiIsPseudo(i)      ((i) <= Lumen::RegistryIndex)
 
 /* test for upvalue */
 #define LumenApiIsUpValue(i)     ((i) < Lumen::RegistryIndex)
+
+#define LumenApiEqualObj(L, o1, o2)  (ttisequal(o1, o2) && luaV_equalobj_(L, o1, o2))
 
 #endif //LUMEN_API_H

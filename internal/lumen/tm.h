@@ -45,7 +45,7 @@ namespace Lumen::TM {
     const Lumen::Object *Get(Lumen::Table *events, Lumen::TM::Name event, Lumen::String *name);
 
     const Lumen::Object *GetByObject(Lumen::State *L, const Lumen::Object *o,
-                              Lumen::TM::Name event);
+                                     Lumen::TM::Name event);
 
     void Init(Lumen::State *L);
 

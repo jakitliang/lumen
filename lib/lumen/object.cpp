@@ -45,6 +45,28 @@ int Lumen::Log2(unsigned int x) {
     return l + log2[x];
 }
 
+Lumen::Number Lumen::Arith(Lumen::ArithOp op, Lumen::Number v1, Lumen::Number v2) {
+    switch (op) {
+        case Lumen::ArithOpAdd:
+            return luai_numadd(v1, v2);
+        case Lumen::ArithOpSub:
+            return luai_numsub(v1, v2);
+        case Lumen::ArithOpMul:
+            return luai_nummul(v1, v2);
+        case Lumen::ArithOpDiv:
+            return luai_numdiv(v1, v2);
+        case Lumen::ArithOpMod:
+            return luai_nummod(v1, v2);
+        case Lumen::ArithOpPow:
+            return luai_numpow(v1, v2);
+        case Lumen::ArithOpUnm:
+            return luai_numunm(v1);
+        default:
+            LumenAssert(0);
+            return 0;
+    }
+}
+
 static void pushCString(Lumen::State *L, const char *str) {
     LumenSetStringValue2S(L, L->Top, Lumen::String::New(L, str));
     LumenIncrTop(L);
