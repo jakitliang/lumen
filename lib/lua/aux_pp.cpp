@@ -34,6 +34,12 @@ static inline int infSize(const Lua::Interface *l) {
     return size;
 }
 
+static inline int infSize(const Lua::Registry *l) {
+    int size = 0;
+    for (; l->Name; l++) size++;
+    return size;
+}
+
 void Lua::State::OpenLib(const char *name, const Lua::Interface *inf, int nUpValue) {
     if (name) {
         int size = infSize(inf);
@@ -57,6 +63,57 @@ void Lua::State::OpenLib(const char *name, const Lua::Interface *inf, int nUpVal
             PushValue(-nUpValue);
         PushDelegate(inf->Invoke, nUpValue);
         SetField(-(nUpValue + 2), inf->Name);
+    }
+    Pop(nUpValue);  /* remove upvalues */
+}
+
+void Lua::State::OpenLib(const char *name, const Lua::Registry *inf, int nUpValue) {
+    if (name) {
+        int size = infSize(inf);
+        /* check whether lib already exists */
+        FindTable(Lua::RegistryIndex, "_LOADED", 1);
+        GetField(-1, name);  /* get _LOADED[name] */
+        if (!IsTable(-1)) {  /* not found? */
+            Pop(1);  /* remove previous result */
+            /* try global variable (and create one if it does not exist) */
+            if (FindTable(Lua::GlobalIndex, name, size) != nullptr)
+                Error("name conflict for module " LUA_QS, name);
+            PushValue(-1);
+            SetField(-3, name);  /* _LOADED[name] = new table */
+        }
+        Remove(-2);  /* remove _LOADED table */
+        Insert(-(nUpValue + 1));  /* move library table to below upvalues */
+    }
+    for (; inf->Name; inf++) {
+        int i;
+        for (i = 0; i < nUpValue; i++)  /* copy upvalues to the top */
+            PushValue(-nUpValue);
+        PushFunction(inf->Invoke, nUpValue);
+        SetField(-(nUpValue + 2), inf->Name);
+    }
+    Pop(nUpValue);  /* remove upvalues */
+}
+
+void Lua::State::Register(const Lua::Interface *l, int nUpValue) {
+    CheckStack(nUpValue, "too many upvalues");
+    for (; l->Name != nullptr; l++) {  /* fill the table with given functions */
+        int i;
+        for (i = 0; i < nUpValue; i++)  /* copy upvalues to the top */
+            PushValue(-nUpValue);
+        PushDelegate(l->Invoke, nUpValue);  /* closure with those upvalues */
+        SetField(-(nUpValue + 2), l->Name);
+    }
+    Pop(nUpValue);  /* remove upvalues */
+}
+
+void Lua::State::Register(const Lua::Registry *l, int nUpValue) {
+    CheckStack(nUpValue, "too many upvalues");
+    for (; l->Name != nullptr; l++) {  /* fill the table with given functions */
+        int i;
+        for (i = 0; i < nUpValue; i++)  /* copy upvalues to the top */
+            PushValue(-nUpValue);
+        PushFunction(l->Invoke, nUpValue);  /* closure with those upvalues */
+        SetField(-(nUpValue + 2), l->Name);
     }
     Pop(nUpValue);  /* remove upvalues */
 }
@@ -149,8 +206,14 @@ Lua::Integer Lua::State::OptInteger(int nArg, Lua::Integer def) {
 }
 
 void Lua::State::CheckStack(int sz, const char *msg) {
-    if (!CheckStack(sz))
-        Error("stack overflow (%s)", msg);
+    /* keep some extra space to run error routines, if needed */
+    const int extra = LUA_MINSTACK;
+    if (!CheckStack(sz + extra)) {
+        if (msg)
+            Error("stack overflow (%s)", msg);
+        else
+            Error("stack overflow");
+    }
 }
 
 void Lua::State::CheckType(int nArg, Lua::Type t) {
@@ -174,19 +237,25 @@ bool Lua::State::NewMetatable(const char *tName) {
     return true;
 }
 
-void *Lua::State::CheckUserdata(int ud, const char *tName) {
+void *Lua::State::TestUserdata(int ud, const char *tName) {
     auto p = ToUserdata(ud);
     if (p != nullptr) {  /* value is a userdata? */
         if (GetMetatable(ud)) {  /* does it have a metatable? */
-            GetField(Lua::RegistryIndex, tName);  /* get correct metatable */
-            if (RawEqual(-1, -2)) {  /* does it have the correct mt? */
-                Pop(2);  /* remove both metatables */
-                return p;
+            GetMetatable(tName);  /* get correct metatable */
+            if (!RawEqual(-1, -2)) {  /* not the same mt? */
+                p = nullptr;
             }
+            Pop(2);  /* remove both metatables */
+            return p;
         }
     }
-    TypeError(ud, tName);  /* else error */
-    return nullptr;  /* to avoid warnings */
+    return nullptr;
+}
+
+void *Lua::State::CheckUserdata(int ud, const char *tName) {
+    auto p = TestUserdata(ud, tName);
+    if (p == nullptr) TypeError(ud, tName);  /* else error */
+    return p;  /* to avoid warnings */
 }
 
 void Lua::State::Where(int level) {

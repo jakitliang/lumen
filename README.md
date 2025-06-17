@@ -6,7 +6,7 @@
 
 ## Intro
 
-**Lumen** is a modernized reinvention of **Lua**, based on and fully compatible with Lua 5.1.
+**Lumen** is a modernized reinvention for generic **Lua**, based on and fully compatible with Lua 5.1.
 
 Designed for developers who love Lua, Lumen offers a state-of-the-art reimplementation for today's OS environments.
 
@@ -18,6 +18,20 @@ Designed for developers who love Lua, Lumen offers a state-of-the-art reimplemen
 - **Extensibility**: Offers richer APIs, making it easier for developers to extend and customize
 - **Lightweight**: Keeps the implementation of core tiny and efficient
 - **Modernization**: A new designed architecture that suit for today's OSs and compilers.
+
+## Projects
+
+| Name          | Lua Version      | Usage case            |
+|---------------|------------------|-----------------------|
+| ChocoLight    | Lua 5.1 / LuaJIT | Already inside        |
+| cocos2d-x     | Lua 5.1          | As plugin             |
+| Love2D        | Lua 5.1 / LuaJIT | As plugin             |
+| Unity         | Lua 5.1          | As plugin             |
+| Unreal Engine | Lua 5.1          | As plugin             |
+| Godot         | Lua 5.1          | As plugin             |
+| Neovim        | Lua 5.1 / LuaJIT | As replacement plugin |
+| Redis         | Lua 5.1          | As replacement plugin |
+| nginx-lua     | Lua 5.1          | As replacement plugin |
 
 ## Architecture
 

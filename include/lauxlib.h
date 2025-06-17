@@ -107,9 +107,10 @@ LUALIB_API int luaL_loadstring(lua_State *L, const char *s);
 
 LUALIB_API lua_State *luaL_newstate(void);
 
-
 LUALIB_API const char *luaL_gsub(lua_State *L, const char *s, const char *p,
                                  const char *r);
+
+LUALIB_API void luaL_setfuncs(lua_State *L, const luaL_Reg *l, int nup);
 
 LUALIB_API const char *luaL_findtable(lua_State *L, int idx,
                                       const char *name, int hintSize);
@@ -127,8 +128,6 @@ LUALIB_API int luaL_loadbufferx(lua_State *L, const char *buff, size_t sz,
 
 LUALIB_API void luaL_traceback(lua_State *L, lua_State *L1, const char *msg,
                                int level);
-
-LUALIB_API void luaL_setfuncs(lua_State *L, const luaL_Reg *l, int nup);
 
 LUALIB_API void luaL_pushmodule(lua_State *L, const char *modName,
                                 int hintSize);

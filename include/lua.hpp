@@ -482,7 +482,17 @@ namespace Lua {
 
         LPP_API void OpenLib(const char *name, const Interface *i, int nUpValue);
 
+        LPP_API void OpenLib(const char *name, const Registry *i, int nUpValue);
+
+        LPP_API void Register(const Interface *i, int nUpValue);
+
+        LPP_API void Register(const Registry *i, int nUpValue);
+
         inline void Register(const char *name, const Interface *i) {
+            OpenLib(name, i, 0);
+        }
+
+        inline void Register(const char *name, const Registry *i) {
             OpenLib(name, i, 0);
         }
 
@@ -513,6 +523,8 @@ namespace Lua {
         LPP_API void CheckAny(int nArg);
 
         LPP_API bool NewMetatable(const char *tName);
+
+        LPP_API void *TestUserdata(int ud, const char *tName);
 
         LPP_API void *CheckUserdata(int ud, const char *tName);
 

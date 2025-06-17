@@ -138,9 +138,15 @@ void *luaL_checkudata(lua_State *L, int ud, const char *tName) {
 }
 
 
-void luaL_checkstack(lua_State *L, int space, const char *mes) {
-    if (!lua_checkstack(L, space))
-        luaL_error(L, "stack overflow (%s)", mes);
+void luaL_checkstack(lua_State *L, int space, const char *msg) {
+    /* keep some extra space to run error routines, if needed */
+    const int extra = LUA_MINSTACK;
+    if (!lua_checkstack(L, space + extra)) {
+        if (msg)
+            luaL_error(L, "stack overflow (%s)", msg);
+        else
+            luaL_error(L, "stack overflow");
+    }
 }
 
 
@@ -785,14 +791,13 @@ void luaL_traceback(lua_State *L, lua_State *L1, const char *msg,
 }
 
 void luaL_setfuncs(lua_State *L, const luaL_Reg *l, int nup) {
-    luaL_checkstack(L, nup + 1, "too many upvalues");
+    luaL_checkstack(L, nup, "too many upvalues");
     for (; l->name != nullptr; l++) {  /* fill the table with given functions */
         int i;
-        lua_pushstring(L, l->name);
         for (i = 0; i < nup; i++)  /* copy upvalues to the top */
-            lua_pushvalue(L, -(nup + 1));
+            lua_pushvalue(L, -nup);
         lua_pushcclosure(L, l->func, nup);  /* closure with those upvalues */
-        lua_settable(L, -(nup + 3)); /* table must be below the upvalues, the name and the closure */
+        lua_setfield(L, -(nup + 2), l->name);
     }
     lua_pop(L, nup);  /* remove upvalues */
 }
