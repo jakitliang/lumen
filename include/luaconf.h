@@ -696,6 +696,18 @@ struct LumenState;
 #define LUA_VERSION_NUM    (LUA_VERSION_MAJOR_N * 100 + LUA_VERSION_MINOR_N)
 #define LUA_VERSION_RELEASE_NUM  (LUA_VERSION_NUM * 100 + LUA_VERSION_RELEASE_N)
 
+#define LUMEN_COPYRIGHT    "Copyright (C) 2025 Jakit Liang. https://github.com/jakitliang/lumen"
+#define LUMEN_AUTHORS      "Jakit Liang"
+
+#define LUMEN_VERSION_MAJOR_N      1
+#define LUMEN_VERSION_MINOR_N      1
+#define LUMEN_VERSION_RELEASE_N    13
+
+#define LUMEN_RELEASE  "Lumen " \
+LUA_TO_STRING(LUMEN_VERSION_MAJOR_N) "." \
+LUA_TO_STRING(LUMEN_VERSION_MINOR_N) "." \
+LUA_TO_STRING(LUMEN_VERSION_RELEASE_N)
+
 /*
 ** Local configuration. You can use this space to add your redefinitions
 ** without modifying the main part of the file.

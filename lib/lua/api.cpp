@@ -24,7 +24,6 @@
 #include "lumen/vm.h"
 #include "lumen/protected_call.h"
 #include "lumen/api.h"
-#include "lumen/version.h"
 
 #include "luaconf.h"
 #include "lua.h"

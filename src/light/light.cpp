@@ -15,8 +15,6 @@
 
 #define lumen_c
 
-#include "lumen/version.h"
-
 #include "lua.h"
 
 #include "lauxlib.h"
