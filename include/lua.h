@@ -146,6 +146,9 @@ LUA_API const lua_Number *lua_version(lua_State *L);
 /*
 ** basic stack manipulation
 */
+
+LUA_API int lua_absindex(lua_State *L, int i);
+
 LUA_API int lua_gettop(lua_State *L);
 
 LUA_API void lua_settop(lua_State *L, int idx);
@@ -157,6 +160,10 @@ LUA_API void lua_remove(lua_State *L, int idx);
 LUA_API void lua_insert(lua_State *L, int idx);
 
 LUA_API void lua_replace(lua_State *L, int idx);
+
+LUA_API void lua_rotate(lua_State *L, int idx, int n);
+
+LUA_API void lua_copy(lua_State *L, int fromIdx, int toIdx);
 
 LUA_API int lua_checkstack(lua_State *L, int sz);
 
@@ -486,12 +493,8 @@ LUA_API int lua_gethookmask(lua_State *L);
 LUA_API int lua_gethookcount(lua_State *L);
 
 /* From Lua 5.2. */
-LUA_API int lua_absindex(lua_State *L, int i);
-
 LUA_API int lua_loadx(lua_State *L, lua_Reader reader, void *dt,
                       const char *chunkName, const char *mode);
-
-LUA_API void lua_copy(lua_State *L, int fromIdx, int toIdx);
 
 LUA_API lua_Number lua_tonumberx(lua_State *L, int idx, int *isNum);
 

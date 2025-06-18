@@ -195,6 +195,8 @@ namespace Lua {
 
         // MARK: basic stack manipulation
 
+        LPP_API int AbsIndex(int idx);
+
         LPP_API int GetTop();
 
         LPP_API void SetTop(int idx);
@@ -206,6 +208,10 @@ namespace Lua {
         LPP_API void Insert(int idx);
 
         LPP_API void Replace(int idx);
+
+        LPP_API void Copy(int fromIdx, int toIdx);
+
+        LPP_API void Rotate(int idx, int n);
 
         LPP_API bool CheckStack(int size);
 
@@ -435,12 +441,6 @@ namespace Lua {
         }
 
         LPP_API bool InstanceOf(int idxChild, int idxSuper);
-
-        inline int AbsIndex(int idx) {
-            return (idx > 0 || idx <= Lua::RegistryIndex ? idx : GetTop() + idx + 1);
-        }
-
-        LPP_API void Copy(int fromIdx, int toIdx);
 
         // MARK: compatibility fast call functions
 

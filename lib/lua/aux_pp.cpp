@@ -256,9 +256,7 @@ Lua::Integer Lua::State::OptInteger(int nArg, Lua::Integer def) {
 }
 
 void Lua::State::CheckStack(int sz, const char *msg) {
-    /* keep some extra space to run error routines, if needed */
-    const int extra = LUA_MINSTACK;
-    if (!CheckStack(sz + extra)) {
+    if (!CheckStack(sz)) {
         if (msg)
             Error("stack overflow (%s)", msg);
         else

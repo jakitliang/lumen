@@ -66,6 +66,13 @@ const Lua::Number *Lua::State::Version() {
 
 // MARK: basic stack manipulation
 
+int Lua::State::AbsIndex(int idx) {
+    auto L = LuaToLumen(this);
+    return (idx > 0 || LumenApiIsPseudo(idx))
+           ? idx
+           : cast_int((L->Top - L->Base) + 1 + idx);
+}
+
 int Lua::State::GetTop() {
     auto L = LuaToLumen(this);
     return cast_int(L->Top - L->Base);
@@ -142,6 +149,45 @@ void Lua::State::Replace(int idx) {
     moveTo(L, L->Top - 1, idx);
     L->Top--;
     LumenUnlock(L);
+}
+
+void Lua::State::Copy(int fromIdx, int toIdx) {
+    auto L = LuaToLumen(this);
+    Lumen::Object *from;
+    LumenLock(L);
+    if (toIdx == Lumen::EnvIndex && L->CallInfo == L->BaseCI)
+        Lumen::Debug::RunError(L, "no calling environment");
+    from = L->ToObject(fromIdx);
+    moveTo(L, from, toIdx);
+    LumenUnlock(L);
+}
+
+static void compatReverse(Lua::State *L, int a, int b) {
+    for (; a < b; ++a, --b) {
+        L->PushValue(a);
+        L->PushValue(b);
+        L->Replace(a);
+        L->Replace(b);
+    }
+}
+
+void Lua::State::Rotate(int idx, int n) {
+    auto L = LuaToLumen(this);
+    int n_elems = 0;
+    idx = AbsIndex(idx);
+    n_elems = GetTop() - idx + 1;
+    if (n < 0)
+        n += n_elems;
+    if (n > 0 && n < n_elems) {
+        if (!CheckStack(2)) {
+            PushString("not enough stack slots available");
+            Error();
+        }
+        n = n_elems - n;
+        compatReverse(this, idx, idx + n - 1);
+        compatReverse(this, idx + n, idx + n_elems - 1);
+        compatReverse(this, idx, idx + n_elems - 1);
+    }
 }
 
 bool Lua::State::CheckStack(int size) {
@@ -345,17 +391,6 @@ bool Lua::State::InstanceOf(int idxChild, int idxSuper) {
     }
     Lumen::Debug::RunError(L, "loop in gettable");
     return false;
-}
-
-void Lua::State::Copy(int fromIdx, int toIdx) {
-    auto L = LuaToLumen(this);
-    Lumen::Object *from;
-    LumenLock(L);
-    if (toIdx == Lumen::EnvIndex && L->CallInfo == L->BaseCI)
-        Lumen::Debug::RunError(L, "no calling environment");
-    from = L->ToObject(fromIdx);
-    moveTo(L, from, toIdx);
-    LumenUnlock(L);
 }
 
 Lua::UInteger Lua::State::ObjectLength(int idx) {
@@ -605,9 +640,9 @@ void Lua::State::RawGetPtr(int idx, int n, const void *p) {
     Lumen::Value t;
     Lumen::Object k; // NOLINT
     LumenLock(L);
-    t = L->ToObject( idx);
+    t = L->ToObject(idx);
     LumenApiCheck(L, LumenTypeIsTable(t));
-    LumenSetLUDataValue(&k, cast(void *, p));
+    LumenSetLUDataValue(&k, cast(void * , p));
     LumenSetObject2S(L, L->Top, Lumen::Table::Get(LumenTableValue(t), &k));
     LumenApiIncrTop(L);
     LumenUnlock(L);
@@ -749,7 +784,7 @@ void Lua::State::RawSetPtr(int idx, int n, const void *p) {
     LumenApiCheckElementCount(L, 1);
     t = L->ToObject(idx);
     LumenApiCheck(L, LumenTypeIsTable(t));
-    LumenSetLUDataValue(&k, cast(void *, p));
+    LumenSetLUDataValue(&k, cast(void * , p));
     LumenSetObject2T(L, Lumen::Table::Set(L, LumenTableValue(t), &k), L->Top - 1);
     LumenGCBarrierTable(L, LumenTableValue(t), L->Top - 1);
     L->Top--;

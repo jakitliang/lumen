@@ -112,11 +112,15 @@ LUA_API void lua_setlevel(lua_State *from, lua_State *to) {
 ** basic stack manipulation
 */
 
+LUA_API int lua_absindex(lua_State *L, int idx) {
+    return (idx > 0 || LumenApiIsPseudo(idx))
+           ? idx
+           : cast_int((L->Top - L->Base) + 1 + idx);
+}
 
 LUA_API int lua_gettop(lua_State *L) {
     return cast_int(L->Top - L->Base);
 }
-
 
 LUA_API void lua_settop(lua_State *L, int idx) {
     LumenLock(L);
@@ -181,6 +185,42 @@ LUA_API void lua_replace(lua_State *L, int idx) {
     LumenUnlock(L);
 }
 
+static void compatReverse(lua_State *L, int a, int b) {
+    for (; a < b; ++a, --b) {
+        lua_pushvalue(L, a);
+        lua_pushvalue(L, b);
+        lua_replace(L, a);
+        lua_replace(L, b);
+    }
+}
+
+LUA_API void lua_rotate(lua_State *L, int idx, int n) {
+    int n_elems = 0;
+    idx = lua_absindex(L, idx);
+    n_elems = lua_gettop(L) - idx + 1;
+    if (n < 0)
+        n += n_elems;
+    if (n > 0 && n < n_elems) {
+        if (!lua_checkstack(L, 2)) {
+            lua_pushstring(L, "not enough stack slots available");
+            lua_error(L);
+        }
+        n = n_elems - n;
+        compatReverse(L, idx, idx + n - 1);
+        compatReverse(L, idx + n, idx + n_elems - 1);
+        compatReverse(L, idx, idx + n_elems - 1);
+    }
+}
+
+LUA_API void lua_copy(lua_State *L, int fromIdx, int toIdx) {
+    Lumen::Object *from;
+    LumenLock(L);
+    if (toIdx == LUA_ENVIRONINDEX && L->CallInfo == L->BaseCI)
+        Lumen::Debug::RunError(L, "no calling environment");
+    from = L->ToObject(fromIdx);
+    moveTo(L, from, toIdx);
+    LumenUnlock(L);
+}
 
 LUA_API void lua_pushvalue(lua_State *L, int idx) {
     LumenLock(L);
@@ -1232,22 +1272,6 @@ LUA_API int lua_loadx(lua_State *L, lua_Reader reader, void *data,
                       const char *chunkName, const char *mode) {
     (void) mode;  /* Lua 5.1 Can't specify mode */
     return lua_load(L, reader, data, chunkName);
-}
-
-LUA_API int lua_absindex(lua_State *L, int i) {
-    if (i < 0 && i > LUA_REGISTRYINDEX)
-        i += lua_gettop(L) + 1;
-    return i;
-}
-
-LUA_API void lua_copy(lua_State *L, int fromIdx, int toIdx) {
-    Lumen::Object *from;
-    LumenLock(L);
-    if (toIdx == LUA_ENVIRONINDEX && L->CallInfo == L->BaseCI)
-        Lumen::Debug::RunError(L, "no calling environment");
-    from = L->ToObject(fromIdx);
-    moveTo(L, from, toIdx);
-    LumenUnlock(L);
 }
 
 LUA_API Lumen::Number lua_tonumberx(lua_State *L, int idx, int *isNum) {
