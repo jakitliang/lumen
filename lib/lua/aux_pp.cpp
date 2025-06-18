@@ -165,7 +165,7 @@ int Lua::State::ArgError(int nArg, const char *extraMsg) {
 }
 
 static void tagError(Lua::State *L, int nArg, int tag) {
-    L->TypeError(nArg, L->TypeName(tag));
+    L->TypeError(nArg, L->TypeId(tag));
 }
 
 const char *Lua::State::CheckString(int nArg, size_t *length) {

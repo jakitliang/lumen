@@ -72,6 +72,10 @@ static void pushCString(Lumen::State *L, const char *str) {
     LumenIncrTop(L);
 }
 
+static void pushCString(Lumen::State *L, const char *str, Lumen::UInteger length) {
+    LumenSetStringValue2S(L, L->Top, Lumen::String::New(L, str, length));
+    LumenIncrTop(L);
+}
 
 // this function handles only `%d`, `%c`, %f, %p, and `%s` formats
 const char *Lumen::PushVFString(Lumen::State *L, const char *fmt, va_list argP) {
@@ -110,6 +114,12 @@ const char *Lumen::PushVFString(Lumen::State *L, const char *fmt, va_list argP) 
                 char buff[4 * sizeof(void *) + 8]; /* should be enough space for a `%p` */
                 sprintf(buff, "%p", va_arg(argP, void *));
                 pushCString(L, buff);
+                break;
+            }
+            case 'U': {
+                char buff[Lumen::UTF8BufferSize];
+                int l = Lumen::Utf8Esc(buff, va_arg(argP, long));
+                pushCString(L, buff + Lumen::UTF8BufferSize - l, l);
                 break;
             }
             case '%': {

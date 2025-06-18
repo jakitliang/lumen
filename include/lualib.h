@@ -33,6 +33,9 @@ LUALIB_API int (luaopen_os) (lua_State *L);
 #define LUA_STRLIBNAME	"string"
 LUALIB_API int (luaopen_string) (lua_State *L);
 
+#define LUA_UTF8LIBNAME	"utf8"
+LUALIB_API int (luaopen_utf8) (lua_State *L);
+
 #define LUA_MATHLIBNAME	"math"
 LUALIB_API int (luaopen_math) (lua_State *L);
 

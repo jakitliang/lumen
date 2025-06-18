@@ -228,6 +228,8 @@ namespace Lumen {
     inline constexpr Lumen::UInteger LastType = Lumen::TypeThread;
 
     inline constexpr Lumen::UInteger TypeCount = LastType + 1;
+
+    inline constexpr Lumen::UInteger UTF8BufferSize = 8;
 }
 
 #define LumenDo(block) do { block } while(0)
@@ -261,6 +263,7 @@ namespace Lumen {
 #define cast_byte(i)    cast(Lumen::Byte, (i))
 #define cast_num(i)     cast(Lumen::Number, (i))
 #define cast_int(i)     cast(int, (i))
+#define cast_char(i)	cast(char, (i))
 
 
 #ifndef lua_lock

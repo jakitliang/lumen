@@ -240,6 +240,8 @@ namespace Lumen {
 
     int String2Decimal(const char *s, Lumen::Number *result);
 
+    int Utf8Esc(char *buff, unsigned long x);
+
     const char *PushVFString(Lumen::State *L, const char *fmt,
                              va_list argP);
 
@@ -451,6 +453,23 @@ inline int Lumen::String2Decimal(const char *s, Lumen::Number *result) {
     while (isspace(cast(unsigned char, *endPtr))) endPtr++;
     if (*endPtr != '\0') return 0;  /* invalid trailing characters? */
     return 1;
+}
+
+inline int Lumen::Utf8Esc(char *buff, unsigned long x) {
+    int n = 1;  /* number of bytes put in buffer (backwards) */
+    LumenAssert(x <= 0x7FFFFFFFu);
+    if (x < 0x80)  /* ascii? */
+        buff[Lumen::UTF8BufferSize - 1] = cast_char(x);
+    else {  /* need continuation bytes */
+        unsigned int mfb = 0x3f;  /* maximum that fits in first byte */
+        do {  /* add continuation bytes */
+            buff[Lumen::UTF8BufferSize - (n++)] = cast_char(0x80 | (x & 0x3f));
+            x >>= 6;  /* remove added bits */
+            mfb >>= 1;  /* now there is one less bit available in first byte */
+        } while (x > mfb);  /* still needs continuation byte? */
+        buff[Lumen::UTF8BufferSize - n] = cast_char((~mfb << 1) | x);  /* add first byte */
+    }
+    return n;
 }
 
 #endif

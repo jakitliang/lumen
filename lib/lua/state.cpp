@@ -192,8 +192,8 @@ Lua::Type Lua::State::Type(int idx) {
     return (o == Lumen::NilObject) ? Lua::TypeNone : LumenTypeOf(o);
 }
 
-const char *Lua::State::TypeName(int t) const { // NOLINT
-    return (t == Lua::TypeNone) ? "no value" : Lumen::TM::TypeNames[t];
+const char *Lua::State::TypeId(int tp) {
+    return (tp == Lua::TypeNone) ? "no value" : Lumen::TM::TypeNames[tp];
 }
 
 void Lua::State::Arith(Lua::ArithOp op) {

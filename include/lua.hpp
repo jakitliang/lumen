@@ -221,7 +221,11 @@ namespace Lua {
 
         LPP_API Lua::Type Type(int idx);
 
-        LPP_API const char *TypeName(int t) const; // NOLINT
+        LPP_API const char *TypeId(int tp); // NOLINT
+
+        inline const char *TypeName(int idx) {
+            return TypeId(Type(idx));
+        }
 
         LPP_API void Arith(ArithOp op);
 
@@ -655,9 +659,7 @@ namespace Lua {
         LPP_API static Buffer *Get();
     };
 
-    inline State *Open() {
-        return Lua::State::New();
-    }
+    State *Open();
 
     LPP_API void Close(State *(&L));
 
@@ -667,5 +669,8 @@ namespace Lua {
     LPP_API void SetLevel(State *from, State *to);
 }
 
+inline Lua::State *Lua::Open() {
+    return Lua::State::New();
+}
 
 #endif //lua_hpp

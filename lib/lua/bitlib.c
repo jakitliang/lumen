@@ -15,6 +15,7 @@
 
 #include "lua.h"
 #include "lauxlib.h"
+#include "lualib.h"
 
 typedef int32_t SBits;
 typedef uint32_t UBits;
@@ -168,7 +169,7 @@ LUALIB_API int luaopen_bit(lua_State *L) {
         luaL_error(L, "bit library self-test failed (%s)", msg);
     }
 #if LUA_VERSION_NUM < 502
-    luaL_register(L, "bit", bit_funcs);
+    luaL_register(L, LUA_BITLIBNAME, bit_funcs);
 #else
     luaL_newlib(L, bit_funcs);
 #endif

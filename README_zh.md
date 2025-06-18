@@ -21,17 +21,17 @@
 
 ## 应用
 
-| 项目             | Lua 版本           | 使用建议              |
-|----------------|------------------|-------------------|
-| ChocoLight     | Lua 5.1 / LuaJIT | 自研通用引擎，内置         |
-| cocos2d-x      | Lua 5.1          | 作为插件，完美兼容         |
-| Love2D         | Lua 5.1 / LuaJIT | 作为插件，完美兼容         |
-| Unity          | Lua 5.1          | 作为插件，完美兼容         |
-| Unreal Engine  | Lua 5.1          | 作为插件，完美兼容         |
-| Godot          | Lua 5.1          | 作为插件，完美兼容         |
-| Neovim         | Lua 5.1 / LuaJIT | 替换为 `Lumen`，完美兼容  |
-| Redis          | Lua 5.1          | 替换为 `Lumen`，完美兼容  |
-| nginx-lua      | Lua 5.1          | 替换为 `Lumen`，完美兼容  |
+| 项目             | Lua 版本           | 使用建议             |
+|----------------|------------------|------------------|
+| ChocoLight     | Lua 5.1 / LuaJIT | 自研通用引擎，内置        |
+| cocos2d-x      | Lua 5.1          | 作为插件，完美兼容        |
+| Love2D         | Lua 5.1 / LuaJIT | 作为插件，完美兼容        |
+| Unity          | Lua 5.1          | 作为插件，完美兼容        |
+| Unreal Engine  | Lua 5.1          | 作为插件，完美兼容        |
+| Godot          | Lua 5.1          | 作为插件，完美兼容        |
+| Neovim         | Lua 5.1 / LuaJIT | 替换为 `Lumen`，无缝兼容 |
+| Redis          | Lua 5.1          | 替换为 `Lumen`，无缝兼容 |
+| nginx-lua      | Lua 5.1          | 替换为 `Lumen`，无缝兼容 |
 
 
 ## 架构

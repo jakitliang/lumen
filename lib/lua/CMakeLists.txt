@@ -6,6 +6,7 @@ add_library(
     aux_pp.cpp
 #    baselib.c
     base.cpp
+    bitlib.c
     buffer.cpp
     dblib.c
     init.c
@@ -16,7 +17,7 @@ add_library(
     state.cpp
     string.cpp
     tablib.c
-    bitlib.c
+    utf8lib.cpp
 )
 if (LUA_BUILD_TYPE MATCHES "SHARED")
     if (CMAKE_SYSTEM_NAME MATCHES "Windows")
