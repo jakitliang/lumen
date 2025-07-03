@@ -16,6 +16,7 @@
 #include "lumen/object.h"
 #include "lumen/state.h"
 #include "lumen/api.h"
+#include "lumen/common.inl"
 
 #include "lua.hpp"
 
