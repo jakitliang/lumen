@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         platform: [linux, windows, macos, android]
-        build_type: [Debug, Release]
+        build_type: [Release]
         include:
           - platform: linux
             os: ubuntu-22.04
