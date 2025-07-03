@@ -19,12 +19,12 @@
 #include "lumen/do.h"
 #include "lumen/memory.h"
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/opcodes.h"
 #include "lumen/string.h"
 #include "lumen/undump.h"
 
-#include "lua.h"
-#include "lauxlib.h"
+#include "lua.hpp"
 
 #define PROGRAM_NAME    "lumenc"        /* default program name */
 #define OUTPUT      PROGRAM_NAME ".out"    /* default output file */
@@ -108,9 +108,10 @@ static int doargs(int argc, char *argv[]) {
     return i;
 }
 
-#define toProto(L, i) (LumenClosureValue(L->Top+(i))->AsLua.Func)
+#define toProto(L, i) ((L->Top+(i))->GetClosure()->AsLua.Func)
+#define LuaToLumen(L) reinterpret_cast<Lumen::State *>(L)
 
-static const Lumen::Proto *combine(lua_State *L, int n) {
+static const Lumen::Proto *combine(Lumen::State *L, int n) {
     if (n == 1)
         return toProto(L, -1);
     else {
@@ -136,8 +137,7 @@ static const Lumen::Proto *combine(lua_State *L, int n) {
     }
 }
 
-static int writer(lua_State *L, const void *p, size_t size, void *u) {
-    UNUSED(L);
+static int writer(Lumen::State *, const void *p, size_t size, void *u) {
     return (fwrite(p, size, 1, (FILE *) u) != 1) && (size != 0);
 }
 
@@ -146,25 +146,25 @@ struct MainArgs {
     char **argv;
 };
 
-static int pMain(lua_State *L) {
-    MainArgs *s = (struct MainArgs *) lua_touserdata(L, 1);
+static int pMain(Lua::State *L) {
+    auto s = reinterpret_cast<MainArgs *>(L->ToUserdata(1));
     int argc = s->argc;
     char **argv = s->argv;
     const Lumen::Proto *f;
     int i;
-    if (!lua_checkstack(L, argc)) fatal("too many input files");
+    if (!L->CheckStack(argc)) fatal("too many input files");
     for (i = 0; i < argc; i++) {
         const char *filename = IS("-") ? nullptr : argv[i];
-        if (luaL_loadfile(L, filename) != 0) fatal(lua_tostring(L, -1));
+        if (L->LoadFile(filename) != 0) fatal(L->ToString(-1));
     }
-    f = combine(L, argc);
+    f = combine(LuaToLumen(L), argc);
     if (listing) Lumen::Dumper::Print(f, listing > 1);
     if (dumping) {
         FILE *D = (output == nullptr) ? stdout : fopen(output, "wb");
         if (D == nullptr) cannot("open");
-        LumenLock(L);
-        Lumen::Dumper::Dump(L, f, writer, D, stripping);
-        LumenUnlock(L);
+        LumenLock(LuaToLumen(L));
+        Lumen::Dumper::Dump(LuaToLumen(L), f, writer, D, stripping);
+        LumenUnlock(LuaToLumen(L));
         if (ferror(D)) cannot("write");
         if (fclose(D)) cannot("close");
     }
@@ -172,15 +172,15 @@ static int pMain(lua_State *L) {
 }
 
 int main(int argc, char *argv[]) {
-    lua_State *L;
+    Lua::State *L;
     int i = doargs(argc, argv);
     argc -= i;
     argv += i;
     if (argc <= 0) usage("no input files given");
-    L = lua_open();
+    L = Lua::Open();
     if (L == nullptr) fatal("not enough memory for state");
     MainArgs s{argc, argv};
-    if (lua_cpcall(L, pMain, &s) != 0) fatal(lua_tostring(L, -1));
-    lua_close(L);
+    if (L->TryCall(pMain, &s) != 0) fatal(L->ToString(-1));
+    Lua::Close(L);
     return EXIT_SUCCESS;
 }

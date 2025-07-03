@@ -9,74 +9,76 @@
 
 #define LUA_LIB
 
-#include <vector>
 #include <string_view>
 #include <algorithm>
 
 #include "lua.hpp"
 
-namespace Lua {
-    using BufferRef = std::vector<Lua::Byte> *;
+#define buffLen(B)    ((B)->p - (B)->buffer)
+#define buffFree(B)    ((size_t)(LUAL_BUFFERSIZE - buffLen(B)))
+
+#define LIMIT    (LUA_MIN_STACK / 2)
+
+static int emptyBuffer(Lua::Buffer *B) {
+    size_t l = buffLen(B);
+    if (l == 0) return 0;  /* put nothing on stack */
+    else {
+        B->L->PushString(B->buffer, l);
+        B->p = B->buffer;
+        B->level++;
+        return 1;
+    }
 }
 
-Lua::Buffer *Lua::Buffer::Get() {
-    thread_local std::vector<Lua::Byte> buffer;
-    return reinterpret_cast<Lua::Buffer *>(&buffer);
+static void adjustStack(Lua::Buffer *B) {
+    if (B->level > 1) {
+        Lua::State *L = B->L;
+        int toGet = 1;  /* number of levels to concat */
+        size_t toPLen = L->StringLength(-1);
+        do {
+            size_t l = L->StringLength(-(toGet + 1));
+            if (B->level - toGet + 1 >= LIMIT || toPLen > l) {
+                toPLen += l;
+                toGet++;
+            } else break;
+        } while (toGet < B->level);
+        L->Concat(toGet);
+        B->level = B->level - toGet + 1;
+    }
 }
 
-void Lua::Buffer::Push(char c) {
-    reinterpret_cast<BufferRef>(this)->push_back(c);
+char *Lua::Buffer::Prepare() {
+    if (emptyBuffer(this))
+        adjustStack(this);
+    return buffer;
 }
 
-void Lua::Buffer::Push(const char *cStr) {
-    auto buffer = reinterpret_cast<BufferRef>(this);
-    buffer->insert(buffer->end(), cStr, cStr + std::string_view(cStr).length());
+void Lua::Buffer::AddString(const char *s) {
+    AddString(s, std::string_view(s).length());
 }
 
-void Lua::Buffer::Push(const void *cBuffer, Lua::UInteger size) {
-    auto buffer = reinterpret_cast<BufferRef>(this);
-    auto cStr = static_cast<const char *>(cBuffer);
-    buffer->insert(buffer->end(), cStr, cStr + size);
+void Lua::Buffer::AddString(const char *s, size_t l) {
+    while (l--)
+        AddChar(*s++);
 }
 
-void Lua::Buffer::Reverse() {
-    auto buffer = reinterpret_cast<BufferRef>(this);
-    std::reverse(buffer->begin(), buffer->end());
+void Lua::Buffer::AddValue() {
+    size_t vl;
+    const char *s = L->ToString(-1, &vl);
+    if (vl <= buffFree(this)) {  /* fit into buffer? */
+        memcpy(p, s, vl);  /* put it there */
+        p += vl;
+        L->Pop(1);  /* remove from stack */
+    } else {
+        if (emptyBuffer(this))
+            L->Insert(-2);  /* put buffer before new value */
+        level++;  /* add new value into B stack */
+        adjustStack(this);
+    }
 }
 
-void Lua::Buffer::Reserve(Lua::UInteger size) {
-    auto buffer = reinterpret_cast<BufferRef>(this);
-    buffer->reserve(size);
-}
-
-void Lua::Buffer::Resize(Lua::UInteger size) {
-    auto buffer = reinterpret_cast<BufferRef>(this);
-    buffer->resize(size);
-}
-
-Lua::UInteger Lua::Buffer::Length() {
-    auto buffer = reinterpret_cast<BufferRef>(this);
-    return buffer->size();
-}
-
-void Lua::Buffer::Clear() {
-    auto buffer = reinterpret_cast<BufferRef>(this);
-    buffer->clear();
-}
-
-char *Lua::Buffer::CString() {
-    auto buffer = reinterpret_cast<BufferRef>(this);
-    return reinterpret_cast<char *>(buffer->data());
-}
-
-void *Lua::Buffer::CBuffer() {
-    auto buffer = reinterpret_cast<BufferRef>(this);
-    return buffer->data();
-}
-
-void Lua::Buffer::AddValue(Lua::State *L) {
-    size_t len;
-    const char *str = L->ToString(-1, &len);
-    Push(str, len);
-    L->Pop();
+void Lua::Buffer::PushResult() {
+    emptyBuffer(this);
+    L->Concat(level);
+    level = 1;
 }

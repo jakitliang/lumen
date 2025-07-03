@@ -10,6 +10,7 @@
 #ifndef lua_hpp
 #define lua_hpp
 
+#include <cstdio>
 #include <climits>
 #include <cstddef>
 #include <cstdarg>
@@ -173,12 +174,13 @@ namespace Lua {
         Lua::Type Type;
     };
 
-    struct Object : TypeInfo {
-    };
+    struct Base;
 
-    struct String {
-        struct Context;
-    };
+    struct Coroutine;
+
+    struct Object;
+
+    struct String;
 
     struct State {
         // MARK: state manipulation
@@ -253,7 +255,9 @@ namespace Lua {
 
         LPP_API Delegate ToDelegate(int idx);
 
-        LPP_API Function ToFunction(int idx);
+        inline Function ToFunction(int idx) {
+            return reinterpret_cast<Function>(ToDelegate(idx));
+        }
 
         LPP_API void *ToUserdata(int idx);
 
@@ -335,7 +339,9 @@ namespace Lua {
         LPP_API Lua::Ret TryCall(Delegate invoke, void *userdata);
 
         // Try C Call
-        LPP_API Lua::Ret TryCall(Function invoke, void *userdata);
+        inline Lua::Ret TryCall(Function invoke, void *userdata) {
+            return TryCall(reinterpret_cast<Delegate>(invoke), userdata);
+        }
 
         LPP_API Lua::Ret Load(Reader reader, void *data, const char *chunkName);
 
@@ -483,6 +489,8 @@ namespace Lua {
         inline int GetN(int idx) {
             return static_cast<int>(ObjectLength(idx));
         }
+
+        inline void SetN(int idx, UInteger size) {} // NOLINT
 
         LPP_API void OpenLib(const char *name, const Interface *i, int nUpValue);
 
@@ -634,37 +642,53 @@ namespace Lua {
     };
 
     struct Buffer {
-        LPP_API void Push(char c);
+        char *p;      /* current position in buffer */
+        int level;    /* number of strings in the stack (level) */
+        State *L;
+        char buffer[LUAL_BUFFERSIZE];
 
-        LPP_API void Push(const char *cStr);
+        inline void Init(Lua::State *l) {
+            L = l;
+            p = buffer;
+            level = 0;
+        }
 
-        LPP_API void Push(const void *cBuffer, UInteger size);
+        LPP_API char *Prepare();
 
-        LPP_API void Reverse();
+        LPP_API void AddString(const char *s, size_t l);
 
-        LPP_API void Reserve(UInteger size);
+        LPP_API void AddString(const char *s);
 
-        LPP_API void Resize(UInteger size);
+        LPP_API void AddValue();
 
-        LPP_API UInteger Length();
+        LPP_API void PushResult();
 
-        LPP_API void Clear();
+        inline void AddChar(char c) {
+            if (p >= (buffer + LUAL_BUFFERSIZE)) {
+                Prepare();
+            }
+            *p++ = c;
+        }
 
-        LPP_API char *CString();
+        inline void AddChar(int d) {
+            AddChar((char) d);
+        }
 
-        LPP_API void *CBuffer();
+        inline void PutChar(const char c) {
+            AddChar(c);
+        }
 
-        LPP_API void AddValue(Lua::State *L);
-
-        LPP_API static Buffer *Get();
+        inline void AddSize(int size) {
+            p += size;
+        }
     };
 
     template<typename T>
-    int Open(State *L);
+    LPP_API int Open(State *L);
 
     State *Open();
 
-    LPP_API void Close(State *(&L));
+    LPP_API void Close(State *&L);
 
     LPP_API void XMove(State *from, State *to, int n);
 

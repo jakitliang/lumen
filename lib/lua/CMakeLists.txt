@@ -1,13 +1,13 @@
 add_library(
     lumen-lua OBJECT
     api.cpp
-    api_pp.cpp
-    auxlib.cpp
-    aux_pp.cpp
+    auxiliary.cpp
 #    baselib.c
     base.cpp
     bitlib.c
     buffer.cpp
+    c_api.cpp
+    c_aux.cpp
     dblib.c
     init.c
     iolib.c

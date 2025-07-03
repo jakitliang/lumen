@@ -16,6 +16,7 @@
 
 #include "lumen/debug.h"
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/opcodes.h"
 #include "lumen/undump.h"
 
@@ -25,7 +26,7 @@
 #define VOID(p)        ((const void*)(p))
 
 static void PrintString(const Lumen::String *ts) {
-    const char *s = LumenStringCString(ts);
+    const char *s = ts->CString();
     size_t i, n = ts->Length;
     putchar('"');
     for (i = 0; i < n; i++) {
@@ -70,21 +71,21 @@ static void PrintString(const Lumen::String *ts) {
 
 static void PrintConstant(const Lumen::Proto *f, int i) {
     const Lumen::Object *o = &f->K[i];
-    switch (LumenTypeOf(o)) {
+    switch (o->Type) {
         case Lumen::TypeNil:
             printf("nil");
             break;
         case Lumen::TypeBool:
-            printf(LumenBoolValue(o) ? "true" : "false");
+            printf(o->GetBool() ? "true" : "false");
             break;
         case Lumen::TypeNumber:
-            printf(LUA_NUMBER_FMT, LumenNumberValue(o));
+            printf(LUA_NUMBER_FMT, o->GetNumber());
             break;
         case Lumen::TypeString:
-            PrintString(LumenStringValue(o));
+            PrintString(o->GetString());
             break;
         default:                /* cannot happen */
-            printf("? type=%d", LumenTypeOf(o));
+            printf("? type=%d", o->Type);
             break;
     }
 }
@@ -126,11 +127,11 @@ static void PrintCode(const Lumen::Proto *f) {
                 break;
             case Lumen::OpCodeGetUpVal:
             case Lumen::OpCodeSetUpVal:
-                printf("\t; %s", (f->UpValuesCount > 0) ? LumenStringCString(f->UpValues[b]) : "-");
+                printf("\t; %s", (f->UpValuesCount > 0) ? (f->UpValues[b])->CString() : "-");
                 break;
             case Lumen::OpCodeGetGlobal:
             case Lumen::OpCodeSetGlobal:
-                printf("\t; %s", LumenStringValue2CString(&f->K[bx]));
+                printf("\t; %s", (&f->K[bx])->ToCString());
                 break;
             case Lumen::OpCodeGetTable:
             case Lumen::OpCodeSelf:
@@ -178,7 +179,7 @@ static void PrintCode(const Lumen::Proto *f) {
 #define S(x)    x,SS(x)
 
 static void PrintHeader(const Lumen::Proto *f) {
-    const char *s = LumenStringCString(f->Source);
+    const char *s = f->Source->CString();
     if (*s == '@' || *s == '=')
         s++;
     else if (*s == LUA_SIGNATURE[0])
@@ -211,7 +212,7 @@ static void PrintLocals(const Lumen::Proto *f) {
     printf("locals (%d) for %p:\n", n, VOID(f));
     for (i = 0; i < n; i++) {
         printf("\t%d\t%s\t%d\t%d\n",
-               i, LumenStringCString(f->LocalVars[i].VarName), f->LocalVars[i].StartPC + 1, f->LocalVars[i].EndPC + 1);
+               i, (f->LocalVars[i].VarName)->CString(), f->LocalVars[i].StartPC + 1, f->LocalVars[i].EndPC + 1);
     }
 }
 
@@ -220,7 +221,7 @@ static void PrintUpvalues(const Lumen::Proto *f) {
     printf("upvalues (%d) for %p:\n", n, VOID(f));
     if (f->UpValues == nullptr) return;
     for (i = 0; i < n; i++) {
-        printf("\t%d\t%s\n", i, LumenStringCString(f->UpValues[i]));
+        printf("\t%d\t%s\n", i, (f->UpValues[i])->CString());
     }
 }
 

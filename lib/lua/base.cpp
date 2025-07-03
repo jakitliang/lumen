@@ -663,7 +663,14 @@ static void base_open(Lua::State *L) {
 #define LUA_COLIBNAME    "coroutine"
 #endif
 
-LUALIB_API int luaopen_base(Lua::State *L) {
+template<>
+LPP_API int Lua::Open<Lua::Base>(Lua::State *L) {
+    base_open(L);
+    return 1;
+}
+
+LUALIB_API int luaopen_base(struct lua_State *l) {
+    auto L = reinterpret_cast<Lua::State *>(l);
     base_open(L);
     L->Register(LUA_COLIBNAME, co_funcs);
     return 2;
