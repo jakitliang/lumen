@@ -11,6 +11,7 @@
 
 #include <string_view>
 #include <algorithm>
+#include <cstring>
 
 #include "lua.hpp"
 
