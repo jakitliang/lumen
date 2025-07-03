@@ -16,7 +16,7 @@ jobs:
           - platform: linux
             os: ubuntu-22.04
           - platform: windows
-            os: windows-2019
+            os: windows-2022
           - platform: macos
             os: macos-14
           - platform: android

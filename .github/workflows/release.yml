@@ -19,7 +19,7 @@ jobs:
             artifact_name: lumen-linux
             asset_name: lumen-linux.tar.gz
             compress_cmd: tar -czvf
-          - os: windows-2019
+          - os: windows-2022
             artifact_name: lumen-windows
             asset_name: lumen-windows.zip
             compress_cmd: 7z a -tzip
