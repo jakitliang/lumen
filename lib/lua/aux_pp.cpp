@@ -25,7 +25,7 @@
 
 #define FREELIST_REF    0    /* free list of references */
 
-#define LuaToLumen(L) reinterpret_cast<Lumen::State *>(L)
+#define LuaToLumen(L) reinterpret_cast<Lua::CState *>(L)
 #define LumenToLua(L) reinterpret_cast<Lua::State *>(L)
 
 #ifndef LUA_COLIBNAME

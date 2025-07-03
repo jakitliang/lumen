@@ -24,10 +24,10 @@
 #define LUA_CORE
 
 #include "lumen/debug.h"
-#include "lumen/do.h"
 #include "lumen/gc.h"
 #include "lumen/memory.h"
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/state.h"
 #include "lumen/table.h"
 
@@ -35,10 +35,10 @@
 /*
 ** max size of array part is 2^MAXBITS
 */
-#if LUAI_BITSINT > 26
+#if LUA_BITS_INT > 26
 #define LUA_MAX_BITS        26
 #else
-#define LUA_MAX_BITS		(LUAI_BITSINT-2)
+#define LUA_MAX_BITS		(LUA_BITS_INT-2)
 #endif
 
 #define LUA_MAX_A_SIZE    (1 << LUA_MAX_BITS)
@@ -66,8 +66,8 @@ namespace Lumen {
     static inline constexpr int NumInts = sizeof(Lumen::Number) / sizeof(int);
 
     static const Lumen::Node DummyNode = {
-            {Lumen::TypeNil, {nullptr}},  /* value */
-            {{Lumen::TypeNil, {nullptr}, nullptr}}  /* key */
+        {Lumen::TypeNil, {nullptr}},  /* value */
+        {{Lumen::TypeNil, {nullptr}, nullptr}}  /* key */
     };
 }
 
@@ -79,7 +79,7 @@ namespace Lumen {
 static Lumen::Node *hashNum(const Lumen::Table *t, Lumen::Number n) {
     unsigned int a[Lumen::NumInts];
     int i;
-    if (luai_numeq(n, 0))  /* avoid problems with -0 */
+    if (LumenNumEQ(n, 0))  /* avoid problems with -0 */
         return LumenTableGetNode(t, 0);
     memcpy(a, &n, sizeof(a));
     for (i = 1; i < Lumen::NumInts; i++) a[0] += a[i];
@@ -92,17 +92,17 @@ static Lumen::Node *hashNum(const Lumen::Table *t, Lumen::Number n) {
 ** of its hash value)
 */
 static Lumen::Node *mainPosition(const Lumen::Table *t, const Lumen::Object *key) {
-    switch (LumenTypeOf(key)) {
+    switch (key->Type) {
         case Lumen::TypeNumber:
-            return hashNum(t, LumenNumberValue(key));
+            return hashNum(t, key->GetNumber());
         case Lumen::TypeString:
-            return hashString(t, LumenStringValue(key));
+            return hashString(t, key->GetString());
         case Lumen::TypeBool:
-            return hashBoolean(t, LumenBoolValue(key));
+            return hashBoolean(t, key->GetBool());
         case Lumen::TypeLightUserdata:
-            return hashPointer(t, LumenLUDataValue(key));
+            return hashPointer(t, key->GetLUData());
         default:
-            return hashPointer(t, LumenGCValue(key));
+            return hashPointer(t, key->GetGCObject());
     }
 }
 
@@ -112,11 +112,11 @@ static Lumen::Node *mainPosition(const Lumen::Table *t, const Lumen::Object *key
 ** the array part of the table, -1 otherwise.
 */
 static int arrayIndex(const Lumen::Object *key) {
-    if (LumenTypeIsNumber(key)) {
-        Lumen::Number n = LumenNumberValue(key);
+    if (key->IsNumber()) {
+        Lumen::Number n = key->GetNumber();
         int k;
         lua_number2int(k, n);
-        if (luai_numeq(cast_num(k), n))
+        if (LumenNumEQ(cast_num(k), n))
             return k;
     }
     return -1;  /* `key' did not match some condition */
@@ -130,17 +130,17 @@ static int arrayIndex(const Lumen::Object *key) {
 */
 static int findIndex(Lumen::State *L, Lumen::Table *t, Lumen::Value key) {
     int i;
-    if (LumenTypeIsNil(key)) return -1;  /* first iteration */
+    if (key->IsNil()) return -1;  /* first iteration */
     i = arrayIndex(key);
-    if (0 < i && i <= t->ArrayCount)  /* is `key' inside array part? */
+    if (0 < i && i <= t->ArrayCount)  /* is `key` inside array part? */
         return i - 1;  /* yes; that's the index (corrected to C) */
     else {
         Lumen::Node *n = mainPosition(t, key);
-        do {  /* check whether `key' is somewhere in the chain */
-            /* key may be dead already, but it is ok to use it in `next' */
+        do {  /* check whether `key` is somewhere in the chain */
+            /* key may be dead already, but it is ok to use it in `next` */
             if (Lumen::RawEqualObject(LumenTableKey2KeyValue(n), key) ||
-                (LumenTypeOf(LumenTableGetKey(n)) == Lumen::TypeDeadKey && LumenIsCollectable(key) &&
-                 LumenGCValue(LumenTableGetKey(n)) == LumenGCValue(key))) {
+                (LumenTableGetKey(n)->Type == Lumen::TypeDeadKey && key->IsCollectable() &&
+                 LumenTableGetKey(n)->GetGCObject() == key->GetGCObject())) {
                 i = cast_int(n - LumenTableGetNode(t, 0));  /* key index in hash table */
                 /* hash elements are numbered after array ones */
                 return i + t->ArrayCount;
@@ -155,14 +155,14 @@ static int findIndex(Lumen::State *L, Lumen::Table *t, Lumen::Value key) {
 int Lumen::Table::Next(Lumen::State *L, Lumen::Table *t, Lumen::Value key) {
     int i = findIndex(L, t, key);  /* find original element */
     for (i++; i < t->ArrayCount; i++) {  /* try first array part */
-        if (!LumenTypeIsNil(&t->Array[i])) {  /* a non-nil value? */
-            LumenSetNumberValue(key, cast_num(i + 1));
+        if (!(&t->Array[i])->IsNil()) {  /* a non-nil value? */
+            key->SetNumber(cast_num(i + 1));
             LumenSetObject2S(L, key + 1, &t->Array[i]);
             return 1;
         }
     }
     for (i -= t->ArrayCount; i < LumenTableNodeCount(t); i++) {  /* then hash part */
-        if (!LumenTypeIsNil(LumenTableGetValue(LumenTableGetNode(t, i)))) {  /* a non-nil value? */
+        if (!LumenTableGetValue(LumenTableGetNode(t, i))->IsNil()) {  /* a non-nil value? */
             LumenSetObject2S(L, key, LumenTableKey2KeyValue(LumenTableGetNode(t, i)));
             LumenSetObject2S(L, key + 1, LumenTableGetValue(LumenTableGetNode(t, i)));
             return 1;
@@ -226,7 +226,7 @@ static int numUseArray(const Lumen::Table *t, int *nums) {
         }
         /* count elements in range (2^(lg-1), 2^lg] */
         for (; i <= lim; i++) {
-            if (!LumenTypeIsNil(&t->Array[i - 1]))
+            if (!(&t->Array[i - 1])->IsNil())
                 lc++;
         }
         nums[lg] += lc;
@@ -242,7 +242,7 @@ static int numUseHash(const Lumen::Table *t, int *nums, int *pnasize) {
     int i = LumenTableNodeCount(t);
     while (i--) {
         Lumen::Node *n = &t->Nodes[i];
-        if (!LumenTypeIsNil(LumenTableGetValue(n))) {
+        if (!LumenTableGetValue(n)->IsNil()) {
             sumOfNums += countInt(LumenTableKey2KeyValue(n), nums);
             totalUse++;
         }
@@ -256,7 +256,7 @@ static void setArrayVector(Lumen::State *L, Lumen::Table *t, int size) {
     int i;
     LumenMemoryReAllocVector(L, t->Array, t->ArrayCount, size, Lumen::Object);
     for (i = t->ArrayCount; i < size; i++)
-        LumenSetNilValue(&t->Array[i]);
+        (&t->Array[i])->SetNil();
     t->ArrayCount = size;
 }
 
@@ -276,8 +276,8 @@ static void setNodeVector(Lumen::State *L, Lumen::Table *t, int size) {
         for (i = 0; i < size; i++) {
             Lumen::Node *n = LumenTableGetNode(t, i);
             LumenTableGetNext(n) = nullptr;
-            LumenSetNilValue(LumenTableGetKey(n));
-            LumenSetNilValue(LumenTableGetValue(n));
+            LumenTableGetKey(n)->SetNil();
+            LumenTableGetValue(n)->SetNil();
         }
     }
     t->NodeCount = cast_byte(logSize);
@@ -298,7 +298,7 @@ static void resize(Lumen::State *L, Lumen::Table *t, int nArraySize, int nHashSi
         t->ArrayCount = nArraySize;
         /* re-insert elements from vanishing slice */
         for (i = nArraySize; i < oldArraySize; i++) {
-            if (!LumenTypeIsNil(&t->Array[i]))
+            if (!(&t->Array[i])->IsNil())
                 LumenSetObjectT2T (L, Lumen::Table::SetNum(L, t, i + 1), &t->Array[i]);
         }
         /* shrink array */
@@ -307,7 +307,7 @@ static void resize(Lumen::State *L, Lumen::Table *t, int nArraySize, int nHashSi
     /* re-insert elements from hash part */
     for (i = LumenTableTwoTo(oldHashSize) - 1; i >= 0; i--) {
         Lumen::Node *old = nOld + i;
-        if (!LumenTypeIsNil(LumenTableGetValue(old)))
+        if (!LumenTableGetValue(old)->IsNil())
             LumenSetObjectT2T (L, Lumen::Table::Set(L, t, LumenTableKey2KeyValue(old)), LumenTableGetValue(old));
     }
     if (nOld != dummyNode)
@@ -369,9 +369,9 @@ void Lumen::Table::Free(Lumen::State *L, Lumen::Table *t) {
 }
 
 
-static Lumen::Node *getfreepos(Lumen::Table *t) {
+static Lumen::Node *getFreePos(Lumen::Table *t) {
     while (t->LastFreeNode-- > t->Nodes) {
-        if (LumenTypeIsNil(LumenTableGetKey(t->LastFreeNode)))
+        if (LumenTableGetKey(t->LastFreeNode)->IsNil())
             return t->LastFreeNode;
     }
     return nullptr;  /* could not find a free place */
@@ -387,9 +387,9 @@ static Lumen::Node *getfreepos(Lumen::Table *t) {
 */
 static Lumen::Object *newKey(Lumen::State *L, Lumen::Table *t, const Lumen::Object *key) {
     Lumen::Node *mp = mainPosition(t, key);
-    if (!LumenTypeIsNil(LumenTableGetValue(mp)) || mp == dummyNode) {
+    if (!LumenTableGetValue(mp)->IsNil() || mp == dummyNode) {
         Lumen::Node *otherN;
-        Lumen::Node *n = getfreepos(t);  /* get a free place */
+        Lumen::Node *n = getFreePos(t);  /* get a free place */
         if (n == nullptr) {  /* cannot find a free place? */
             rehash(L, t, key);  /* grow table */
             return Lumen::Table::Set(L, t, key);  /* re-insert key into grown table */
@@ -402,7 +402,7 @@ static Lumen::Object *newKey(Lumen::State *L, Lumen::Table *t, const Lumen::Obje
             LumenTableGetNext(otherN) = n;  /* redo the chain with `n' in place of `mp' */
             *n = *mp;  /* copy colliding node into free pos. (mp->next also goes) */
             LumenTableGetNext(mp) = nullptr;  /* now `mp' is free */
-            LumenSetNilValue(LumenTableGetValue(mp));
+            LumenTableGetValue(mp)->SetNil();
         } else {  /* colliding node is in its own main position */
             /* new node will go into free position */
             LumenTableGetNext(n) = LumenTableGetNext(mp);  /* chain new position */
@@ -412,8 +412,8 @@ static Lumen::Object *newKey(Lumen::State *L, Lumen::Table *t, const Lumen::Obje
     }
     LumenTableGetKey(mp)->value = key->value;
     LumenTableGetKey(mp)->Type = key->Type;
-    LumenGCBarrierTable(L, t, key);
-    LumenAssert(LumenTypeIsNil(LumenTableGetValue(mp)));
+    L->BarrierTable(t, key);
+    LumenAssert(LumenTableGetValue(mp)->IsNil());
     return LumenTableGetValue(mp);
 }
 
@@ -428,8 +428,8 @@ const Lumen::Object *Lumen::Table::GetNum(Lumen::Table *t, int key) {
     else {
         Lumen::Number nk = cast_num(key);
         Lumen::Node *n = hashNum(t, nk);
-        do {  /* check whether `key' is somewhere in the chain */
-            if (LumenTypeIsNumber(LumenTableGetKey(n)) && luai_numeq(LumenNumberValue(LumenTableGetKey(n)), nk))
+        do {  /* check whether `key` is somewhere in the chain */
+            if (LumenTableGetKey(n)->IsNumber() && LumenNumEQ(LumenTableGetKey(n)->GetNumber(), nk))
                 return LumenTableGetValue(n);  /* that's it */
             else n = LumenTableGetNext(n);
         } while (n);
@@ -443,8 +443,8 @@ const Lumen::Object *Lumen::Table::GetNum(Lumen::Table *t, int key) {
 */
 const Lumen::Object *Lumen::Table::GetString(Lumen::Table *t, Lumen::String *key) {
     Lumen::Node *n = hashString(t, key);
-    do {  /* check whether `key' is somewhere in the chain */
-        if (LumenTypeIsString(LumenTableGetKey(n)) && LumenStringValue(LumenTableGetKey(n)) == key)
+    do {  /* check whether `key` is somewhere in the chain */
+        if (LumenTableGetKey(n)->IsString() && LumenTableGetKey(n)->GetString() == key)
             return LumenTableGetValue(n);  /* that's it */
         else n = LumenTableGetNext(n);
     } while (n);
@@ -456,16 +456,16 @@ const Lumen::Object *Lumen::Table::GetString(Lumen::Table *t, Lumen::String *key
 ** main search function
 */
 const Lumen::Object *Lumen::Table::Get(Lumen::Table *t, const Lumen::Object *key) {
-    switch (LumenTypeOf(key)) {
+    switch (key->Type) {
         case Lumen::TypeNil:
             return Lumen::NilObject;
         case Lumen::TypeString:
-            return Lumen::Table::GetString(t, LumenStringValue(key));
+            return Lumen::Table::GetString(t, key->GetString());
         case Lumen::TypeNumber: {
             int k;
-            Lumen::Number n = LumenNumberValue(key);
+            Lumen::Number n = key->GetNumber();
             lua_number2int(k, n);
-            if (luai_numeq(cast_num(k), LumenNumberValue(key))) /* index is int? */
+            if (LumenNumEQ(cast_num(k), key->GetNumber())) /* index is int? */
                 return Lumen::Table::GetNum(t, k);  /* use specialized version */
             /* else go through */
         }
@@ -488,8 +488,8 @@ Lumen::Object *Lumen::Table::Set(Lumen::State *L, Lumen::Table *t, const Lumen::
     if (p != Lumen::NilObject)
         return cast(Lumen::Object *, p);
     else {
-        if (LumenTypeIsNil(key)) Lumen::Debug::RunError(L, "table index is nil");
-        else if (LumenTypeIsNumber(key) && luai_numisnan(LumenNumberValue(key)))
+        if (key->IsNil()) Lumen::Debug::RunError(L, "table index is nil");
+        else if (key->IsNumber() && LumenNumIsNAN(key->GetNumber()))
             Lumen::Debug::RunError(L, "table index is NaN");
         return newKey(L, t, key);
     }
@@ -501,8 +501,8 @@ Lumen::Object *Lumen::Table::SetNum(Lumen::State *L, Lumen::Table *t, int key) {
     if (p != Lumen::NilObject)
         return cast(Lumen::Object *, p);
     else {
-        Lumen::Object k;
-        LumenSetNumberValue(&k, cast_num(key));
+        Lumen::Object k; // NOLINT
+        k.SetNumber(cast_num(key));
         return newKey(L, t, &k);
     }
 }
@@ -513,8 +513,8 @@ Lumen::Object *Lumen::Table::SetString(Lumen::State *L, Lumen::Table *t, Lumen::
     if (p != Lumen::NilObject)
         return cast(Lumen::Object *, p);
     else {
-        Lumen::Object k;
-        LumenSetStringValue(L, &k, key);
+        Lumen::Object k; // NOLINT
+        k.SetString(L, key);
         return newKey(L, t, &k);
     }
 }
@@ -524,20 +524,20 @@ static int unbound_search(Lumen::Table *t, unsigned int j) {
     unsigned int i = j;  /* i is zero or a present index */
     j++;
     /* find `i' and `j' such that i is present and j is not */
-    while (!LumenTypeIsNil(Lumen::Table::GetNum(t, j))) {
+    while (!Lumen::Table::GetNum(t, j)->IsNil()) {
         i = j;
         j *= 2;
         if (j > cast(unsigned int, Lumen::MaxInt)) {  /* overflow? */
             /* table was built with bad purposes: resort to linear search */
             i = 1;
-            while (!LumenTypeIsNil(Lumen::Table::GetNum(t, i))) i++;
+            while (!Lumen::Table::GetNum(t, i)->IsNil()) i++;
             return i - 1;
         }
     }
     /* now do a binary search between them */
     while (j - i > 1) {
         unsigned int m = (i + j) / 2;
-        if (LumenTypeIsNil(Lumen::Table::GetNum(t, m))) j = m;
+        if (Lumen::Table::GetNum(t, m)->IsNil()) j = m;
         else i = m;
     }
     return i;
@@ -550,12 +550,12 @@ static int unbound_search(Lumen::Table *t, unsigned int j) {
 */
 int Lumen::Table::GetN(Lumen::Table *t) {
     unsigned int j = t->ArrayCount;
-    if (j > 0 && LumenTypeIsNil(&t->Array[j - 1])) {
+    if (j > 0 && (&t->Array[j - 1])->IsNil()) {
         /* there is a boundary in the array part: (binary) search for it */
         unsigned int i = 0;
         while (j - i > 1) {
             unsigned int m = (i + j) / 2;
-            if (LumenTypeIsNil(&t->Array[m - 1])) j = m;
+            if ((&t->Array[m - 1])->IsNil()) j = m;
             else i = m;
         }
         return i;

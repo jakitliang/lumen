@@ -140,7 +140,7 @@ void *luaL_checkudata(lua_State *L, int ud, const char *tName) {
 
 void luaL_checkstack(lua_State *L, int space, const char *msg) {
     /* keep some extra space to run error routines, if needed */
-    const int extra = LUA_MINSTACK;
+    const int extra = LUA_MIN_STACK;
     if (!lua_checkstack(L, space + extra)) {
         if (msg)
             luaL_error(L, "stack overflow (%s)", msg);
@@ -396,7 +396,7 @@ const char *luaL_findtable(lua_State *L, int idx,
 #define buffLength(B)    ((B)->p - (B)->buffer)
 #define buffFree(B)    ((size_t)(LUAL_BUFFERSIZE - buffLength(B)))
 
-#define LIMIT    (LUA_MINSTACK/2)
+#define LIMIT    (LUA_MIN_STACK/2)
 
 
 static int buffEmpty(luaL_Buffer *B) {

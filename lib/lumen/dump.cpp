@@ -12,6 +12,7 @@
 #define LUA_CORE
 
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/state.h"
 #include "lumen/undump.h"
 
@@ -53,13 +54,13 @@ static void DumpVector(const void *b, int n, Lumen::UInteger size, DumpState *D)
 }
 
 static void DumpString(const Lumen::String *s, DumpState *D) {
-    if (s == nullptr || LumenStringCString(s) == nullptr) {
+    if (s == nullptr || s->CString() == nullptr) {
         Lumen::UInteger size = 0;
         DumpVar(size, D);
     } else {
         Lumen::UInteger size = s->Length + 1;        /* include trailing '\0' */
         DumpVar(size, D);
-        DumpBlock(LumenStringCString(s), size, D);
+        DumpBlock(s->CString(), size, D);
     }
 }
 
@@ -72,18 +73,18 @@ static void DumpConstants(const Lumen::Proto *f, DumpState *D) {
     DumpInt(n, D);
     for (i = 0; i < n; i++) {
         const Lumen::Object *o = &f->K[i];
-        DumpChar(LumenTypeOf(o), D);
-        switch (LumenTypeOf(o)) {
+        DumpChar(o->Type, D);
+        switch (o->Type) {
             case Lumen::TypeNil:
                 break;
             case Lumen::TypeBool:
-                DumpChar(LumenBoolValue(o), D);
+                DumpChar(o->GetBool(), D);
                 break;
             case Lumen::TypeNumber:
-                DumpNumber(LumenNumberValue(o), D);
+                DumpNumber(o->GetNumber(), D);
                 break;
             case Lumen::TypeString:
-                DumpString(LumenStringValue(o), D);
+                DumpString(o->GetString(), D);
                 break;
             default:
                 LumenAssert(0);            /* cannot happen */

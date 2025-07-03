@@ -19,14 +19,14 @@
 #include "lumen/memory.h"
 #include "lumen/state.h"
 #include "lumen/string.h"
-#include "lumen/table.h"
 #include "lumen/tm.h"
 #include "lumen/api.h"
+#include "lumen/common.inl"
 
 
-#define sizeOfState(x)    (sizeof(x) + LUAI_EXTRASPACE)
-#define fromState(l)    (cast(Lumen::Byte *, (l)) - LUAI_EXTRASPACE)
-#define toState(l)   (cast(Lumen::State *, cast(Lumen::Byte *, l) + LUAI_EXTRASPACE))
+#define sizeOfState(x)    (sizeof(x) + LUA_EXTRA_SPACE)
+#define fromState(l)    (cast(Lumen::Byte *, (l)) - LUA_EXTRA_SPACE)
+#define toState(l)   (cast(Lumen::State *, cast(Lumen::Byte *, l) + LUA_EXTRA_SPACE))
 
 
 /*
@@ -51,7 +51,7 @@ static void stackInit(Lumen::State *L1, Lumen::State *L) {
     L1->StackLast = L1->Stack + (L1->StackCount - Lumen::ExtraStack) - 1;
     /* initialize first ci */
     L1->CallInfo->Func = L1->Top;
-    LumenSetNilValue(L1->Top++);  /* `function' entry for this `ci' */
+    (L1->Top++)->SetNil();  /* `function' entry for this `ci' */
     L1->Base = L1->CallInfo->Base = L1->Top;
     L1->CallInfo->Top = L1->Top + Lumen::MinStack;
 }
@@ -70,8 +70,8 @@ static void LuaStateOpenFile(Lumen::State *L, void *ud) {
     Lumen::GlobalState *g = LumenGlobalState(L);
     UNUSED(ud);
     stackInit(L, L);  /* init stack */
-    LumenSetTableValue(L, LumenGlobalTable(L), Lumen::Table::New(L, 0, 2));  /* table of globals */
-    LumenSetTableValue(L, LumenRegistryTable(L), Lumen::Table::New(L, 0, 2));  /* LumenRegistryTable */
+    LumenGlobalTable(L)->SetTable(L, Lumen::Table::New(L, 0, 2));  /* table of globals */
+    LumenRegistryTable(L)->SetTable(L, Lumen::Table::New(L, 0, 2));  /* LumenRegistryTable */
     Lumen::String::Resize(L, Lumen::MinStringTableSize);  /* initial size of string table */
     Lumen::TM::Init(L);
     Lumen::LexState::Init(L);
@@ -97,7 +97,7 @@ static void LuaStatePreInit(Lumen::State *L, Lumen::GlobalState *g) {
     L->BaseCI = L->CallInfo = nullptr;
     L->SavedPC = nullptr;
     L->ErrFunc = 0;
-    LumenSetNilValue(LumenGlobalTable(L));
+    LumenGlobalTable(L)->SetNil();
 }
 
 
@@ -107,7 +107,8 @@ static void LuaStateClose(Lumen::State *L) {
     Lumen::GC::FreeAll(L);  /* collect all objects */
     LumenAssert(g->GCRoot == LumenObject2GCObject(L));
     LumenAssert(g->StringMap.Count == 0);
-    LumenMemoryFreeArray(L, LumenGlobalState(L)->StringMap.HashTable, LumenGlobalState(L)->StringMap.Capacity, Lumen::String *);
+    LumenMemoryFreeArray(L, LumenGlobalState(L)->StringMap.HashTable, LumenGlobalState(L)->StringMap.Capacity,
+                         Lumen::String *);
     LumenZBufferFree(L, &g->Buff);
     stackFree(L, L);
     LumenAssert(g->TotalBytes == sizeof(LG));
@@ -133,14 +134,14 @@ Lumen::Object *Lumen::State::ToObject(int idx) {
             case Lumen::RegistryIndex:
                 return LumenRegistryTable(this);
             case Lumen::EnvIndex: {
-                Lumen::Closure *func = LumenCurFunc(this);
-                LumenSetTableValue(L, &Env, func->AsC.Env);
+                Lumen::Closure *func = GetCurrentFunction();
+                Env.SetTable(this, func->AsC.Env);
                 return &Env;
             }
             case Lumen::GlobalIndex:
                 return LumenGlobalTable(this);
             default: {
-                Lumen::Closure *func = LumenCurFunc(this);
+                Lumen::Closure *func = GetCurrentFunction();
                 idx = Lumen::GlobalIndex - idx;
                 return (idx <= func->AsC.NUpValues)
                        ? &func->AsC.UpValues[idx - 1]
@@ -151,9 +152,9 @@ Lumen::Object *Lumen::State::ToObject(int idx) {
 
 Lumen::Table *Lumen::State::GetCurrentEnv() {
     if (CallInfo == BaseCI)  /* no enclosing function? */
-        return LumenTableValue(LumenGlobalTable(this));  /* use global table as environment */
+        return LumenGlobalTable(this)->GetTable();  /* use global table as environment */
     else {
-        Lumen::Closure *func = LumenCurFunc(this);
+        Lumen::Closure *func = GetCurrentFunction();
         return func->AsC.Env;
     }
 }
@@ -168,7 +169,7 @@ Lumen::State *Lumen::State::NewThread(Lumen::State *L) {
     L1->BaseHookCount = L->BaseHookCount;
     L1->Hook = L->Hook;
     LumenDebugResetHookCount(L1);
-    LumenAssert(LumenGCIsWhite(LumenObject2GCObject(L1)));
+    LumenAssert(LumenObject2GCObject(L1)->IsWhite());
     return L1;
 }
 
@@ -192,9 +193,9 @@ Lumen::State *Lumen::State::New(Lumen::Allocator allocator, void *userData) {
     g = &((LG *) L)->g;
     L->GCNext = nullptr;
     L->Type = Lumen::TypeThread;
-    g->CurrentWhite = LumenGCBit2Mask(Lumen::GC::MarkWhite0Bit, Lumen::GC::MarkFixedBit);
-    L->Marked = LumenGCWhite(g);
-    LumenGCSet2Bits(L->Marked, Lumen::GC::MarkFixedBit, Lumen::GC::MarkSFixedBit);
+    g->CurrentWhite = Lumen::GC::Bit2Mask(Lumen::GC::MarkWhite0Bit, Lumen::GC::MarkFixedBit);
+    L->Marked = g->GetWhite();
+    Lumen::GC::Set2Bits(L->Marked, Lumen::GC::MarkFixedBit, Lumen::GC::MarkSFixedBit);
     LuaStatePreInit(L, g);
     g->ReAllocator = allocator;
     g->ReAllocatorUData = userData;
@@ -205,7 +206,7 @@ Lumen::State *Lumen::State::New(Lumen::Allocator allocator, void *userData) {
     g->StringMap.Capacity = 0;
     g->StringMap.Count = 0;
     g->StringMap.HashTable = nullptr;
-    LumenSetNilValue(LumenRegistryTable(L));
+    LumenRegistryTable(L)->SetNil();
     LumenZBufferInit(L, &g->Buff);
     g->Panic = nullptr;
     g->GCState = Lumen::GC::StatePause;
@@ -217,8 +218,8 @@ Lumen::State *Lumen::State::New(Lumen::Allocator allocator, void *userData) {
     g->GCWeak = nullptr;
     g->GCTMUData = nullptr;
     g->TotalBytes = sizeof(LG);
-    g->GCPause = LUAI_GCPAUSE;
-    g->GCStepMul = LUAI_GCMUL;
+    g->GCPause = LUA_GC_PAUSE;
+    g->GCStepMul = LUA_GC_MUL;
     g->GCDept = 0;
     for (i = 0; i < Lumen::TypeCount; i++) g->Metatable[i] = nullptr;
     if (Lumen::Do::RawRunProtected(L, LuaStateOpenFile, nullptr) != 0) {

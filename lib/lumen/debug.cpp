@@ -17,6 +17,7 @@
 #include "lumen/debug.h"
 #include "lumen/do.h"
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/opcodes.h"
 #include "lumen/state.h"
 #include "lumen/string.h"
@@ -28,10 +29,10 @@
 static const char *getFuncName(Lumen::State *L, Lumen::CallInfo *ci, const char **name);
 
 static int currentPC(Lumen::State *L, Lumen::CallInfo *ci) {
-    if (!LumenFuncIsLua(ci)) return -1;  /* function is not a Lua function? */
+    if (!ci->IsFunctionOfLua()) return -1;  /* function is not a Lua function? */
     if (ci == L->CallInfo)
         ci->SavedPC = L->SavedPC;
-    return LumenDebugPCRel(ci->SavedPC, LumenCIFunc(ci)->AsLua.Func);
+    return LumenDebugPCRel(ci->SavedPC, ci->GetFunction()->AsLua.Func);
 }
 
 static int currentLine(Lumen::State *L, Lumen::CallInfo *ci) {
@@ -39,11 +40,11 @@ static int currentLine(Lumen::State *L, Lumen::CallInfo *ci) {
     if (pc < 0)
         return -1;  /* only active lua functions have current-line information */
     else
-        return LumenDebugGetLine(LumenCIFunc(ci)->AsLua.Func, pc);
+        return LumenDebugGetLine(ci->GetFunction()->AsLua.Func, pc);
 }
 
 static inline Lumen::Proto *getLuaProto(Lumen::CallInfo *ci) {
-    return (LumenFuncIsLua(ci) ? LumenCIFunc(ci)->AsLua.Func : nullptr);
+    return (ci->IsFunctionOfLua() ? ci->GetFunction()->AsLua.Func : nullptr);
 }
 
 const char *Lumen::State::FindLocal(Lumen::CallInfo *ci, int n) {
@@ -68,7 +69,7 @@ static inline void funcInfo(Lumen::DebugInfo *ar, Lumen::Closure *cl) {
         ar->LastLineDefined = -1;
         ar->Space = "C";
     } else {
-        ar->Source = LumenStringCString(cl->AsLua.Func->Source);
+        ar->Source = cl->AsLua.Func->Source->CString();
         ar->LineDefined = cl->AsLua.Func->LineDefined;
         ar->LastLineDefined = cl->AsLua.Func->LastLineDefined;
         ar->Space = (ar->LineDefined == 0) ? "main" : "Lua";
@@ -89,14 +90,14 @@ static inline void infoTailCall(Lumen::DebugInfo *ar) {
 
 void Lumen::Debug::CollectValidLines(Lumen::State *L, Lumen::Closure *f) {
     if (f == nullptr || f->AsC.IsC) {
-        LumenSetNilValue(L->Top);
+        L->Top->SetNil();
     } else {
         Lumen::Table *t = Lumen::Table::New(L, 0, 0);
         int *lineinfo = f->AsLua.Func->LineInfo;
         int i;
         for (i = 0; i < f->AsLua.Func->LineInfoCount; i++)
-            LumenSetBoolValue(Lumen::Table::SetNum(L, t, lineinfo[i]), 1);
-        LumenSetTableValue(L, L->Top, t);
+            Lumen::Table::SetNum(L, t, lineinfo[i])->SetBool(1);
+        L->Top->SetTable(L,  t);
     }
     LumenIncrTop(L);
 }
@@ -279,7 +280,7 @@ static Lumen::Instruction symbolExec(const Lumen::Proto *pt, int lastPC, int reg
             }
             case Lumen::OpCodeGetGlobal:
             case Lumen::OpCodeSetGlobal: {
-                check(LumenTypeIsString(&pt->K[b]));
+                check((&pt->K[b])->IsString());
                 break;
             }
             case Lumen::OpCodeSelf: {
@@ -374,16 +375,16 @@ int Lumen::Debug::CheckCode(const Lumen::Proto *pt) {
 }
 
 static inline const char *kName(Lumen::Proto *p, int c) {
-    if (LumenOpCodeIsK(c) && LumenTypeIsString(&p->K[LumenOpCodeIndexK(c)]))
-        return LumenStringValue2CString(&p->K[LumenOpCodeIndexK(c)]);
+    if (LumenOpCodeIsK(c) && (&p->K[LumenOpCodeIndexK(c)])->IsString())
+        return (&p->K[LumenOpCodeIndexK(c)])->ToCString();
     else
         return "?";
 }
 
 static const char *getObjName(Lumen::State *L, Lumen::CallInfo *ci, int stackPos,
                               const char **name) {
-    if (LumenFuncIsLua(ci)) {  /* a Lua function? */
-        Lumen::Proto *p = LumenCIFunc(ci)->AsLua.Func;
+    if (ci->IsFunctionOfLua()) {  /* a Lua function? */
+        Lumen::Proto *p = ci->GetFunction()->AsLua.Func;
         int pc = currentPC(L, ci);
         Lumen::Instruction i;
         *name = Lumen::Proto::GetLocalName(p, stackPos + 1, pc);
@@ -394,8 +395,8 @@ static const char *getObjName(Lumen::State *L, Lumen::CallInfo *ci, int stackPos
         switch (LumenOpCodeGet(i)) {
             case Lumen::OpCodeGetGlobal: {
                 int g = LumenOpCodeGetArgBx(i);  /* global index */
-                LumenAssert(LumenTypeIsString(&p->K[g]));
-                *name = LumenStringValue2CString(&p->K[g]);
+                LumenAssert((&p->K[g])->IsString());
+                *name = (&p->K[g])->ToCString();
                 return "global";
             }
             case Lumen::OpCodeMove: {
@@ -412,7 +413,7 @@ static const char *getObjName(Lumen::State *L, Lumen::CallInfo *ci, int stackPos
             }
             case Lumen::OpCodeGetUpVal: {
                 int u = LumenOpCodeGetArgB(i);  /* upvalue index */
-                *name = p->UpValues ? LumenStringCString(p->UpValues[u]) : "?";
+                *name = p->UpValues ? p->UpValues[u]->CString() : "?";
                 return "upvalue";
             }
             case Lumen::OpCodeSelf: {
@@ -430,10 +431,10 @@ static const char *getObjName(Lumen::State *L, Lumen::CallInfo *ci, int stackPos
 
 static const char *getFuncName(Lumen::State *L, Lumen::CallInfo *ci, const char **name) {
     Lumen::Instruction i;
-    if ((LumenFuncIsLua(ci) && ci->NTailCalls > 0) || !LumenFuncIsLua(ci - 1))
+    if ((ci->IsFunctionOfLua() && ci->NTailCalls > 0) || !(ci - 1)->IsFunctionOfLua())
         return nullptr;  /* calling function is not Lua (or is unknown) */
     ci--;  /* calling function */
-    i = LumenCIFunc(ci)->AsLua.Func->Code[currentPC(L, ci)];
+    i = ci->GetFunction()->AsLua.Func->Code[currentPC(L, ci)];
     if (LumenOpCodeGet(i) == Lumen::OpCodeCall || LumenOpCodeGet(i) == Lumen::OpCodeTailCall ||
         LumenOpCodeGet(i) == Lumen::OpCodeTForLoop)
         return getObjName(L, ci, LumenOpCodeGetArgA(i), name);
@@ -453,7 +454,7 @@ static int isInStack(Lumen::CallInfo *ci, const Lumen::Object *o) {
 
 void Lumen::Debug::TypeError(Lumen::State *L, const Lumen::Object *o, const char *op) {
     const char *name = nullptr;
-    const char *t = Lumen::TM::TypeNames[LumenTypeOf(o)];
+    const char *t = Lumen::TM::TypeNames[(o)->Type];
     const char *kind = (isInStack(L->CallInfo, o)) ?
                        getObjName(L, L->CallInfo, cast_int(o - L->Base), &name) :
                        nullptr;
@@ -466,8 +467,8 @@ void Lumen::Debug::TypeError(Lumen::State *L, const Lumen::Object *o, const char
 
 
 void Lumen::Debug::ConcatError(Lumen::State *L, Lumen::Value p1, Lumen::Value p2) {
-    if (LumenTypeIsString(p1) || LumenTypeIsNumber(p1)) p1 = p2;
-    LumenAssert(!LumenTypeIsString(p1) && !LumenTypeIsNumber(p1));
+    if (p1->IsString() || p1->IsNumber()) p1 = p2;
+    LumenAssert(!p1->IsString() && !p1->IsNumber());
     Lumen::Debug::TypeError(L, p1, "concatenate");
 }
 
@@ -481,8 +482,8 @@ void Lumen::Debug::ArithError(Lumen::State *L, const Lumen::Object *p1, const Lu
 
 
 int Lumen::Debug::OrderError(Lumen::State *L, const Lumen::Object *p1, const Lumen::Object *p2) {
-    const char *t1 = Lumen::TM::TypeNames[LumenTypeOf(p1)];
-    const char *t2 = Lumen::TM::TypeNames[LumenTypeOf(p2)];
+    const char *t1 = Lumen::TM::TypeNames[p1->Type];
+    const char *t2 = Lumen::TM::TypeNames[p2->Type];
     if (t1[2] == t2[2])
         Lumen::Debug::RunError(L, "attempt to compare two %s values", t1);
     else
@@ -493,10 +494,10 @@ int Lumen::Debug::OrderError(Lumen::State *L, const Lumen::Object *p1, const Lum
 
 static void addInfo(Lumen::State *L, const char *msg) {
     Lumen::CallInfo *ci = L->CallInfo;
-    if (LumenFuncIsLua(ci)) {  /* is Lua code? */
+    if (ci->IsFunctionOfLua()) {  /* is Lua code? */
         char buff[LUA_IDSIZE];  /* add file:line information */
         int line = currentLine(L, ci);
-        Lumen::ChunkId(buff, LumenStringCString(getLuaProto(ci)->Source), LUA_IDSIZE);
+        Lumen::ChunkId(buff, getLuaProto(ci)->Source->CString(), LUA_IDSIZE);
         Lumen::PushFString(L, "%s:%d: %s", buff, line, msg);
     }
 }
@@ -505,7 +506,7 @@ static void addInfo(Lumen::State *L, const char *msg) {
 void Lumen::Debug::ErrorMessage(Lumen::State *L) {
     if (L->ErrFunc != 0) {  /* is there an error handling function? */
         Lumen::Value errFunc = LumenRestoreStack(L, L->ErrFunc);
-        if (!LumenTypeIsFunction(errFunc)) Lumen::Do::Throw(L, Lumen::RetErr);
+        if (!errFunc->IsFunction()) Lumen::Do::Throw(L, Lumen::RetErr);
         LumenSetObjectS2S(L, L->Top, L->Top - 1);  /* move argument */
         LumenSetObjectS2S(L, L->Top - 1, errFunc);  /* push function */
         LumenIncrTop(L);
@@ -517,9 +518,9 @@ void Lumen::Debug::ErrorMessage(Lumen::State *L) {
 
 void Lumen::Debug::RunError(Lumen::State *L, const char *fmt, ...) {
     va_list argP;
-    va_start(argP, fmt);
+        va_start(argP, fmt);
     addInfo(L, Lumen::PushVFString(L, fmt, argP));
-    va_end(argP);
+        va_end(argP);
     Lumen::Debug::ErrorMessage(L);
 }
 

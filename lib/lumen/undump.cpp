@@ -16,6 +16,7 @@
 #include "lumen/do.h"
 #include "lumen/memory.h"
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/string.h"
 #include "lumen/undump.h"
 #include "lumen/zio.h"
@@ -95,17 +96,19 @@ static void LoadConstants(LoadState *S, Lumen::Proto *f) {
     n = LoadInt(S);
     f->K = LumenMemoryNewVector(S->L, n, Lumen::Object);
     f->KCount = n;
-    for (i = 0; i < n; i++) LumenSetNilValue(&f->K[i]);
+    for (i = 0; i < n; i++) (&f->K[i])->SetNil();
     for (i = 0; i < n; i++) {
         Lumen::Object *o = &f->K[i];
         int t = LoadChar(S);
         switch (t) {
             case Lumen::TypeNil:
-                LumenSetNilValue(o);
+                o->SetNil();
                 break;
-            case Lumen::TypeBool: LumenSetBoolValue(o, LoadChar(S) != 0);
+            case Lumen::TypeBool:
+                o->SetBool(LoadChar(S) != 0);
                 break;
-            case Lumen::TypeNumber: LumenSetNumberValue(o, LoadNumber(S));
+            case Lumen::TypeNumber:
+                o->SetNumber(LoadNumber(S));
                 break;
             case Lumen::TypeString:
                 LumenSetStringValue2N (S->L, o, LoadString(S));
@@ -146,7 +149,7 @@ static void LoadDebug(LoadState *S, Lumen::Proto *f) {
 
 static Lumen::Proto *LoadFunction(LoadState *S, Lumen::String *p) {
     Lumen::Proto *f;
-    if (++S->L->NCCalls > LUAI_MAXCCALLS) error(S, "code too deep");
+    if (++S->L->NCCalls > LUA_MAX_C_CALLS) error(S, "code too deep");
     f = Lumen::Proto::New(S->L);
     LumenSetProtoValue2S(S->L, S->L->Top, f);
     LumenIncrTop(S->L);

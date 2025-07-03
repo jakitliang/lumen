@@ -34,6 +34,12 @@ namespace Lumen {
         const Lumen::Instruction *SavedPC;
         int NResults;  /* expected number of results from this function */
         int NTailCalls;  /* number of tail calls lost under this entry */
+
+        Lumen::Closure *GetFunction() const; // NOLINT
+
+        bool IsLuaFunction() const; // NOLINT
+
+        bool IsFunctionOfLua() const; // NOLINT
     };
 
     /**
@@ -65,6 +71,77 @@ namespace Lumen {
         Lumen::UpValue UpValueHead;  /* head of double-linked list of all open upValues */
         Lumen::Table *Metatable[Lumen::TypeCount];  /* metatables for basic types */
         Lumen::String *MetatableName[Lumen::TM::NameN];  /* array with tag-method names */
+
+        Lumen::Byte GetWhite() const; // NOLINT
+
+        Lumen::Byte GetOtherWhite() const; // NOLINT
+
+        bool IsDead(Lumen::GCObject *v) const; // NOLINT
+    };
+
+    /*
+    ** `per thread' state
+    */
+    struct State : Lumen::BasicObject {
+        Lumen::Byte Status;
+        Lumen::Value Top;  /* first free slot in the stack */
+        Lumen::Value Base;  /* base of current function */
+        Lumen::GlobalState *GlobalState;
+        Lumen::CallInfo *CallInfo;  /* call info for current function */
+        const Lumen::Instruction *SavedPC;  /* `SavedPC` (Saved Position of Code) of current function */
+        Lumen::Value StackLast;  /* last free slot in the stack */
+        Lumen::Value Stack;  /* stack base */
+        Lumen::CallInfo *EndCI;  /* points after end of ci array*/
+        Lumen::CallInfo *BaseCI;  /* array of Lumen::CallInfo's */
+        int StackCount;
+        int BaseCICount;  /* size of array `BaseCI` */
+        unsigned short NCCalls;  /* number of nested C calls */
+        unsigned short BaseCCalls;  /* nested C calls when resuming coroutine */
+        Lumen::Byte HookMask;
+        Lumen::Byte AllowHook;
+        int BaseHookCount;
+        int HookCount;
+        Lumen::Hook Hook;
+        Lumen::Object Global;  /* table of globals `_G` */
+        Lumen::Object Env;  /* temporary place for environments */
+        Lumen::GCObject *OpenedUpValue;  /* list of open upValues in this stack */
+        Lumen::GCObject *GCList;
+        Lumen::LongJump *ErrorJmp;  /* current error recover point */
+        Lumen::Integer ErrFunc;  /* current error handling function (stack index) */
+
+        void PushObject(const Lumen::Object *o);
+
+        Lumen::Object *ToObject(int idx);
+
+        Lumen::Table *GetCurrentEnv();
+
+        Lumen::Closure *GetCurrentFunction() const; // NOLINT
+
+        // MARK: GC
+
+        void CheckGC();
+
+        void Barrier(void *p, const Lumen::Object *v);
+
+        void BarrierTable(Lumen::Table *t, const Lumen::Object *v);
+
+        void BarrierGCObject(void *p, void *o);
+
+        void BarrierGCObjectTable(Lumen::Table *t, void *o);
+
+        // MARK: Debug
+
+        const char *FindLocal(Lumen::CallInfo *ci, int n);
+
+        // MARK: Static
+
+        static Lumen::State *NewThread(Lumen::State *L);
+
+        static void FreeThread(Lumen::State *L, Lumen::State *L1);
+
+        static Lumen::State *New(Lumen::Allocator allocator, void *userData);
+
+        static void Close(Lumen::State *L);
     };
 
     /* extra stack space to handle TM calls and some other extras */
@@ -72,66 +149,8 @@ namespace Lumen {
 
     inline constexpr Lumen::UInteger BasicCISize = 8;
 
-    inline constexpr Lumen::UInteger BasicStackSize = 2 * LUA_MINSTACK;
-}
+    inline constexpr Lumen::UInteger BasicStackSize = 2 * LUA_MIN_STACK;
 
-#define LumenCurFunc(L)    (LumenClosureValue(L->CallInfo->Func))
-#define LumenCIFunc(ci)    (LumenClosureValue((ci)->Func))
-#define LumenCIFuncIsLua(ci)    (!LumenCIFunc(ci)->AsC.IsC)
-#define LumenFuncIsLua(ci)    (LumenTypeIsFunction((ci)->Func) && LumenCIFuncIsLua(ci))
-
-/*
-** `per thread' state
-*/
-struct LumenState : Lumen::BasicObject {
-    Lumen::Byte Status;
-    Lumen::Value Top;  /* first free slot in the stack */
-    Lumen::Value Base;  /* base of current function */
-    Lumen::GlobalState *GlobalState;
-    Lumen::CallInfo *CallInfo;  /* call info for current function */
-    const Lumen::Instruction *SavedPC;  /* `SavedPC` (Saved Position of Code) of current function */
-    Lumen::Value StackLast;  /* last free slot in the stack */
-    Lumen::Value Stack;  /* stack base */
-    Lumen::CallInfo *EndCI;  /* points after end of ci array*/
-    Lumen::CallInfo *BaseCI;  /* array of Lumen::CallInfo's */
-    int StackCount;
-    int BaseCICount;  /* size of array `BaseCI` */
-    unsigned short NCCalls;  /* number of nested C calls */
-    unsigned short BaseCCalls;  /* nested C calls when resuming coroutine */
-    Lumen::Byte HookMask;
-    Lumen::Byte AllowHook;
-    int BaseHookCount;
-    int HookCount;
-    Lumen::Hook Hook;
-    Lumen::Object Global;  /* table of globals `_G` */
-    Lumen::Object Env;  /* temporary place for environments */
-    Lumen::GCObject *OpenedUpValue;  /* list of open upValues in this stack */
-    Lumen::GCObject *GCList;
-    Lumen::LongJump *ErrorJmp;  /* current error recover point */
-    Lumen::Integer ErrFunc;  /* current error handling function (stack index) */
-
-    void PushObject(const Lumen::Object *o);
-
-    Lumen::Object *ToObject(int idx);
-
-    Lumen::Table *GetCurrentEnv();
-
-    // MARK: Debug
-
-    const char *FindLocal(Lumen::CallInfo *ci, int n);
-
-    // MARK: Static
-
-    static Lumen::State *NewThread(Lumen::State *L);
-
-    static void FreeThread(Lumen::State *L, Lumen::State *L1);
-
-    static Lumen::State *New(Lumen::Allocator allocator, void *userData);
-
-    static void Close(Lumen::State *L);
-};
-
-namespace Lumen {
     /*
     ** Union of all collectable objects
     */
@@ -146,20 +165,36 @@ namespace Lumen {
             Lumen::UpValue AsUpValue;
             Lumen::State AsThread;  /* thread */
         };
+
+        String *ToString();
+
+        Userdata *ToUserdata();
+
+        Closure *ToClosure();
+
+        Table *ToTable();
+
+        Proto *ToProto();
+
+        UpValue *ToUpValue();
+
+        State *ToThread();
+
+        static UpValue *ToNullableUpValue(GCObject *gcObject);
+
+        // GC functions
+
+        bool IsWhite() const; // NOLINT
+
+        bool IsBlack() const; // NOLINT
+
+        bool IsGray() const; // NOLINT
+
+        void ChangeWhite();
+
+        void Gray2Black();
     };
 }
-
-
-/* macros to convert a Lumen::GCObject into a specific value */
-#define LumenGCObject2String(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeString, &((o)->AsString))
-#define LumenGCObject2Userdata(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeUserdata, &((o)->AsUserdata))
-#define LumenGCObject2Closure(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeFunction, &((o)->AsClosure))
-#define LumenGCObject2Table(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeTable, &((o)->AsTable))
-#define LumenGCObject2Proto(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeProto, &((o)->AsProto))
-#define LumenGCObject2UpValue(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeUpValue, &((o)->AsUpValue))
-#define LumenNullGCObject2UpValue(o) \
-    LumenCheckExp((o) == nullptr || (o)->AsObject.Type == Lumen::TypeUpValue, &((o)->AsUpValue))
-#define LumenGCObject2Thread(o)    LumenCheckExp((o)->AsObject.Type == Lumen::TypeThread, &((o)->AsThread))
 
 /* macro to convert any Lua object into a Lumen::GCObject */
 #define LumenObject2GCObject(v)    (cast(Lumen::GCObject *, (v)))

@@ -42,32 +42,43 @@ namespace Lumen::VM {
                     const Lumen::Object *rc, Lumen::TM::Name op);
 
     void ObjectLength(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb);
+
+    bool FastToString(Lumen::State *L, Lumen::Value obj);
+
+    bool FastToNumber(const Lumen::Object *&obj, Lumen::Object *n);
+
+    bool FastEqualObject(Lumen::State *L, const Lumen::Object *o1, const Lumen::Object *o2);
 }
 
-#define LumenVMToString(L, o) ((LumenTypeOf(o) == Lumen::TypeString) || (Lumen::VM::ToString(L, o)))
+inline bool Lumen::VM::FastToString(Lumen::State *L, Lumen::Value obj) {
+    return (obj->Type == Lumen::TypeString) || (Lumen::VM::ToString(L, obj));
+}
 
-#define LumenVMToNumber(o, n)    (LumenTypeOf(o) == Lumen::TypeNumber || \
-                         (((o) = Lumen::VM::ToNumber(o,n)) != nullptr))
+inline bool Lumen::VM::FastToNumber(const Lumen::Object *&obj, Lumen::Object *n) {
+    return obj->Type == Lumen::TypeNumber || ((obj = Lumen::VM::ToNumber(obj, n)) != nullptr);
+}
 
-#define LumenVMEqualObj(L, o1, o2)    (LumenTypeOf(o1) == LumenTypeOf(o2) && Lumen::VM::EqualObject(L, o1, o2))
+inline bool Lumen::VM::FastEqualObject(Lumen::State *L, const Lumen::Object *o1, const Lumen::Object *o2) {
+    return (o1->Type == o2->Type && Lumen::VM::EqualObject(L, o1, o2));
+}
 
 inline const Lumen::Object *Lumen::VM::ToNumber(const Lumen::Object *obj, Lumen::Object *n) {
     Lumen::Number num;
-    if (LumenTypeIsNumber(obj)) return obj;
-    if (LumenTypeIsString(obj) && Lumen::String2Decimal(LumenStringValue2CString(obj), &num)) {
-        LumenSetNumberValue(n, num);
+    if (obj->IsNumber()) return obj;
+    if (obj->IsString() && Lumen::String2Decimal(obj->ToCString(), &num)) {
+        n->SetNumber(num);
         return n;
     } else
         return nullptr;
 }
 
 inline int Lumen::VM::ToString(Lumen::State *L, Lumen::Value obj) {
-    if (!LumenTypeIsNumber(obj))
+    if (!obj->IsNumber())
         return 0;
     else {
-        char s[LUAI_MAXNUMBER2STR];
-        Lumen::Number n = LumenNumberValue(obj);
-        lua_number2str(s, n);
+        char s[LUA_MAX_NUMBER2STR];
+        Lumen::Number n = obj->GetNumber();
+        LumenNum2Str(s, n);
         LumenSetStringValue2S(L, obj, Lumen::String::New(L, s));
         return 1;
     }

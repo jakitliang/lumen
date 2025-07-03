@@ -52,7 +52,7 @@ namespace Lumen::Code {
     /*
     ** limits for opcode arguments.
     ** we use (signed) int to manipulate most arguments,
-    ** so they must fit in LUAI_BITSINT-1 bits (-1 for sign)
+    ** so they must fit in LUA_BITS_INT-1 bits (-1 for sign)
     */
 
     inline constexpr Lumen::UInteger BxMaxArg = (1 << Lumen::Code::BxFieldSize) - 1;

@@ -16,12 +16,10 @@
 
 #include "lumen/debug.h"
 #include "lumen/do.h"
-#include "lumen/gc.h"
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/opcodes.h"
 #include "lumen/state.h"
-#include "lumen/string.h"
-#include "lumen/table.h"
 #include "lumen/tm.h"
 #include "lumen/vm.h"
 
@@ -39,7 +37,7 @@ static void traceExec(Lumen::State *L, const Lumen::Instruction *pc) {
         Lumen::Do::CallHook(L, Lumen::HookCount, -1);
     }
     if (mask & Lumen::HookMaskLine) {
-        Lumen::Proto *p = LumenCIFunc(L->CallInfo)->AsLua.Func;
+        Lumen::Proto *p = L->CallInfo->GetFunction()->AsLua.Func;
         int npc = LumenDebugPCRel(pc, p);
         int newline = LumenDebugGetLine(p, npc);
         /* call linehook when enter a new function, when jump back (loop),
@@ -70,7 +68,7 @@ static inline void callTM(Lumen::State *L, const Lumen::Object *f, const Lumen::
     LumenSetObject2S(L, L->Top, f);  /* push function */
     LumenSetObject2S(L, L->Top + 1, p1);  /* 1st argument */
     LumenSetObject2S(L, L->Top + 2, p2);  /* 2nd argument */
-    LumenSetObject2S(L, L->Top + 3, p3);  /* 3th argument */
+    LumenSetObject2S(L, L->Top + 3, p3);  /* 3rd argument */
     LumenDoCheckStack(L, 4);
     L->Top += 4;
     Lumen::Do::Call(L, L->Top - 4, 0);
@@ -81,18 +79,18 @@ void Lumen::VM::GetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object 
     int loop;
     for (loop = 0; loop < LUA_VM_MAX_TAG_LOOP; loop++) {
         const Lumen::Object *tm;
-        if (LumenTypeIsTable(t)) {  /* `t' is a table? */
-            Lumen::Table *h = LumenTableValue(t);
+        if (t->IsTable()) {  /* `t` is a table? */
+            Lumen::Table *h = t->GetTable();
             const Lumen::Object *res = Lumen::Table::Get(h, key); /* do a primitive get */
-            if (!LumenTypeIsNil(res) ||  /* result is no nil? */
+            if (!res->IsNil() ||  /* result is no nil? */
                 (tm = LumenTMGetFast(L, h->Metatable, Lumen::TM::NameIndex)) == nullptr) { /* or no TM? */
                 LumenSetObject2S(L, val, res);
                 return;
             }
             /* else will try the tag method */
-        } else if (LumenTypeIsNil(tm = Lumen::TM::GetByObject(L, t, Lumen::TM::NameIndex)))
+        } else if ((tm = Lumen::TM::GetByObject(L, t, Lumen::TM::NameIndex))->IsNil())
             Lumen::Debug::TypeError(L, t, "index");
-        if (LumenTypeIsFunction(tm)) {
+        if (tm->IsFunction()) {
             callTMRes(L, val, tm, t, key);
             return;
         }
@@ -104,28 +102,28 @@ void Lumen::VM::GetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object 
 
 void Lumen::VM::SetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object *key, Lumen::Value val) {
     int loop;
-    Lumen::Object temp;
+    Lumen::Object temp; // NOLINT
     for (loop = 0; loop < LUA_VM_MAX_TAG_LOOP; loop++) {
         const Lumen::Object *tm;
-        if (LumenTypeIsTable(t)) {  /* `t' is a table? */
-            Lumen::Table *h = LumenTableValue(t);
-            Lumen::Object *oldval = Lumen::Table::Set(L, h, key); /* do a primitive set */
-            if (!LumenTypeIsNil(oldval) ||  /* result is no nil? */
+        if (t->IsTable()) {  /* `t` is a table? */
+            Lumen::Table *h = t->GetTable();
+            Lumen::Object *oldVal = Lumen::Table::Set(L, h, key); /* do a primitive set */
+            if (!oldVal->IsNil() ||  /* result is no nil? */
                 (tm = LumenTMGetFast(L, h->Metatable, Lumen::TM::NameNewIndex)) == nullptr) { /* or no TM? */
-                LumenSetObject2T(L, oldval, val);
+                LumenSetObject2T(L, oldVal, val);
                 h->Flags = 0;
-                LumenGCBarrierTable(L, h, val);
+                L->BarrierTable(h, val);
                 return;
             }
             /* else will try the tag method */
-        } else if (LumenTypeIsNil(tm = Lumen::TM::GetByObject(L, t, Lumen::TM::NameNewIndex)))
+        } else if ((tm = Lumen::TM::GetByObject(L, t, Lumen::TM::NameNewIndex))->IsNil())
             Lumen::Debug::TypeError(L, t, "index");
-        if (LumenTypeIsFunction(tm)) {
+        if (tm->IsFunction()) {
             callTM(L, tm, t, key, val);
             return;
         }
-        /* else repeat with `tm' */
-        LumenSetObject(L, &temp, tm);  /* avoid pointing inside table (may rehash) */
+        /* else repeat with `tm` */
+        (&temp)->SetObject(L, tm);  /* avoid pointing inside table (may rehash) */
         t = &temp;
     }
     Lumen::Debug::RunError(L, "loop in settable");
@@ -135,9 +133,9 @@ void Lumen::VM::SetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object 
 static inline int call_binTM(Lumen::State *L, const Lumen::Object *p1, const Lumen::Object *p2,
                              Lumen::Value res, Lumen::TM::Name event) {
     const Lumen::Object *tm = Lumen::TM::GetByObject(L, p1, event);  /* try first operand */
-    if (LumenTypeIsNil(tm))
+    if (tm->IsNil())
         tm = Lumen::TM::GetByObject(L, p2, event);  /* try second operand */
-    if (LumenTypeIsNil(tm)) return 0;
+    if (tm->IsNil()) return 0;
     callTMRes(L, res, tm, p1, p2);
     return 1;
 }
@@ -161,19 +159,19 @@ static inline int callOrderTM(Lumen::State *L, const Lumen::Object *p1, const Lu
                               Lumen::TM::Name event) {
     const Lumen::Object *tm1 = Lumen::TM::GetByObject(L, p1, event);
     const Lumen::Object *tm2;
-    if (LumenTypeIsNil(tm1)) return -1;  /* no metamethod? */
+    if (tm1->IsNil()) return -1;  /* no metamethod? */
     tm2 = Lumen::TM::GetByObject(L, p2, event);
     if (!Lumen::RawEqualObject(tm1, tm2))  /* different metamethods? */
         return -1;
     callTMRes(L, L->Top, tm1, p1, p2);
-    return !LumenIsFalse(L->Top);
+    return !(L->Top)->IsFalse();
 }
 
 
 static int luaStrCmp(const Lumen::String *ls, const Lumen::String *rs) {
-    const char *l = LumenStringCString(ls);
+    const char *l = ls->CString();
     Lumen::UInteger ll = ls->Length;
-    const char *r = LumenStringCString(rs);
+    const char *r = rs->CString();
     Lumen::UInteger lr = rs->Length;
     for (;;) {
         int temp = strcoll(l, r);
@@ -197,12 +195,12 @@ static int luaStrCmp(const Lumen::String *ls, const Lumen::String *rs) {
 
 int Lumen::VM::LessThan(Lumen::State *L, const Lumen::Object *l, const Lumen::Object *r) {
     int res;
-    if (LumenTypeOf(l) != LumenTypeOf(r))
+    if (l->Type != r->Type)
         return Lumen::Debug::OrderError(L, l, r);
-    else if (LumenTypeIsNumber(l))
-        return luai_numlt(LumenNumberValue(l), LumenNumberValue(r));
-    else if (LumenTypeIsString(l))
-        return luaStrCmp(LumenStringValue(l), LumenStringValue(r)) < 0;
+    else if (l->IsNumber())
+        return LumenNumLT(l->GetNumber(), r->GetNumber());
+    else if (l->IsString())
+        return luaStrCmp(l->GetString(), r->GetString()) < 0;
     else if ((res = callOrderTM(L, l, r, Lumen::TM::NameLT)) != -1)
         return res;
     return Lumen::Debug::OrderError(L, l, r);
@@ -211,12 +209,12 @@ int Lumen::VM::LessThan(Lumen::State *L, const Lumen::Object *l, const Lumen::Ob
 
 int Lumen::VM::LessEqual(Lumen::State *L, const Lumen::Object *l, const Lumen::Object *r) {
     int res;
-    if (LumenTypeOf(l) != LumenTypeOf(r))
+    if (l->Type != r->Type)
         return Lumen::Debug::OrderError(L, l, r);
-    else if (LumenTypeIsNumber(l))
-        return luai_numle(LumenNumberValue(l), LumenNumberValue(r));
-    else if (LumenTypeIsString(l))
-        return luaStrCmp(LumenStringValue(l), LumenStringValue(r)) <= 0;
+    else if (l->IsNumber())
+        return LumenNumLE(l->GetNumber(), r->GetNumber());
+    else if (l->IsString())
+        return luaStrCmp(l->GetString(), r->GetString()) <= 0;
     else if ((res = callOrderTM(L, l, r, Lumen::TM::NameLE)) != -1)  /* first try `le' */
         return res;
     else if ((res = callOrderTM(L, r, l, Lumen::TM::NameLT)) != -1)  /* else try `lt' */
@@ -227,33 +225,33 @@ int Lumen::VM::LessEqual(Lumen::State *L, const Lumen::Object *l, const Lumen::O
 
 int Lumen::VM::EqualObject(Lumen::State *L, const Lumen::Object *t1, const Lumen::Object *t2) {
     const Lumen::Object *tm;
-    LumenAssert(LumenTypeOf(t1) == LumenTypeOf(t2));
-    switch (LumenTypeOf(t1)) {
+    LumenAssert(t1->Type == t2->Type);
+    switch (t1->Type) {
         case Lumen::TypeNil:
             return 1;
         case Lumen::TypeNumber:
-            return luai_numeq(LumenNumberValue(t1), LumenNumberValue(t2));
+            return LumenNumEQ(t1->GetNumber(), t2->GetNumber());
         case Lumen::TypeBool:
-            return LumenBoolValue(t1) == LumenBoolValue(t2);  /* true must be 1 !! */
+            return t1->GetBool() == t2->GetBool();  /* true must be 1 !! */
         case Lumen::TypeLightUserdata:
-            return LumenLUDataValue(t1) == LumenLUDataValue(t2);
+            return t1->GetLUData() == t2->GetLUData();
         case Lumen::TypeUserdata: {
-            if (LumenUDataValue(t1) == LumenUDataValue(t2)) return 1;
-            tm = get_compTM(L, LumenUDataValue(t1)->Metatable, LumenUDataValue(t2)->Metatable,
+            if (t1->GetUData() == t2->GetUData()) return 1;
+            tm = get_compTM(L, t1->GetUData()->Metatable, t2->GetUData()->Metatable,
                             Lumen::TM::NameEQ);
             break;  /* will try TM */
         }
         case Lumen::TypeTable: {
-            if (LumenTableValue(t1) == LumenTableValue(t2)) return 1;
-            tm = get_compTM(L, LumenTableValue(t1)->Metatable, LumenTableValue(t2)->Metatable, Lumen::TM::NameEQ);
+            if (t1->GetTable() == t2->GetTable()) return 1;
+            tm = get_compTM(L, t1->GetTable()->Metatable, t2->GetTable()->Metatable, Lumen::TM::NameEQ);
             break;  /* will try TM */
         }
         default:
-            return LumenGCValue(t1) == LumenGCValue(t2);
+            return t1->GetGCObject() == t2->GetGCObject();
     }
     if (tm == nullptr) return 0;  /* no TM? */
     callTMRes(L, L->Top, tm, t1, t2);  /* call TM */
-    return !LumenIsFalse(L->Top);
+    return !L->Top->IsFalse();
 }
 
 
@@ -264,15 +262,15 @@ void Lumen::VM::Concat(Lumen::State *L, int total, int last) {
 
         Lumen::String *s1 = nullptr;
         Lumen::String *s2 = nullptr;
-        bool is_str1 = LumenVMToString(L, top - 2);
-        bool is_str2 = LumenVMToString(L, top - 1);
+        bool is_str1 = Lumen::VM::FastToString(L, top - 2);
+        bool is_str2 = Lumen::VM::FastToString(L, top - 1);
 
-        if (!(is_str1 || LumenTypeIsNumber(top - 2)) || !is_str2) {
+        if (!(is_str1 || (top - 2)->IsNumber()) || !is_str2) {
             if (!call_binTM(L, top - 2, top - 1, top - 2, Lumen::TM::NameConcat))
                 Lumen::Debug::ConcatError(L, top - 2, top - 1);
         } else {
-            s1 = LumenStringValue(top - 2);
-            s2 = LumenStringValue(top - 1);
+            s1 = (top - 2)->GetString();
+            s2 = (top - 1)->GetString();
 
             if (s2->Length != 0) { /* second op is not empty? */
                 /* at least two string values; get as many as possible */
@@ -280,15 +278,15 @@ void Lumen::VM::Concat(Lumen::State *L, int total, int last) {
                 char *buffer;
                 int i;
                 /* collect total length */
-                for (n = 1; n < total && LumenVMToString(L, top - n - 1); n++) {
-                    Lumen::UInteger l = LumenStringValue(top - n - 1)->Length;
+                for (n = 1; n < total && Lumen::VM::FastToString(L, top - n - 1); n++) {
+                    Lumen::UInteger l = (top - n - 1)->GetString()->Length;
                     if (l >= Lumen::MaxSize - tl) Lumen::Debug::RunError(L, "string length overflow");
                     tl += l;
                 }
                 buffer = Lumen::ZBuffer::OpenSpace(L, &LumenGlobalState(L)->Buff, tl);
                 tl = 0;
                 for (i = n; i > 0; i--) {  /* concat all strings */
-                    auto s3 = LumenStringValue(top - i);
+                    auto s3 = (top - i)->GetString();
                     Lumen::UInteger l = s3->Length;
                     memcpy(buffer + tl, reinterpret_cast<char *>(s3 + 1), l);
                     tl += l;
@@ -308,20 +306,20 @@ void Lumen::VM::ArithValue(Lumen::State *L, Lumen::Value ra, const Lumen::Object
     if ((b = ToNumber(rb, &tempB)) != nullptr &&
         (c = ToNumber(rc, &tempC)) != nullptr) {
         Lumen::Number res = Lumen::Arith(op - Lumen::TM::NameAdd + Lumen::ArithOpAdd,
-                                         LumenNumberValue(b), LumenNumberValue(c));
-        LumenSetNumberValue(ra, res);
+                                         b->GetNumber(), c->GetNumber());
+        ra->SetNumber(res);
     } else if (!call_binTM(L, rb, rc, ra, op))
         Lumen::Debug::ArithError(L, rb, rc);
 }
 
 void Lumen::VM::ObjectLength(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb) {
-    switch (LumenTypeOf(rb)) {
+    switch (rb->Type) {
         case Lumen::TypeTable: {
-            LumenSetNumberValue(ra, cast_num(Lumen::Table::GetN(LumenTableValue(rb))));
+            ra->SetNumber(cast_num(Lumen::Table::GetN(rb->GetTable())));
             break;
         }
         case Lumen::TypeString: {
-            LumenSetNumberValue(ra, cast_num(LumenStringValue(rb)->Length));
+            ra->SetNumber(cast_num(rb->GetString()->Length));
             break;
         }
         default: {  /* try metamethod */
@@ -337,28 +335,28 @@ static void arith(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb,
     const Lumen::Object *b, *c;
     if ((b = Lumen::VM::ToNumber(rb, &tempB)) != nullptr &&
         (c = Lumen::VM::ToNumber(rc, &tempC)) != nullptr) {
-        Lumen::Number nb = LumenNumberValue(b), nc = LumenNumberValue(c);
+        Lumen::Number nb = b->GetNumber(), nc = c->GetNumber();
         switch (op) {
             case Lumen::TM::NameAdd:
-                LumenSetNumberValue(ra, luai_numadd(nb, nc));
+                ra->SetNumber(LumenNumAdd(nb, nc));
                 break;
             case Lumen::TM::NameSub:
-                LumenSetNumberValue(ra, luai_numsub(nb, nc));
+                ra->SetNumber(LumenNumSub(nb, nc));
                 break;
             case Lumen::TM::NameMul:
-                LumenSetNumberValue(ra, luai_nummul(nb, nc));
+                ra->SetNumber(LumenNumMul(nb, nc));
                 break;
             case Lumen::TM::NameDiv:
-                LumenSetNumberValue(ra, luai_numdiv(nb, nc));
+                ra->SetNumber(LumenNumDiv(nb, nc));
                 break;
             case Lumen::TM::NameMod:
-                LumenSetNumberValue(ra, luai_nummod(nb, nc));
+                ra->SetNumber(LumenNumMod(nb, nc));
                 break;
             case Lumen::TM::NamePow:
-                LumenSetNumberValue(ra, luai_numpow(nb, nc));
+                ra->SetNumber(LumenNumPow(nb, nc));
                 break;
             case Lumen::TM::NameUnm:
-                LumenSetNumberValue(ra, luai_numunm(nb));
+                ra->SetNumber(LumenNumUnm(nb));
                 break;
             default:
                 LumenAssert(0);
@@ -404,9 +402,9 @@ LumenDo(                   \
 #define arith_op(op, tm) do { \
     Lumen::Object *rb = RKB(i); \
     Lumen::Object *rc = RKC(i); \
-    if (LumenTypeIsNumber(rb) && LumenTypeIsNumber(rc)) { \
-        Lumen::Number nb = LumenNumberValue(rb), nc = LumenNumberValue(rc); \
-        LumenSetNumberValue(ra, op(nb, nc));            \
+    if ((rb)->IsNumber() && (rc)->IsNumber()) { \
+        Lumen::Number nb = (rb)->GetNumber(), nc = (rc)->GetNumber(); \
+        ra->SetNumber(op(nb, nc));            \
     } else {                  \
         Protect(arith(L, ra, rb, rc, tm));            \
     }                         \
@@ -419,9 +417,9 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
     Lumen::Object *k;
     const Lumen::Instruction *pc;
     reentry:  /* entry point */
-    LumenAssert(LumenFuncIsLua(L->CallInfo));
+    LumenAssert(L->CallInfo->IsFunctionOfLua());
     pc = L->SavedPC;
-    cl = &LumenClosureValue(L->CallInfo->Func)->AsLua;
+    cl = &L->CallInfo->Func->GetClosure()->AsLua;
     base = L->Base;
     k = cl->Func->K;
     /* main loop of interpreter */
@@ -452,14 +450,14 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeLoadBool: {
-                LumenSetBoolValue(ra, LumenOpCodeGetArgB(i));
+                ra->SetBool(LumenOpCodeGetArgB(i));
                 if (LumenOpCodeGetArgC(i)) pc++;  /* skip next instruction (if C) */
                 continue;
             }
             case Lumen::OpCodeLoadNil: {
                 Lumen::Object *rb = RB(i);
                 do {
-                    LumenSetNilValue(rb--);
+                    (rb--)->SetNil();
                 } while (rb >= ra);
                 continue;
             }
@@ -469,10 +467,10 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeGetGlobal: {
-                Lumen::Object g;
+                Lumen::Object g; // NOLINT
                 Lumen::Object *rb = KBx(i);
-                LumenSetTableValue(L, &g, cl->Env);
-                LumenAssert(LumenTypeIsString(rb));
+                g.SetTable(L, cl->Env);
+                LumenAssert(rb->IsString());
                 Protect(Lumen::VM::GetTable(L, &g, rb, ra));
                 continue;
             }
@@ -481,16 +479,16 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeSetGlobal: {
-                Lumen::Object g;
-                LumenSetTableValue(L, &g, cl->Env);
-                LumenAssert(LumenTypeIsString(KBx(i)));
+                Lumen::Object g; // NOLINT
+                g.SetTable(L, cl->Env);
+                LumenAssert(KBx(i)->IsString());
                 Protect(Lumen::VM::SetTable(L, &g, KBx(i), ra));
                 continue;
             }
             case Lumen::OpCodeSetUpVal: {
                 Lumen::UpValue *uv = cl->UpValues[LumenOpCodeGetArgB(i)];
-                LumenSetObject(L, uv->SelfValue, ra);
-                LumenGCBarrier(L, uv, ra);
+                uv->SelfValue->SetObject(L, ra);
+                L->Barrier(uv, ra);
                 continue;
             }
             case Lumen::OpCodeSetTable: {
@@ -500,8 +498,8 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
             case Lumen::OpCodeNewTable: {
                 int b = LumenOpCodeGetArgB(i);
                 int c = LumenOpCodeGetArgC(i);
-                LumenSetTableValue(L, ra, Lumen::Table::New(L, Lumen::FB2Int(b), Lumen::FB2Int(c)));
-                Protect(LumenGCCheckGC(L));
+                ra->SetTable(L, Lumen::Table::New(L, Lumen::FB2Int(b), Lumen::FB2Int(c)));
+                Protect(L->CheckGC());
                 continue;
             }
             case Lumen::OpCodeSelf: {
@@ -511,53 +509,53 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeAdd: {
-                arith_op(luai_numadd, Lumen::TM::NameAdd);
+                arith_op(LumenNumAdd, Lumen::TM::NameAdd);
                 continue;
             }
             case Lumen::OpCodeSub: {
-                arith_op(luai_numsub, Lumen::TM::NameSub);
+                arith_op(LumenNumSub, Lumen::TM::NameSub);
                 continue;
             }
             case Lumen::OpCodeMul: {
-                arith_op(luai_nummul, Lumen::TM::NameMul);
+                arith_op(LumenNumMul, Lumen::TM::NameMul);
                 continue;
             }
             case Lumen::OpCodeDiv: {
-                arith_op(luai_numdiv, Lumen::TM::NameDiv);
+                arith_op(LumenNumDiv, Lumen::TM::NameDiv);
                 continue;
             }
             case Lumen::OpCodeMod: {
-                arith_op(luai_nummod, Lumen::TM::NameMod);
+                arith_op(LumenNumMod, Lumen::TM::NameMod);
                 continue;
             }
             case Lumen::OpCodePow: {
-                arith_op(luai_numpow, Lumen::TM::NamePow);
+                arith_op(LumenNumPow, Lumen::TM::NamePow);
                 continue;
             }
             case Lumen::OpCodeUnm: {
                 Lumen::Object *rb = RB(i);
-                if (LumenTypeIsNumber(rb)) {
-                    Lumen::Number nb = LumenNumberValue(rb);
-                    LumenSetNumberValue(ra, luai_numunm(nb));
+                if (rb->IsNumber()) {
+                    Lumen::Number nb = rb->GetNumber();
+                    ra->SetNumber(LumenNumUnm(nb));
                 } else {
                     Protect(arith(L, ra, rb, rb, Lumen::TM::NameUnm));
                 }
                 continue;
             }
             case Lumen::OpCodeNot: {
-                int res = LumenIsFalse(RB(i));  /* next assignment may change this value */
-                LumenSetBoolValue(ra, res);
+                int res = RB(i)->IsFalse();  /* next assignment may change this value */
+                ra->SetBool(res);
                 continue;
             }
             case Lumen::OpCodeLen: {
                 const Lumen::Object *rb = RB(i);
-                switch (LumenTypeOf(rb)) {
+                switch (rb->Type) {
                     case Lumen::TypeTable: {
-                        LumenSetNumberValue(ra, cast_num(Lumen::Table::GetN(LumenTableValue(rb))));
+                        ra->SetNumber(cast_num(Lumen::Table::GetN(rb->GetTable())));
                         break;
                     }
                     case Lumen::TypeString: {
-                        LumenSetNumberValue(ra, cast_num(LumenStringValue(rb)->Length));
+                        ra->SetNumber(cast_num(rb->GetString()->Length));
                         break;
                     }
                     default: {  /* try metamethod */
@@ -572,7 +570,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
             case Lumen::OpCodeConcat: {
                 int b = LumenOpCodeGetArgB(i);
                 int c = LumenOpCodeGetArgC(i);
-                Protect(Lumen::VM::Concat(L, c - b + 1, c); LumenGCCheckGC(L));
+                Protect(Lumen::VM::Concat(L, c - b + 1, c); L->CheckGC());
                 LumenSetObjectS2S(L, RA(i), base + b);
                 continue;
             }
@@ -584,7 +582,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 Lumen::Object *rb = RKB(i);
                 Lumen::Object *rc = RKC(i);
                 Protect(
-                    if (LumenVMEqualObj(L, rb, rc) == LumenOpCodeGetArgA(i))
+                    if (static_cast<int>(Lumen::VM::FastEqualObject(L, rb, rc)) == LumenOpCodeGetArgA(i))
                         doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
                 );
                 pc++;
@@ -607,13 +605,13 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeTest: {
-                if (LumenIsFalse(ra) != LumenOpCodeGetArgC(i)) doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
+                if (static_cast<int>(ra->IsFalse()) != LumenOpCodeGetArgC(i)) doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
                 pc++;
                 continue;
             }
             case Lumen::OpCodeTestTest: {
                 Lumen::Object *rb = RB(i);
-                if (LumenIsFalse(rb) != LumenOpCodeGetArgC(i)) {
+                if (static_cast<int>(rb->IsFalse()) != LumenOpCodeGetArgC(i)) {
                     LumenSetObjectS2S(L, ra, rb);
                     doJump(L, pc, LumenOpCodeGetArgsBx(*pc));
                 }
@@ -658,7 +656,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                         for (aux = 0; pfunc + aux < L->Top; aux++)  /* move frame down */
                             LumenSetObjectS2S (L, func + aux, pfunc + aux);
                         ci->Top = L->Top = func + aux;  /* correct top */
-                        LumenAssert(L->Top == L->Base + LumenClosureValue(func)->AsLua.Func->MaxStackSize);
+                        LumenAssert(L->Top == L->Base + func->GetClosure()->AsLua.Func->MaxStackSize);
                         ci->SavedPC = L->SavedPC;
                         ci->NTailCalls++;  /* one more call lost */
                         L->CallInfo--;  /* remove new frame */
@@ -683,20 +681,20 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                     return;  /* no: return */
                 else {  /* yes: continue its execution */
                     if (b) L->Top = L->CallInfo->Top;
-                    LumenAssert(LumenFuncIsLua(L->CallInfo));
+                    LumenAssert(L->CallInfo->IsFunctionOfLua());
                     LumenAssert(LumenOpCodeGet(*((L->CallInfo)->SavedPC - 1)) == Lumen::OpCodeCall);
                     goto reentry;
                 }
             }
             case Lumen::OpCodeForLoop: {
-                Lumen::Number step = LumenNumberValue(ra + 2);
-                Lumen::Number idx = luai_numadd(LumenNumberValue(ra), step); /* increment index */
-                Lumen::Number limit = LumenNumberValue(ra + 1);
-                if (luai_numlt(0, step) ? luai_numle(idx, limit)
-                                        : luai_numle(limit, idx)) {
+                Lumen::Number step = (ra + 2)->GetNumber();
+                Lumen::Number idx = LumenNumAdd(ra->GetNumber(), step); /* increment index */
+                Lumen::Number limit = (ra + 1)->GetNumber();
+                if (LumenNumLT(0, step) ? LumenNumLE(idx, limit)
+                                        : LumenNumLE(limit, idx)) {
                     doJump(L, pc, LumenOpCodeGetArgsBx(i));  /* jump back */
-                    LumenSetNumberValue(ra, idx);  /* update internal index... */
-                    LumenSetNumberValue(ra + 3, idx);  /* ...and external index */
+                    ra->SetNumber(idx);  /* update internal index... */
+                    (ra + 3)->SetNumber(idx);  /* ...and external index */
                 }
                 continue;
             }
@@ -705,13 +703,13 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 const Lumen::Object *plimit = ra + 1;
                 const Lumen::Object *pstep = ra + 2;
                 L->SavedPC = pc;  /* next steps may throw errors */
-                if (!LumenVMToNumber(init, ra))
+                if (!Lumen::VM::FastToNumber(init, ra))
                     Lumen::Debug::RunError(L, LUA_QL("for") " initial value must be a number");
-                else if (!LumenVMToNumber(plimit, ra + 1))
+                else if (!Lumen::VM::FastToNumber(plimit, ra + 1))
                     Lumen::Debug::RunError(L, LUA_QL("for") " limit must be a number");
-                else if (!LumenVMToNumber(pstep, ra + 2))
+                else if (!Lumen::VM::FastToNumber(pstep, ra + 2))
                     Lumen::Debug::RunError(L, LUA_QL("for") " step must be a number");
-                LumenSetNumberValue(ra, luai_numsub(LumenNumberValue(ra), LumenNumberValue(pstep)));
+                ra->SetNumber(LumenNumSub(ra->GetNumber(), pstep->GetNumber()));
                 doJump(L, pc, LumenOpCodeGetArgsBx(i));
                 continue;
             }
@@ -724,7 +722,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 Protect(Lumen::Do::Call(L, cb, LumenOpCodeGetArgC(i)));
                 L->Top = L->CallInfo->Top;
                 cb = RA(i) + 3;  /* previous call may change the stack */
-                if (!LumenTypeIsNil(cb)) {  /* continue loop? */
+                if (!cb->IsNil()) {  /* continue loop? */
                     LumenSetObjectS2S(L, cb - 1, cb);  /* save control variable */
                     doJump(L, pc, LumenOpCodeGetArgsBx(*pc));  /* jump back */
                 }
@@ -741,15 +739,15 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                     L->Top = L->CallInfo->Top;
                 }
                 if (c == 0) c = cast_int(*pc++);
-                runtime_check(L, LumenTypeIsTable(ra));
-                h = LumenTableValue(ra);
+                runtime_check(L, ra->IsTable());
+                h = ra->GetTable();
                 last = ((c - 1) * LUA_FIELDS_PER_FLUSH) + n;
                 if (last > h->ArrayCount)  /* needs more space? */
                     Lumen::Table::ResizeArray(L, h, last);  /* pre-alloc it at once */
                 for (; n > 0; n--) {
                     Lumen::Object *val = ra + n;
                     LumenSetObject2T(L, Lumen::Table::SetNum(L, h, last--), val);
-                    LumenGCBarrierTable(L, h, val);
+                    L->BarrierTable(h, val);
                 }
                 continue;
             }
@@ -773,8 +771,8 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                         ncl->AsLua.UpValues[j] = Lumen::UpValue::Find(L, base + LumenOpCodeGetArgB(*pc));
                     }
                 }
-                LumenSetClosureValue(L, ra, ncl);
-                Protect(LumenGCCheckGC(L));
+                ra->SetClosure(L, ncl);
+                Protect(L->CheckGC());
                 continue;
             }
             case Lumen::OpCodeVararg: {
@@ -792,7 +790,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                     if (j < n) {
                         LumenSetObjectS2S(L, ra + j, ci->Base - n + j);
                     } else {
-                        LumenSetNilValue(ra + j);
+                        (ra + j)->SetNil();
                     }
                 }
                 continue;

@@ -13,16 +13,14 @@
 #define LUA_CORE
 
 #include "lumen/code.h"
-#include "lumen/debug.h"
 #include "lumen/do.h"
 #include "lumen/lex.h"
 #include "lumen/memory.h"
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/opcodes.h"
 #include "lumen/parser.h"
 #include "lumen/state.h"
-#include "lumen/string.h"
-#include "lumen/table.h"
 
 
 #define hasMulRet(k)        ((k) == Lumen::ExpDesc::KindCall || (k) == Lumen::ExpDesc::KindVararg)
@@ -55,14 +53,15 @@ static void expr(Lumen::LexState *ls, Lumen::ExpDesc *v);
 static void anchorToken(Lumen::LexState *ls) {
     if (ls->CurToken.Kind == Lumen::Token::SymbolName || ls->CurToken.Kind == Lumen::Token::SymbolString) {
         Lumen::String *ts = ls->CurToken.SemInfo.ts;
-        Lumen::LexState::NewString(ls, LumenStringCString(ts), ts->Length);
+        Lumen::LexState::NewString(ls, ts->CString(), ts->Length);
     }
 }
 
 
 static void errorExpected(Lumen::LexState *ls, int token) {
     Lumen::LexState::SyntaxError(ls,
-                               Lumen::PushFString(ls->L, LUA_QS " expected", Lumen::LexState::Token2CString(ls, token)));
+                                 Lumen::PushFString(ls->L, LUA_QS " expected",
+                                                    Lumen::LexState::Token2CString(ls, token)));
 }
 
 
@@ -70,7 +69,7 @@ static void errorLimit(Lumen::FuncState *fs, int limit, const char *what) {
     const char *msg = (fs->Func->LineDefined == 0) ?
                       Lumen::PushFString(fs->L, "main function has more than %d %s", limit, what) :
                       Lumen::PushFString(fs->L, "function at line %d has more than %d %s",
-                                       fs->Func->LineDefined, limit, what);
+                                         fs->Func->LineDefined, limit, what);
     Lumen::LexState::LexError(fs->Lexer, msg, 0);
 }
 
@@ -103,9 +102,9 @@ static void checkMatch(Lumen::LexState *ls, int what, int who, int where) {
             errorExpected(ls, what);
         else {
             Lumen::LexState::SyntaxError(ls, Lumen::PushFString(ls->L,
-                                                            LUA_QS " expected (to close " LUA_QS " at line %d)",
-                                                            Lumen::LexState::Token2CString(ls, what),
-                                                            Lumen::LexState::Token2CString(ls, who), where));
+                                                                LUA_QS " expected (to close " LUA_QS " at line %d)",
+                                                                Lumen::LexState::Token2CString(ls, what),
+                                                                Lumen::LexState::Token2CString(ls, who), where));
         }
     }
 }
@@ -142,10 +141,10 @@ static int registerLocalVar(Lumen::LexState *ls, Lumen::String *varname) {
     Lumen::Proto *f = fs->Func;
     int oldSize = f->LocalVarsCount;
     LumenMemoryGrowVector(ls->L, f->LocalVars, fs->LocalVarsCount, f->LocalVarsCount,
-                        Lumen::LocalVar, SHRT_MAX, "too many local variables");
+                          Lumen::LocalVar, SHRT_MAX, "too many local variables");
     while (oldSize < f->LocalVarsCount) f->LocalVars[oldSize++].VarName = nullptr;
     f->LocalVars[fs->LocalVarsCount].VarName = varname;
-    LumenGCObjectBarrier(ls->L, f, varname);
+    ls->L->BarrierGCObject(f, varname);
     return fs->LocalVarsCount++;
 }
 
@@ -156,7 +155,7 @@ static int registerLocalVar(Lumen::LexState *ls, Lumen::String *varname) {
 
 static void newLocalVar(Lumen::LexState *ls, Lumen::String *name, int n) {
     Lumen::FuncState *fs = ls->fs;
-    LumenParserCheckLimit(fs, fs->ActiveVarsCount + n + 1, LUAI_MAXVARS, "local variables");
+    LumenParserCheckLimit(fs, fs->ActiveVarsCount + n + 1, LUA_MAX_VARS, "local variables");
     fs->ActiveVars[fs->ActiveVarsCount + n] = cast(unsigned short, registerLocalVar(ls, name));
 }
 
@@ -188,12 +187,12 @@ static int indexUpValue(Lumen::FuncState *fs, Lumen::String *name, Lumen::ExpDes
         }
     }
     /* new one */
-    LumenParserCheckLimit(fs, f->NUpValues + 1, LUAI_MAXUPVALUES, "upvalues");
+    LumenParserCheckLimit(fs, f->NUpValues + 1, LUA_MAX_UP_VALUES, "upvalues");
     LumenMemoryGrowVector(fs->L, f->UpValues, f->NUpValues, f->UpValuesCount,
-                        Lumen::String *, Lumen::MaxInt, "");
+                          Lumen::String *, Lumen::MaxInt, "");
     while (oldSize < f->UpValuesCount) f->UpValues[oldSize++] = nullptr;
     f->UpValues[f->NUpValues] = name;
-    LumenGCObjectBarrier(fs->L, f, name);
+    fs->L->BarrierGCObject(f, name);
     LumenAssert(v->k == Lumen::ExpDesc::KindLocal || v->k == Lumen::ExpDesc::KindUpValue);
     fs->UpValues[f->NUpValues].k = cast_byte(v->k);
     fs->UpValues[f->NUpValues].Info = cast_byte(v->Info);
@@ -268,7 +267,7 @@ static void adjustAssign(Lumen::LexState *ls, int nVars, int nExps, Lumen::ExpDe
 
 
 static void enterLevel(Lumen::LexState *ls) {
-    if (++ls->L->NCCalls > LUAI_MAXCCALLS)
+    if (++ls->L->NCCalls > LUA_MAX_C_CALLS)
         Lumen::LexState::LexError(ls, "chunk has too many syntax levels", 0);
 }
 
@@ -307,13 +306,15 @@ static void pushClosure(Lumen::LexState *ls, Lumen::FuncState *func, Lumen::ExpD
     int oldSize = f->SubProtoCount;
     int i;
     LumenMemoryGrowVector(ls->L, f->SubProto, fs->ProtoCount, f->SubProtoCount, Lumen::Proto *,
-                        Lumen::Code::BxMaxArg, "constant table overflow");
+                          Lumen::Code::BxMaxArg, "constant table overflow");
     while (oldSize < f->SubProtoCount) f->SubProto[oldSize++] = nullptr;
     f->SubProto[fs->ProtoCount++] = func->Func;
-    LumenGCObjectBarrier(ls->L, f, func->Func);
-    initExp(v, Lumen::ExpDesc::KindRelocatable, Lumen::FuncState::CodeABx(fs, Lumen::OpCodeClosure, 0, fs->ProtoCount - 1));
+    ls->L->BarrierGCObject(f, func->Func);
+    initExp(v, Lumen::ExpDesc::KindRelocatable,
+            Lumen::FuncState::CodeABx(fs, Lumen::OpCodeClosure, 0, fs->ProtoCount - 1));
     for (i = 0; i < func->Func->NUpValues; i++) {
-        Lumen::OpCode o = (func->UpValues[i].k == Lumen::ExpDesc::KindLocal) ? Lumen::OpCodeMove : Lumen::OpCodeGetUpVal;
+        Lumen::OpCode o = (func->UpValues[i].k == Lumen::ExpDesc::KindLocal) ? Lumen::OpCodeMove
+                                                                             : Lumen::OpCodeGetUpVal;
         Lumen::FuncState::CodeABC(fs, o, 0, func->UpValues[i].Info, 0);
     }
 }
@@ -825,21 +826,21 @@ static const struct {
     Lumen::Byte left;  /* left priority for each binary operator */
     Lumen::Byte right; /* right priority */
 } priority[] = {  /* ORDER OPR */
-        {6,  6},
-        {6,  6},
-        {7,  7},
-        {7,  7},
-        {7,  7},  /* `+' `-' `/' `%' */
-        {10, 9},
-        {5,  4},                 /* power and concat (right associative) */
-        {3,  3},
-        {3,  3},                  /* equality and inequality */
-        {3,  3},
-        {3,  3},
-        {3,  3},
-        {3,  3},  /* order */
-        {2,  2},
-        {1,  1}                   /* logical (and/or) */
+    {6,  6},
+    {6,  6},
+    {7,  7},
+    {7,  7},
+    {7,  7},  /* `+' `-' `/' `%' */
+    {10, 9},
+    {5,  4},                 /* power and concat (right associative) */
+    {3,  3},
+    {3,  3},                  /* equality and inequality */
+    {3,  3},
+    {3,  3},
+    {3,  3},
+    {3,  3},  /* order */
+    {2,  2},
+    {1,  1}                   /* logical (and/or) */
 };
 
 #define UNARY_PRIORITY    8  /* priority for unary operators */
@@ -965,8 +966,8 @@ static void assignment(Lumen::LexState *ls, struct LHS_assign *lh, int nVars) {
         primaryExp(ls, &nv.v);
         if (nv.v.k == Lumen::ExpDesc::KindLocal)
             checkConflict(ls, lh, &nv.v);
-        LumenParserCheckLimit(ls->fs, nVars, LUAI_MAXCCALLS - ls->L->NCCalls,
-                            "variables in assignment");
+        LumenParserCheckLimit(ls->fs, nVars, LUA_MAX_C_CALLS - ls->L->NCCalls,
+                              "variables in assignment");
         assignment(ls, &nv, nVars + 1);
     } else {  /* assignment -> `=' expList1 */
         int nExps;
@@ -1358,7 +1359,7 @@ static void chunk(Lumen::LexState *ls) {
         islast = statement(ls);
         testNext(ls, ';');
         LumenAssert(ls->fs->Func->MaxStackSize >= ls->fs->FreeReg &&
-                   ls->fs->FreeReg >= ls->fs->ActiveVarsCount);
+                    ls->fs->FreeReg >= ls->fs->ActiveVarsCount);
         ls->fs->FreeReg = ls->fs->ActiveVarsCount;  /* free registers */
     }
     leaveLevel(ls);

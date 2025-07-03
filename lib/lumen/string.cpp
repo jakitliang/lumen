@@ -16,8 +16,8 @@
 
 #include "lumen/memory.h"
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/state.h"
-#include "lumen/string.h"
 
 #define XXH_STATIC_LINKING_ONLY /* access advanced declarations */
 #define XXH_IMPLEMENTATION      /* access definitions */
@@ -61,7 +61,7 @@ inline uint32_t Lumen::Hash::State::DoHash(const uint8_t *key, Lumen::UInteger l
 void Lumen::String::Intern(Lumen::State *L) {
     if (Hash != 0) return;
 
-    unsigned int h = Lumen::Hash::State::DoHash((uint8_t *) LumenStringCString(this), Length, (uint32_t) Length);
+    unsigned int h = Lumen::Hash::State::DoHash((uint8_t *) CString(), Length, (uint32_t) Length);
     Hash = h;
 
     Lumen::StringTable *tb = &LumenGlobalState(L)->StringMap;
@@ -90,7 +90,7 @@ void Lumen::String::Resize(Lumen::State *L, int newSize) {
         Lumen::GCObject *p = tb->HashTable[i];
         while (p) {  /* for each node in the list */
             Lumen::GCObject *next = p->AsObject.GCNext;  /* save next */
-            unsigned int h = LumenGCObject2String(p)->Hash;
+            unsigned int h = p->ToString()->Hash;
             int h1 = LumenLogMod(h, newSize);  /* new position */
             LumenAssert(cast_int(h % newSize) == LumenLogMod(h, newSize));
             p->AsObject.GCNext = newHash[h1];  /* chain it */
@@ -113,7 +113,7 @@ static Lumen::String *newStringWithLength(Lumen::State *L, const char *str, Lume
     ts = cast(Lumen::String *, LumenMemoryAlloc(L, (l + 1) * sizeof(char) + sizeof(Lumen::String)));
     ts->Length = l;
     ts->Hash = h;
-    ts->Marked = LumenGCWhite(LumenGlobalState(L));
+    ts->Marked = LumenGlobalState(L)->GetWhite();
     ts->Type = Lumen::TypeString;
     ts->Reserved = 0;
     memcpy(ts + 1, str, l * sizeof(char));
@@ -134,10 +134,10 @@ Lumen::String *Lumen::String::New(Lumen::State *L, const char *str, Lumen::UInte
     for (o = LumenGlobalState(L)->StringMap.HashTable[LumenLogMod(h, LumenGlobalState(L)->StringMap.Capacity)];
          o != nullptr;
          o = o->AsObject.GCNext) {
-        Lumen::String *ts = LumenGCObject2String(o);
-        if (ts->Length == l && (memcmp(str, LumenStringCString(ts), l) == 0)) {
+        Lumen::String *ts = o->ToString();
+        if (ts->Length == l && (memcmp(str, ts->CString(), l) == 0)) {
             /* string may be dead */
-            if (LumenGCIsDead(LumenGlobalState(L), o)) LumenGCChangeWhite(o);
+            if (LumenGlobalState(L)->IsDead(o)) o->ChangeWhite();
             return ts;
         }
     }
@@ -151,10 +151,10 @@ Lumen::String *Lumen::String::New(Lumen::State *L, const char *str) {
     for (o = LumenGlobalState(L)->StringMap.HashTable[LumenLogMod(h, LumenGlobalState(L)->StringMap.Capacity)];
          o != nullptr;
          o = o->AsObject.GCNext) {
-        Lumen::String *ts = LumenGCObject2String(o);
-        if (ts->Length == l && (memcmp(str, LumenStringCString(ts), l) == 0)) {
+        Lumen::String *ts = o->ToString();
+        if (ts->Length == l && (memcmp(str, ts->CString(), l) == 0)) {
             /* string may be dead */
-            if (LumenGCIsDead(LumenGlobalState(L), o)) LumenGCChangeWhite(o);
+            if (LumenGlobalState(L)->IsDead(o)) o->ChangeWhite();
             return ts;
         }
     }
@@ -170,7 +170,7 @@ Lumen::String *Lumen::String::NewRaw(Lumen::State *L, const char *str, Lumen::UI
 
     ts->Length = l;
     ts->Hash = 0;
-    ts->Marked = LumenGCWhite(LumenGlobalState(L));
+    ts->Marked = LumenGlobalState(L)->GetWhite();
     ts->Type = Lumen::TypeString;
     ts->Reserved = 0;
 
@@ -191,7 +191,7 @@ Lumen::Userdata *Lumen::Userdata::New(Lumen::State *L, Lumen::UInteger s, Lumen:
     if (s > Lumen::MaxSize - sizeof(Lumen::Userdata))
         Lumen::Memory::TooBig(L);
     u = cast(Lumen::Userdata *, LumenMemoryAlloc(L, s + sizeof(Lumen::Userdata)));
-    u->Marked = LumenGCWhite(LumenGlobalState(L));  /* is not finalized */
+    u->Marked = LumenGlobalState(L)->GetWhite();  /* is not finalized */
     u->Type = Lumen::TypeUserdata;
     u->Length = s;
     u->Metatable = nullptr;

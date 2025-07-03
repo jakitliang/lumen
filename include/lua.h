@@ -19,12 +19,8 @@
 #include <stdarg.h>
 #endif
 
-
 #define LUA_COPYRIGHT      "Copyright (C) 1994-2012 Lua.org, PUC-Rio"
 #define LUA_AUTHORS        "R. Ierusalimschy, L. H. de Figueiredo & W. Celes"
-
-#define LUA_VERSION    "Lua 5.1"
-#define LUA_RELEASE    "Lua 5.1.5"
 
 /* option for multiple returns in `lua_pcall' and `lua_call' */
 #define LUA_MULTRET    (-1)
@@ -53,46 +49,22 @@ enum {
     LUA_ERRERR = 5
 };
 
-typedef struct LumenState lua_State;
-
-#ifndef LUAI_DELEGATE
+typedef struct lua_State lua_State;
 
 typedef int (*lua_CFunction)(lua_State *L);
-
-#else
-typedef LUAI_DELEGATE lua_CFunction;
-#endif
-
 
 /*
 ** functions that read/write blocks when loading/dumping Lua chunks
 */
-#ifndef LUAI_READER
-
 typedef const char *(*lua_Reader)(lua_State *L, void *ud, size_t *sz);
-
-#else
-typedef LUAI_READER lua_Reader;
-#endif
-
-#ifndef LUAI_WRITER
 
 typedef int (*lua_Writer)(lua_State *L, const void *p, size_t sz, void *ud);
 
-#else
-typedef LUAI_WRITER lua_Writer;
-#endif
 
 /*
 ** prototype for memory-allocation functions
 */
-#ifndef LUAI_ALLOCATOR
-
 typedef void *(*lua_Alloc)(void *ud, void *ptr, size_t oldSize, size_t newSize);
-
-#else
-typedef LUAI_ALLOCATOR lua_Alloc;
-#endif
 
 
 /*
@@ -439,7 +411,6 @@ enum {
     LUA_MASKCOUNT = (1 << LUA_HOOKCOUNT)
 };
 
-#ifndef LUAI_DEBUGINFO
 typedef struct {
     int event;
     const char *name;
@@ -453,19 +424,8 @@ typedef struct {
     char short_src[LUA_IDSIZE];
     int i_ci;
 } lua_Debug;  /* activation record */
-#else
-typedef LUAI_DEBUGINFO lua_Debug;
-#endif
-
-/* Functions to be called by the debuger in specific events */
-#ifndef LUAI_HOOK
 
 typedef void (*lua_Hook)(lua_State *L, lua_Debug *ar);
-
-#else
-typedef LUAI_HOOK lua_Hook;
-#endif
-
 
 LUA_API int lua_getstack(lua_State *L, int level, lua_Debug *ar);
 

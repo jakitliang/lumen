@@ -17,10 +17,9 @@
 #include "lumen/do.h"
 #include "lumen/lex.h"
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/parser.h"
 #include "lumen/state.h"
-#include "lumen/string.h"
-#include "lumen/table.h"
 #include "lumen/zio.h"
 #include "lumen/code.h"
 
@@ -30,13 +29,13 @@
 
 /* ORDER RESERVED */
 const char *const Lumen::Token::Names[] = {
-        "and", "break", "do", "else", "elseif",
-        "end", "false", "for", "function", "if",
-        "in", "local", "nil", "not", "or", "repeat",
-        "return", "then", "true", "until", "while",
-        "..", "...", "==", ">=", "<=", "~=",
-        "<number>", "<name>", "<string>", "<eof>",
-        nullptr
+    "and", "break", "do", "else", "elseif",
+    "end", "false", "for", "function", "if",
+    "in", "local", "nil", "not", "or", "repeat",
+    "return", "then", "true", "until", "while",
+    "..", "...", "==", ">=", "<=", "~=",
+    "<number>", "<name>", "<string>", "<eof>",
+    nullptr
 };
 
 #define saveAndNext(ls) (save(ls, ls->Current), next(ls))
@@ -70,7 +69,7 @@ static inline const char *txtToken(Lumen::LexState *ls, int token) {
 
 void Lumen::LexState::LexError(Lumen::LexState *ls, const char *msg, int token) {
     char buff[LUA_MAX_SRC];
-    Lumen::ChunkId(buff, LumenStringCString(ls->Source), LUA_MAX_SRC);
+    Lumen::ChunkId(buff, ls->Source->CString(), LUA_MAX_SRC);
     msg = Lumen::PushFString(ls->L, "%s:%d: %s", buff, ls->LineNumber, msg);
     if (token)
         Lumen::PushFString(ls->L, "%s near " LUA_QS, msg, txtToken(ls, token));
@@ -81,9 +80,9 @@ Lumen::String *Lumen::LexState::NewString(Lumen::LexState *ls, const char *str, 
     Lumen::State *L = ls->L;
     Lumen::String *ts = Lumen::String::New(L, str, l);
     Lumen::Object *o = Lumen::Table::SetString(L, ls->fs->Constants, ts);  /* entry for `str' */
-    if (LumenTypeIsNil(o)) {
-        LumenSetBoolValue(o, 1);  /* make sure `str` will not be collected */
-        LumenGCCheckGC(L);
+    if (o->IsNil()) {
+        o->SetBool(1);  /* make sure `str` will not be collected */
+        L->CheckGC();
     }
     return ts;
 }
@@ -192,7 +191,7 @@ static void readLongString(Lumen::LexState *ls, Lumen::SemInfo *semInfo, int sep
         switch (ls->Current) {
             case EOZ:
                 Lumen::LexState::LexError(ls, (semInfo) ? "unfinished long string" :
-                                            "unfinished long comment", Lumen::Token::SymbolEOS);
+                                              "unfinished long comment", Lumen::Token::SymbolEOS);
                 break;  /* to avoid warnings */
 #if defined(LUA_COMPAT_LSTR)
             case '[': {
@@ -235,7 +234,7 @@ static void readLongString(Lumen::LexState *ls, Lumen::SemInfo *semInfo, int sep
     endloop:
     if (semInfo)
         semInfo->ts = Lumen::LexState::NewString(ls, LumenZBufferGet(ls->buff) + (2 + sep),
-                                     LumenZBufferLength(ls->buff) - 2 * (2 + sep));
+                                                 LumenZBufferLength(ls->buff) - 2 * (2 + sep));
 }
 
 
@@ -309,7 +308,7 @@ static void readString(Lumen::LexState *ls, int del, Lumen::SemInfo *semInfo) {
     }
     saveAndNext(ls);  /* skip delimiter */
     semInfo->ts = Lumen::LexState::NewString(ls, LumenZBufferGet(ls->buff) + 1,
-                                 LumenZBufferLength(ls->buff) - 2);
+                                             LumenZBufferLength(ls->buff) - 2);
 }
 
 
@@ -416,7 +415,7 @@ static int LLex(Lumen::LexState *ls, Lumen::SemInfo *semInfo) {
                         saveAndNext(ls);
                     } while (isalnum(ls->Current) || ls->Current == '_');
                     ts = Lumen::LexState::NewString(ls, LumenZBufferGet(ls->buff),
-                                        LumenZBufferLength(ls->buff));
+                                                    LumenZBufferLength(ls->buff));
                     if (ts->Reserved > 0)  /* reserved word? */
                         return ts->Reserved - 1 + LUA_LEX_STATE_FIRST_RESERVED;
                     else {

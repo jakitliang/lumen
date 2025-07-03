@@ -19,30 +19,21 @@
 #include <cassert>
 #endif
 
-struct LumenState;
-
-#define LUAI_DELEGATE Lumen::Delegate
-#define LUAI_READER Lumen::Reader
-#define LUAI_WRITER Lumen::Writer
-#define LUAI_ALLOCATOR Lumen::Allocator
-#define LUAI_DEBUGINFO Lumen::DebugInfo
-#define LUAI_HOOK Lumen::Hook
-
 #include "luaconf.h"
 
 namespace Lumen {
     using Byte = unsigned char;
-    using Int32 = LUAI_INT32;
-    using UInt32 = LUAI_UINT32;
+    using Int32 = LUA_INT32;
+    using UInt32 = LUA_UINT32;
 
     using Number = LUA_NUMBER;
     using Integer = LUA_INTEGER;
     using UInteger = LUA_UINTEGER;
 
-    using MemorySize = LUAI_UMEM;
-    using MemoryDelta = LUAI_MEM;
+    using MemorySize = LUA_UMEM;
+    using MemoryDelta = LUA_MEM;
 
-    using UACNumber = LUAI_UACNUMBER; // Result of a `usual argument conversion' over lua_Number
+    using UACNumber = LUA_UAC_NUMBER; // Result of a `usual argument conversion' over lua_Number
 
     /*
     ** pseudo-indices
@@ -134,38 +125,26 @@ namespace Lumen {
         CompareOpLE = 2
     };
 
-    using State = LumenState;
+    struct State;
 
     struct TypeInfo {
         Lumen::Type Type;
+
+        inline bool IsNil() const { return Type == Lumen::TypeNil; } // NOLINT
+        inline bool IsNumber() const { return Type == Lumen::TypeNumber; } // NOLINT
+        inline bool IsString() const { return Type == Lumen::TypeString; } // NOLINT
+        inline bool IsTable() const { return Type == Lumen::TypeTable; } // NOLINT
+        inline bool IsFunction() const { return Type == Lumen::TypeFunction; } // NOLINT
+        inline bool IsBoolean() const { return Type == Lumen::TypeBool; } // NOLINT
+        inline bool IsUData() const { return Type == Lumen::TypeUserdata; } // NOLINT
+        inline bool IsThread() const { return Type == Lumen::TypeThread; } // NOLINT
+        inline bool IsLUData() const { return Type == Lumen::TypeLightUserdata; } // NOLINT
     };
 
     /*
     ** Union of all collectable objects
     */
     struct GCObject;
-
-    /**
-     * Union of all Lua values
-     */
-    union Variant {
-        Lumen::GCObject *gc;
-        void *p;
-        Lumen::Number n;
-        int b;
-    };
-
-    struct Object : TypeInfo {
-        Variant value;
-
-        const char *GetUpValueInfo(int n, Lumen::Object **val);
-    };
-
-    /**
-     * Value is a pointer to Object
-     * and index to stack elements
-     */
-    typedef Lumen::Object *Value;
 
     /**
      * Type for virtual-machine instructions
@@ -203,7 +182,7 @@ namespace Lumen {
 
     inline constexpr Lumen::UInteger MaxInt = INT_MAX - 2;
 
-    inline constexpr Lumen::UInteger MinStack = LUA_MINSTACK;
+    inline constexpr Lumen::UInteger MinStack = LUA_MIN_STACK;
 
     /* maximum stack for a Lua function */
     inline constexpr Lumen::UInteger MaxStack = 250;

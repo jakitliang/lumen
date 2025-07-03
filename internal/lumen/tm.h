@@ -64,7 +64,7 @@ namespace Lumen::TM {
 inline const Lumen::Object *Lumen::TM::Get(Lumen::Table *events, Lumen::TM::Name event, Lumen::String *name) {
     const Lumen::Object *tm = Lumen::Table::GetString(events, name);
     LumenAssert(event <= Lumen::TM::NameEQ);
-    if (LumenTypeIsNil(tm)) {  /* no tag method? */
+    if (tm->IsNil()) {  /* no tag method? */
         events->Flags |= cast_byte(1u << event);  /* cache this fact */
         return nullptr;
     } else return tm;

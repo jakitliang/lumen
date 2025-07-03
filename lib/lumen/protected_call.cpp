@@ -9,8 +9,8 @@
 
 #include "lumen/protected_call.h"
 #include "lumen/do.h"
-#include "lumen/gc.h"
 #include "lumen/api.h"
+#include "lumen/common.inl"
 
 void Lumen::ProtectedCall::Call(Lumen::State *L, void *ud) {
     ProtectedCall *c = cast(ProtectedCall *, ud);
@@ -22,9 +22,9 @@ void Lumen::ProtectedCCall::Call(Lumen::State *L, void *ud) {
     Lumen::Closure *cl;
     cl = Lumen::CClosure::New(L, 0, L->GetCurrentEnv());
     cl->AsC.Func = c->Func;
-    LumenSetClosureValue(L, L->Top, cl);  /* push function */
+    L->Top->SetClosure(L, cl);  /* push function */
     LumenApiIncrTop(L);
-    LumenSetLUDataValue(L->Top, c->UData);  /* push only argument */
+    L->Top->SetLUData(c->UData);  /* push only argument */
     LumenApiIncrTop(L);
     Lumen::Do::Call(L, L->Top - 2, 0);
 }

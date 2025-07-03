@@ -59,8 +59,8 @@ namespace Lumen {
         int ProtoCount;  /* number of elements in `p` */
         short LocalVarsCount;  /* number of elements in `local vars` */
         Lumen::Byte ActiveVarsCount;  /* number of active local variables */
-        Lumen::UpValueDesc UpValues[LUAI_MAXUPVALUES];  /* up values */
-        unsigned short ActiveVars[LUAI_MAXVARS];  /* declared-variable stack */
+        Lumen::UpValueDesc UpValues[LUA_MAX_UP_VALUES];  /* up values */
+        unsigned short ActiveVars[LUA_MAX_VARS];  /* declared-variable stack */
 
         static int CodeABx(Lumen::FuncState *fs, Lumen::OpCode o, int A, unsigned int Bx);
 

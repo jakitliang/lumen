@@ -14,10 +14,10 @@
 
 #include "lumen/code.h"
 #include "lumen/debug.h"
-#include "lumen/gc.h"
 #include "lumen/lex.h"
 #include "lumen/memory.h"
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/opcodes.h"
 #include "lumen/parser.h"
 
@@ -124,7 +124,7 @@ static inline void removeValues(Lumen::FuncState *fs, int list) {
 
 
 static inline void patchListAux(Lumen::FuncState *fs, int list, int vTarget, int reg,
-                         int dTarget) {
+                                int dTarget) {
     while (list != NO_JUMP) {
         int next = getJump(fs, list);
         if (patchTestReg(fs, list, reg))
@@ -190,16 +190,16 @@ static int addK(Lumen::FuncState *fs, Lumen::Object *k, Lumen::Object *v) {
     Lumen::Object *idx = Lumen::Table::Set(L, fs->Constants, k);
     Lumen::Proto *f = fs->Func;
     int oldSize = f->KCount;
-    if (LumenTypeIsNumber(idx)) {
-        LumenAssert(Lumen::RawEqualObject(&fs->Func->K[cast_int(LumenNumberValue(idx))], v));
-        return cast_int(LumenNumberValue(idx));
+    if (idx->IsNumber()) {
+        LumenAssert(Lumen::RawEqualObject(&fs->Func->K[cast_int(idx->GetNumber())], v));
+        return cast_int(idx->GetNumber());
     } else {  /* constant not found; create a new entry */
-        LumenSetNumberValue(idx, cast_num(fs->ConstantsCount));
+        idx->SetNumber(cast_num(fs->ConstantsCount));
         LumenMemoryGrowVector(L, f->K, fs->ConstantsCount, f->KCount, Lumen::Object,
-                            Lumen::Code::BxMaxArg, "constant table overflow");
-        while (oldSize < f->KCount) LumenSetNilValue(&f->K[oldSize++]);
-        LumenSetObject(L, &f->K[fs->ConstantsCount], v);
-        LumenGCBarrier(L, f, v);
+                              Lumen::Code::BxMaxArg, "constant table overflow");
+        while (oldSize < f->KCount) (&f->K[oldSize++])->SetNil();
+        (&f->K[fs->ConstantsCount])->SetObject(L, v);
+        L->Barrier(f, v);
         return fs->ConstantsCount++;
     }
 }
@@ -207,30 +207,30 @@ static int addK(Lumen::FuncState *fs, Lumen::Object *k, Lumen::Object *v) {
 
 int Lumen::FuncState::StringK(Lumen::FuncState *fs, Lumen::String *s) {
     Lumen::Object o; // NOLINT
-    LumenSetStringValue(fs->L, &o, s);
+    o.SetString(fs->L, s);
     return addK(fs, &o, &o);
 }
 
 
 int Lumen::FuncState::NumberK(Lumen::FuncState *fs, Lumen::Number r) {
     Lumen::Object o; // NOLINT
-    LumenSetNumberValue(&o, r);
+    o.SetNumber(r);
     return addK(fs, &o, &o);
 }
 
 
 static inline int boolK(Lumen::FuncState *fs, int b) {
     Lumen::Object o; // NOLINT
-    LumenSetBoolValue(&o, b);
+    o.SetBool(b);
     return addK(fs, &o, &o);
 }
 
 
 static inline int nilK(Lumen::FuncState *fs) {
     Lumen::Object k, v; // NOLINT
-    LumenSetNilValue(&v);
+    v.SetNil();
     /* cannot use nil as key; instead use table itself to represent nil */
-    LumenSetTableValue(fs->L, &k, fs->Constants);
+    k.SetTable(fs->L, fs->Constants);
     return addK(fs, &k, &v);
 }
 
@@ -474,7 +474,7 @@ void Lumen::FuncState::Self(Lumen::FuncState *fs, Lumen::ExpDesc *e, Lumen::ExpD
 static inline void invertJump(Lumen::FuncState *fs, Lumen::ExpDesc *e) {
     Lumen::Instruction *pc = getJumpControl(fs, e->Info);
     LumenAssert(LumenTestTMode(LumenOpCodeGet(*pc)) && LumenOpCodeGet(*pc) != Lumen::OpCodeTestTest &&
-               LumenOpCodeGet(*pc) != Lumen::OpCodeTest);
+                LumenOpCodeGet(*pc) != Lumen::OpCodeTest);
     LumenOpCodeSetArgA(*pc, !(LumenOpCodeGetArgA(*pc)));
 }
 
@@ -592,27 +592,27 @@ static int constFolding(Lumen::OpCode op, Lumen::ExpDesc *e1, Lumen::ExpDesc *e2
     v2 = e2->NumberValue;
     switch (op) {
         case Lumen::OpCodeAdd:
-            r = luai_numadd(v1, v2);
+            r = LumenNumAdd(v1, v2);
             break;
         case Lumen::OpCodeSub:
-            r = luai_numsub(v1, v2);
+            r = LumenNumSub(v1, v2);
             break;
         case Lumen::OpCodeMul:
-            r = luai_nummul(v1, v2);
+            r = LumenNumMul(v1, v2);
             break;
         case Lumen::OpCodeDiv:
             if (v2 == 0) return 0;  /* do not attempt to divide by 0 */
-            r = luai_numdiv(v1, v2);
+            r = LumenNumDiv(v1, v2);
             break;
         case Lumen::OpCodeMod:
             if (v2 == 0) return 0;  /* do not attempt to divide by 0 */
-            r = luai_nummod(v1, v2);
+            r = LumenNumMod(v1, v2);
             break;
         case Lumen::OpCodePow:
-            r = luai_numpow(v1, v2);
+            r = LumenNumPow(v1, v2);
             break;
         case Lumen::OpCodeUnm:
-            r = luai_numunm(v1);
+            r = LumenNumUnm(v1);
             break;
         case Lumen::OpCodeLen:
             return 0;  /* no constant folding for 'len' */
@@ -621,7 +621,7 @@ static int constFolding(Lumen::OpCode op, Lumen::ExpDesc *e1, Lumen::ExpDesc *e2
             r = 0;
             break;
     }
-    if (luai_numisnan(r)) return 0;  /* do not attempt to produce NaN */
+    if (LumenNumIsNAN(r)) return 0;  /* do not attempt to produce NaN */
     e1->NumberValue = r;
     return 1;
 }
@@ -739,7 +739,8 @@ void Lumen::FuncState::PosFix(Lumen::FuncState *fs, Lumen::BinOpr op, Lumen::Exp
         }
         case Lumen::BinOprConcat: {
             Lumen::FuncState::Exp2Val(fs, e2);
-            if (e2->k == Lumen::ExpDesc::KindRelocatable && LumenOpCodeGet(LumenFuncStateGetCode(fs, e2)) == Lumen::OpCodeConcat) {
+            if (e2->k == Lumen::ExpDesc::KindRelocatable &&
+                LumenOpCodeGet(LumenFuncStateGetCode(fs, e2)) == Lumen::OpCodeConcat) {
                 LumenAssert(e1->Info == LumenOpCodeGetArgB(LumenFuncStateGetCode(fs, e2)) - 1);
                 freeExp(fs, e1);
                 LumenOpCodeSetArgB(LumenFuncStateGetCode(fs, e2), e1->Info);
@@ -797,11 +798,11 @@ static int LuaFuncStateCode(Lumen::FuncState *fs, Lumen::Instruction i, int line
     dischargeJumpPC(fs);  /* `pc` will change */
     /* put new instruction in code array */
     LumenMemoryGrowVector(fs->L, f->Code, fs->PC, f->CodeCount, Lumen::Instruction,
-                        Lumen::MaxInt, "code size overflow");
+                          Lumen::MaxInt, "code size overflow");
     f->Code[fs->PC] = i;
     /* save corresponding line information */
     LumenMemoryGrowVector(fs->L, f->LineInfo, fs->PC, f->LineInfoCount, int,
-                        Lumen::MaxInt, "code size overflow");
+                          Lumen::MaxInt, "code size overflow");
     f->LineInfo[fs->PC] = line;
     return fs->PC++;
 }

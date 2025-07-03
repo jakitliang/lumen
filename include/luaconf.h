@@ -254,19 +254,19 @@
 
 
 /*
-@@ LUA_PROGNAME is the default name for the stand-alone Lua program.
+@@ LUA_PROGRAM_NAME is the default name for the stand-alone Lua program.
 ** CHANGE it if your stand-alone interpreter has a different name and
 ** your system is not able to detect that name automatically.
 */
-#define LUA_PROGNAME		"lumen"
+#define LUA_PROGRAM_NAME		"lumen"
 
 
 /*
-@@ LUA_MAXINPUT is the maximum length for an input line in the
+@@ LUA_MAX_INPUT is the maximum length for an input line in the
 @* stand-alone interpreter.
 ** CHANGE it if you need longer lines.
 */
-#define LUA_MAXINPUT	512
+#define LUA_MAX_INPUT	512
 
 #endif
 
@@ -275,24 +275,24 @@
 // MARK: GC configuration
 
 /*
-@@ LUAI_GCPAUSE defines the default pause between garbage-collector cycles
+@@ LUA_GC_PAUSE defines the default pause between garbage-collector cycles
 @* as a percentage.
 ** CHANGE it if you want the GC to run faster or slower (higher values
 ** mean larger pauses which mean slower collection.) You can also change
 ** this value dynamically.
 */
-#define LUAI_GCPAUSE    200  /* 200% (wait memory to double before next GC) */
+#define LUA_GC_PAUSE    200  /* 200% (wait memory to double before next GC) */
 
 
 /*
-@@ LUAI_GCMUL defines the default speed of garbage collection relative to
+@@ LUA_GC_MUL defines the default speed of garbage collection relative to
 @* memory allocation as a percentage.
 ** CHANGE it if you want to change the granularity of the garbage
 ** collection. (Higher values mean coarser collections. 0 represents
 ** infinity, where each step performs a full collection.) You can also
 ** change this value dynamically.
 */
-#define LUAI_GCMUL    200 /* GC runs 'twice the speed' of memory allocation */
+#define LUA_GC_MUL    200 /* GC runs 'twice the speed' of memory allocation */
 
 // MARK: Compat configuration
 
@@ -381,54 +381,54 @@
 #define LUA_UINTEGER   size_t
 
 /*
-@@ LUAI_BITSINT defines the number of bits in an int.
+@@ LUA_BITS_INT defines the number of bits in an int.
 ** CHANGE here if Lua cannot automatically detect the number of bits of
 ** your machine. Probably you do not need to change this.
 */
-#define LUAI_BITSINT    32
+#define LUA_BITS_INT    32
 
 
 /*
-@@ LUAI_UINT32 is an unsigned integer with at least 32 bits.
-@@ LUAI_INT32 is an signed integer with at least 32 bits.
-@@ LUAI_UMEM is an unsigned integer big enough to count the total
+@@ LUA_UINT32 is an unsigned integer with at least 32 bits.
+@@ LUA_INT32 is an signed integer with at least 32 bits.
+@@ LUA_UMEM is an unsigned integer big enough to count the total
 @* memory used by Lua.
-@@ LUAI_MEM is a signed integer big enough to count the total memory
+@@ LUA_MEM is a signed integer big enough to count the total memory
 @* used by Lua.
 ** CHANGE here if for some weird reason the default definitions are not
 ** good enough for your machine. (The definitions in the 'else'
 ** part always works, but may waste space on machines with 64-bit
 ** longs.) Probably you do not need to change this.
 */
-#define LUAI_UINT32    unsigned int
-#define LUAI_INT32    int
-#define LUAI_MAXINT32    INT_MAX
-#define LUAI_UMEM    size_t
-#define LUAI_MEM    ptrdiff_t
+#define LUA_UINT32    unsigned int
+#define LUA_INT32    int
+#define LUA_MAX_INT32    INT_MAX
+#define LUA_UMEM    size_t
+#define LUA_MEM    ptrdiff_t
 
 // MARK: VM configuration
 
 /*
-@@ LUAI_MAXCALLS limits the number of nested calls.
+@@ LUA_MAX_CALLS limits the number of nested calls.
 ** CHANGE it if you need really deep recursive calls. This limit is
 ** arbitrary; its only purpose is to stop infinite recursion before
 ** exhausting memory.
 */
-#define LUAI_MAXCALLS    20000
+#define LUA_MAX_CALLS    20000
 
 
 /*
-@@ LUAI_MAXCSTACK limits the number of Lua stack slots that a C function
+@@ LUA_MAX_C_STACK limits the number of Lua stack slots that a C function
 @* can use.
 ** CHANGE it if you need lots of (Lua) stack space for your C
 ** functions. This limit is arbitrary; its only purpose is to stop C
 ** functions to consume unlimited stack space. (must be smaller than
 ** -LUA_REGISTRYINDEX)
 */
-#define LUAI_MAXCSTACK    8000
+#define LUA_MAX_C_STACK    8000
 
 /* minimum Lua stack available to a C function */
-#define LUA_MINSTACK    20
+#define LUA_MIN_STACK    20
 
 
 /*
@@ -446,24 +446,24 @@
 
 
 /*
-@@ LUAI_MAXCCALLS is the maximum depth for nested C calls (short) and
+@@ LUA_MAX_C_CALLS is the maximum depth for nested C calls (short) and
 @* syntactical nested non-terminals in a program.
 */
-#define LUAI_MAXCCALLS        200
+#define LUA_MAX_C_CALLS        200
 
 
 /*
-@@ LUAI_MAXVARS is the maximum number of local variables per function
+@@ LUA_MAX_VARS is the maximum number of local variables per function
 @* (must be smaller than 250).
 */
-#define LUAI_MAXVARS        200
+#define LUA_MAX_VARS        200
 
 
 /*
-@@ LUAI_MAXUPVALUES is the maximum number of upvalues per function
+@@ LUA_MAX_UP_VALUES is the maximum number of upvalues per function
 @* (must be smaller than 250).
 */
-#define LUAI_MAXUPVALUES    60
+#define LUA_MAX_UP_VALUES    60
 
 
 /*
@@ -489,23 +489,25 @@
 #define LUA_NUMBER    double
 
 /*
-@@ LUAI_UACNUMBER is the result of an 'usual argument conversion'
+@@ LUA_UAC_NUMBER is the result of an 'usual argument conversion'
 @* over a number.
 */
-#define LUAI_UACNUMBER    double
+#define LUA_UAC_NUMBER    double
 
 
 /*
 @@ LUA_NUMBER_SCAN is the format for reading numbers.
 @@ LUA_NUMBER_FMT is the format for writing numbers.
-@@ lua_number2str converts a number to a string.
-@@ LUAI_MAXNUMBER2STR is maximum size of previous conversion.
-@@ lua_str2number converts a string to a number.
+@@ LumenNum2Str converts a number to a string.
+@@ LUA_MAX_NUMBER2STR is maximum size of previous conversion.
+@@ LumenStr2Num converts a string to a number.
 */
 #define LUA_NUMBER_SCAN        "%lf"
 #define LUA_NUMBER_FMT        "%.14g"
+#define LumenNum2Str(s, n)    sprintf((s), LUA_NUMBER_FMT, (n))
 #define lua_number2str(s, n)    sprintf((s), LUA_NUMBER_FMT, (n))
-#define LUAI_MAXNUMBER2STR    32 /* 16 digits, sign, point, and \0 */
+#define LUA_MAX_NUMBER2STR    32 /* 16 digits, sign, point, and \0 */
+#define LumenStr2Num(s, p)    strtod((s), (p))
 #define lua_str2number(s, p)    strtod((s), (p))
 
 
@@ -514,17 +516,17 @@
 */
 #if defined(LUA_CORE)
 #include <cmath>
-#define luai_numadd(a,b)	((a)+(b))
-#define luai_numsub(a,b)	((a)-(b))
-#define luai_nummul(a,b)	((a)*(b))
-#define luai_numdiv(a,b)	((a)/(b))
-#define luai_nummod(a,b)	((a) - floor((a)/(b))*(b))
-#define luai_numpow(a,b)	(pow(a,b))
-#define luai_numunm(a)		(-(a))
-#define luai_numeq(a,b)		((a)==(b))
-#define luai_numlt(a,b)		((a)<(b))
-#define luai_numle(a,b)		((a)<=(b))
-#define luai_numisnan(a)	(!luai_numeq((a), (a)))
+#define LumenNumAdd(a,b)	((a)+(b))
+#define LumenNumSub(a,b)	((a)-(b))
+#define LumenNumMul(a,b)	((a)*(b))
+#define LumenNumDiv(a,b)	((a)/(b))
+#define LumenNumMod(a,b)	((a) - floor((a)/(b))*(b))
+#define LumenNumPow(a,b)	(pow(a,b))
+#define LumenNumUnm(a)		(-(a))
+#define LumenNumEQ(a,b)		((a)==(b))
+#define LumenNumLT(a,b)		((a)<(b))
+#define LumenNumLE(a,b)		((a)<=(b))
+#define LumenNumIsNAN(a)	(!LumenNumEQ((a), (a)))
 #endif
 
 
@@ -554,24 +556,24 @@
 // MARK: Exception configuration
 
 /*
-@@ LUAI_THROW/LUAI_TRY define how Lua does exception handling.
+@@ LUA_THROW/LUA_TRY define how Lua does exception handling.
 ** CHANGE them if you prefer to use longjmp/setjmp even with C++
 ** or if want/don't to use _longjmp/_setjmp instead of regular
 ** longjmp/setjmp. By default, Lua handles errors with exceptions when
 ** compiling as C++ code, with _longjmp/_setjmp when asked to use them,
 ** and with longjmp/setjmp otherwise.
 */
-#define LUAI_THROW(L, c)    longjmp((c)->b, 1)
-#define LUAI_TRY(L, c, a)    if (setjmp((c)->b) == 0) { a }
-#define luai_jmpbuf    jmp_buf
+#define LUA_THROW(L, c)     longjmp((c)->b, 1)
+#define LUA_TRY(L, c, a)    if (setjmp((c)->b) == 0) { a }
+#define LUA_JUMP_BUFF       jmp_buf
 
 
 /*
-@@ LUA_MAXCAPTURES is the maximum number of captures that a pattern
+@@ LUA_MAX_CAPTURES is the maximum number of captures that a pattern
 @* can do during pattern-matching.
 ** CHANGE it if you need more captures. This limit is arbitrary.
 */
-#define LUA_MAXCAPTURES        32
+#define LUA_MAX_CAPTURES        32
 
 
 // MARK: Library OS configuration
@@ -641,19 +643,17 @@
 
 // MARK: State configuration
 
-struct LumenState;
-
 /*
-@@ LUAI_EXTRASPACE allows you to add user-specific data in a lua_State
+@@ LUA_EXTRA_SPACE allows you to add user-specific data in a lua_State
 @* (the data goes just *before* the lua_State pointer).
 ** CHANGE (define) this if you really need that. This value must be
 ** a multiple of the maximum alignment required for your machine.
 */
-#define LUAI_EXTRASPACE        0
+#define LUA_EXTRA_SPACE        0
 
 /*
 @@ luai_userstate* allow user-specific actions on threads.
-** CHANGE them if you defined LUAI_EXTRASPACE and need to do something
+** CHANGE them if you defined LUA_EXTRA_SPACE and need to do something
 ** extra when a thread is created/deleted/resumed/yielded.
 */
 #define luai_userstateopen(L)        ((void)L)
@@ -666,22 +666,22 @@ struct LumenState;
 // MARK: Library String configuration
 
 /*
-@@ LUA_INTFRMLEN is the length modifier for integer conversions
+@@ LUA_INT_FMT_LEN is the length modifier for integer conversions
 @* in 'string.format'.
-@@ LUA_INTFRM_T is the integer type corresponding to the previous length
+@@ LUA_INT_FMT is the integer type corresponding to the previous length
 @* modifier.
 ** CHANGE them if your system supports `long long` or does not support long.
 */
 
 #if defined(LUA_USELONGLONG)
 
-#define LUA_INTFRMLEN		"ll"
-#define LUA_INTFRM_T		long long
+#define LUA_INT_FMT_LEN		"ll"
+#define LUA_INT_FMT		long long
 
 #else
 
-#define LUA_INTFRMLEN        "l"
-#define LUA_INTFRM_T        long
+#define LUA_INT_FMT_LEN        "l"
+#define LUA_INT_FMT        long
 
 #endif
 
@@ -700,13 +700,16 @@ struct LumenState;
 #define LUMEN_AUTHORS      "Jakit Liang"
 
 #define LUMEN_VERSION_MAJOR_N      1
-#define LUMEN_VERSION_MINOR_N      1
-#define LUMEN_VERSION_RELEASE_N    13
+#define LUMEN_VERSION_MINOR_N      0
+#define LUMEN_VERSION_RELEASE_N    0
 
-#define LUMEN_RELEASE  "Lumen " \
+#define LUMEN_RELEASE  "Light " \
 LUA_TO_STRING(LUMEN_VERSION_MAJOR_N) "." \
 LUA_TO_STRING(LUMEN_VERSION_MINOR_N) "." \
 LUA_TO_STRING(LUMEN_VERSION_RELEASE_N)
+
+#define LUA_VERSION    "Lua 5.1"
+#define LUA_RELEASE    "Lua 5.1.5"
 
 /*
 ** Local configuration. You can use this space to add your redefinitions

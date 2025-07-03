@@ -59,14 +59,14 @@ LUA_C_END
 #else
 #define lua_readline(L, b, p)    \
     ((void)L, fputs(p, stdout), fflush(stdout),  /* show prompt */ \
-    fgets(b, LUA_MAXINPUT, stdin) != nullptr)  /* get line */
+    fgets(b, LUA_MAX_INPUT, stdin) != nullptr)  /* get line */
 #define lua_saveline(L, idx)    do { (void)L; (void)idx; } while (0)
 #define lua_freeline(L, b)    do { (void)L; (void)b; } while (0)
 #endif
 
 static lua_State *globalL = nullptr;
 
-static const char *programName = LUA_PROGNAME;
+static const char *programName = LUA_PROGRAM_NAME;
 
 
 static void luaStop(lua_State *L, lua_Debug *ar) {
@@ -218,7 +218,7 @@ static int inComplete(lua_State *L, int status) {
 
 
 static int pushLine(lua_State *L, int firstLine) {
-    char buffer[LUA_MAXINPUT];
+    char buffer[LUA_MAX_INPUT];
     char *b = buffer;
     size_t l;
     const char *prompt = getPrompt(L, firstLine);

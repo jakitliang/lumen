@@ -21,15 +21,13 @@
 #define LUA_SIGNATURE    "\033Lua"
 #endif
 
-struct LumenState;
-
 namespace Lua {
     using Byte = unsigned char;
     using Number = LUA_NUMBER;
     using Integer = LUA_INTEGER;
     using UInteger = LUA_UINTEGER;
 
-    using CState = LumenState;
+    using CState = struct lua_State;
 
     struct State;
 
@@ -281,7 +279,9 @@ namespace Lua {
 
         LPP_API void PushDelegate(Delegate invoke, int n = 0);
 
-        LPP_API void PushFunction(Function invoke, int n = 0);
+        inline void PushFunction(Function invoke, int n = 0) {
+            PushDelegate(reinterpret_cast<Delegate>(invoke), n);
+        }
 
         LPP_API void PushBoolean(int b);
 
@@ -299,7 +299,7 @@ namespace Lua {
 
         LPP_API void RawGetAt(int idx, int n);
 
-        LPP_API void RawGetPtr(int idx, int n, const void *p);
+        LPP_API void RawGetPtr(int idx, const void *p);
 
         LPP_API void CreateTable(int nArray, int nRec);
 
@@ -319,7 +319,7 @@ namespace Lua {
 
         LPP_API void RawSetAt(int idx, int n);
 
-        LPP_API void RawSetPtr(int idx, int n, const void *p);
+        LPP_API void RawSetPtr(int idx, const void *p);
 
         LPP_API bool SetMetatable(int objIndex);
 
@@ -658,6 +658,9 @@ namespace Lua {
 
         LPP_API static Buffer *Get();
     };
+
+    template<typename T>
+    int Open(State *L);
 
     State *Open();
 

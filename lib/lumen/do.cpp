@@ -16,14 +16,13 @@
 
 #include "lumen/debug.h"
 #include "lumen/do.h"
-#include "lumen/gc.h"
 #include "lumen/memory.h"
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/opcodes.h"
 #include "lumen/parser.h"
 #include "lumen/state.h"
 #include "lumen/string.h"
-#include "lumen/table.h"
 #include "lumen/tm.h"
 #include "lumen/undump.h"
 #include "lumen/vm.h"
@@ -39,7 +38,7 @@
 /* chain list of long jump buffers */
 struct Lumen::LongJump {
     Lumen::LongJump *Previous;
-    luai_jmpbuf b;
+    LUA_JUMP_BUFF b;
     volatile int Status;  /* error code */
 };
 
@@ -66,10 +65,10 @@ void Lumen::Do::SetErrorObject(Lumen::State *L, int errcode, Lumen::Value oldTop
 
 static inline void restoreStackLimit(Lumen::State *L) {
     LumenAssert(L->StackLast - L->Stack == L->StackCount - Lumen::ExtraStack - 1);
-    if (L->BaseCICount > LUAI_MAXCALLS) {  /* there was an overflow? */
+    if (L->BaseCICount > LUA_MAX_CALLS) {  /* there was an overflow? */
         int inuse = cast_int(L->CallInfo - L->BaseCI);
-        if (inuse + 1 < LUAI_MAXCALLS)  /* can `undo' overflow? */
-            Lumen::Do::ReAllocCI(L, LUAI_MAXCALLS);
+        if (inuse + 1 < LUA_MAX_CALLS)  /* can `undo' overflow? */
+            Lumen::Do::ReAllocCI(L, LUA_MAX_CALLS);
     }
 }
 
@@ -90,7 +89,7 @@ static void resetStack(Lumen::State *L, int status) {
 void Lumen::Do::Throw(Lumen::State *L, int errcode) {
     if (L->ErrorJmp) {
         L->ErrorJmp->Status = errcode;
-        LUAI_THROW(L, L->ErrorJmp);
+        LUA_THROW(L, L->ErrorJmp);
     } else {
         L->Status = cast_byte(errcode);
         if (LumenGlobalState(L)->Panic) {
@@ -108,7 +107,7 @@ int Lumen::Do::RawRunProtected(Lumen::State *L, Lumen::Do::PFunc f, void *ud) {
     lj.Status = 0;
     lj.Previous = L->ErrorJmp;  /* chain new error handler */
     L->ErrorJmp = &lj;
-    LUAI_TRY(L, &lj,
+    LUA_TRY(L, &lj,
              (*f)(L, ud);
     )
     L->ErrorJmp = lj.Previous;  /* restore old error handler */
@@ -123,7 +122,7 @@ static void correctStack(Lumen::State *L, Lumen::Object *oldStack) {
     Lumen::GCObject *up;
     L->Top = (L->Top - oldStack) + L->Stack;
     for (up = L->OpenedUpValue; up != nullptr; up = up->AsObject.GCNext)
-        LumenGCObject2UpValue(up)->SelfValue = (LumenGCObject2UpValue(up)->SelfValue - oldStack) + L->Stack;
+        up->ToUpValue()->SelfValue = (up->ToUpValue()->SelfValue - oldStack) + L->Stack;
     for (ci = L->BaseCI; ci <= L->CallInfo; ci++) {
         ci->Top = (ci->Top - oldStack) + L->Stack;
         ci->Base = (ci->Base - oldStack) + L->Stack;
@@ -162,11 +161,11 @@ void Lumen::Do::GrowStack(Lumen::State *L, int n) {
 
 
 static Lumen::CallInfo *growCI(Lumen::State *L) {
-    if (L->BaseCICount > LUAI_MAXCALLS)  /* overflow while handling overflow? */
+    if (L->BaseCICount > LUA_MAX_CALLS)  /* overflow while handling overflow? */
         Lumen::Do::Throw(L, Lumen::RetErr);
     else {
         Lumen::Do::ReAllocCI(L, 2 * L->BaseCICount);
-        if (L->BaseCICount > LUAI_MAXCALLS)
+        if (L->BaseCICount > LUA_MAX_CALLS)
             Lumen::Debug::RunError(L, "stack overflow");
     }
     return ++L->CallInfo;
@@ -206,18 +205,18 @@ static Lumen::Value adjustVarargs(Lumen::State *L, Lumen::Proto *p, int actual) 
     Lumen::Table *hashTable = nullptr;
     Lumen::Value base, fixed;
     for (; actual < nFixArgs; ++actual)
-        LumenSetNilValue(L->Top++);
+        (L->Top++)->SetNil();
 #if defined(LUA_COMPAT_VARARG)
     if (p->IsVararg & Lumen::Proto::VarargIsNeedsArg) { /* compat. with old-style vararg? */
         int nVar = actual - nFixArgs;  /* number of extra arguments */
         LumenAssert(p->IsVararg & Lumen::Proto::VarargHasArg);
-        LumenGCCheckGC(L);
+        L->CheckGC();
         LumenDoCheckStack(L, p->MaxStackSize);
-        hashTable = Lumen::Table::New(L, nVar, 1);  /* create `arg' table */
-        for (i = 0; i < nVar; i++)  /* put extra arguments into `arg' table */
+        hashTable = Lumen::Table::New(L, nVar, 1);  /* create `arg` table */
+        for (i = 0; i < nVar; i++)  /* put extra arguments into `arg` table */
             LumenSetObject2N (L, Lumen::Table::SetNum(L, hashTable, i + 1), L->Top - nVar + i);
         /* store counter in field `n' */
-        LumenSetNumberValue(Lumen::Table::SetString(L, hashTable, LumenStringNewLiteral(L, "n")), cast_num(nVar));
+        Lumen::Table::SetString(L, hashTable, LumenStringNewLiteral(L, "n"))->SetNumber(cast_num(nVar));
     }
 #endif
     /* move fixed parameters to final position */
@@ -225,12 +224,12 @@ static Lumen::Value adjustVarargs(Lumen::State *L, Lumen::Proto *p, int actual) 
     base = L->Top;  /* final position of first argument */
     for (i = 0; i < nFixArgs; i++) {
         LumenSetObjectS2S(L, L->Top++, fixed + i);
-        LumenSetNilValue(fixed + i);
+        (fixed + i)->SetNil();
     }
     /* add `arg' parameter */
     if (hashTable) {
-        LumenSetTableValue(L, L->Top++, hashTable);
-        LumenAssert(LumenGCIsWhite(LumenObject2GCObject(hashTable)));
+        (L->Top++)->SetTable(L, hashTable);
+        LumenAssert(LumenObject2GCObject(hashTable)->IsWhite());
     }
     return base;
 }
@@ -240,7 +239,7 @@ static Lumen::Value tryFuncTM(Lumen::State *L, Lumen::Value func) {
     const Lumen::Object *tm = Lumen::TM::GetByObject(L, func, Lumen::TM::NameCall);
     Lumen::Value p;
     Lumen::Integer funcR = LumenSaveStack(L, func);
-    if (!LumenTypeIsFunction(tm))
+    if (!tm->IsFunction())
         Lumen::Debug::TypeError(L, func, "call");
     /* Open a hole inside the stack at `func' */
     for (p = L->Top; p > func; p--) LumenSetObjectS2S (L, p, p - 1);
@@ -259,10 +258,10 @@ static Lumen::Value tryFuncTM(Lumen::State *L, Lumen::Value func) {
 int Lumen::Do::PreCall(Lumen::State *L, Lumen::Value func, int nResults) {
     Lumen::LClosure *cl;
     Lumen::Integer funcR;
-    if (!LumenTypeIsFunction(func)) /* `func` is not a function? */
+    if (!func->IsFunction()) /* `func` is not a function? */
         func = tryFuncTM(L, func);  /* check the `function` tag method */
     funcR = LumenSaveStack(L, func);
-    cl = &LumenClosureValue(func)->AsLua;
+    cl = &func->GetClosure()->AsLua;
     L->CallInfo->SavedPC = L->SavedPC;
     if (!cl->IsC) {  /* Lua function? prepare its call */
         Lumen::CallInfo *ci;
@@ -289,7 +288,7 @@ int Lumen::Do::PreCall(Lumen::State *L, Lumen::Value func, int nResults) {
         ci->NTailCalls = 0;
         ci->NResults = nResults;
         for (st = L->Top; st < ci->Top; st++)
-            LumenSetNilValue(st);
+            st->SetNil();
         L->Top = ci->Top;
         if (L->HookMask & Lumen::HookMaskCall) {
             L->SavedPC++;  /* hooks assume 'pc' is already incremented */
@@ -310,7 +309,7 @@ int Lumen::Do::PreCall(Lumen::State *L, Lumen::Value func, int nResults) {
         if (L->HookMask & Lumen::HookMaskCall)
             Lumen::Do::CallHook(L, Lumen::HookCall, -1);
         LumenUnlock(L);
-        n = (*LumenCurFunc(L)->AsC.Func)(L);  /* do the actual call */
+        n = (*L->GetCurrentFunction()->AsC.Func)(L);  /* do the actual call */
         LumenLock(L);
         if (n < 0)  /* yielding? */
             return Lumen::Do::PCRetYield;
@@ -324,7 +323,7 @@ int Lumen::Do::PreCall(Lumen::State *L, Lumen::Value func, int nResults) {
 static Lumen::Value callRetHooks(Lumen::State *L, Lumen::Value firstResult) {
     Lumen::Integer fr = LumenSaveStack(L, firstResult);  /* next call may change stack */
     Lumen::Do::CallHook(L, Lumen::HookRet, -1);
-    if (LumenCIFuncIsLua(L->CallInfo)) {  /* Lua function? */
+    if (L->CallInfo->IsLuaFunction()) {  /* Lua function? */
         while ((L->HookMask & Lumen::HookMaskRet) && L->CallInfo->NTailCalls--) /* tail calls */
             Lumen::Do::CallHook(L, Lumen::HookTailRet, -1);
     }
@@ -346,7 +345,7 @@ int Lumen::Do::PosCall(Lumen::State *L, Lumen::Value firstResult) {
     for (i = wanted; i != 0 && firstResult < L->Top; i--)
         LumenSetObjectS2S (L, res++, firstResult++);
     while (i-- > 0)
-        LumenSetNilValue(res++);
+        (res++)->SetNil();
     L->Top = res;
     return (wanted - Lumen::RetMul);  /* 0 iff wanted == Lumen::RetMul */
 }
@@ -358,16 +357,16 @@ int Lumen::Do::PosCall(Lumen::State *L, Lumen::Value firstResult) {
 ** function position.
 */
 void Lumen::Do::Call(Lumen::State *L, Lumen::Value func, int nResults) {
-    if (++L->NCCalls >= LUAI_MAXCCALLS) {
-        if (L->NCCalls == LUAI_MAXCCALLS)
+    if (++L->NCCalls >= LUA_MAX_C_CALLS) {
+        if (L->NCCalls == LUA_MAX_C_CALLS)
             Lumen::Debug::RunError(L, "C stack overflow");
-        else if (L->NCCalls >= (LUAI_MAXCCALLS + (LUAI_MAXCCALLS >> 3)))
+        else if (L->NCCalls >= (LUA_MAX_C_CALLS + (LUA_MAX_C_CALLS >> 3)))
             Lumen::Do::Throw(L, Lumen::RetErr);  /* error while handing stack error */
     }
     if (Lumen::Do::PreCall(L, func, nResults) == Lumen::Do::PCRetLua)  /* is a Lua function? */
         Lumen::VM::Execute(L, 1);  /* call it */
     L->NCCalls--;
-    LumenGCCheckGC(L);
+    L->CheckGC();
 }
 
 void Lumen::Do::Resume(Lumen::State *L, void *ud) {
@@ -380,10 +379,10 @@ void Lumen::Do::Resume(Lumen::State *L, void *ud) {
     } else {  /* resuming from previous yield */
         LumenAssert(L->Status == Lumen::RetYield);
         L->Status = 0;
-        if (!LumenCIFuncIsLua(ci)) {  /* `common' yield? */
+        if (!ci->IsLuaFunction()) {  /* `common' yield? */
             /* finish interrupted execution of `Lumen::OpCodeCall' */
             LumenAssert(LumenOpCodeGet(*((ci - 1)->SavedPC - 1)) == Lumen::OpCodeCall ||
-                       LumenOpCodeGet(*((ci - 1)->SavedPC - 1)) == Lumen::OpCodeTailCall);
+                        LumenOpCodeGet(*((ci - 1)->SavedPC - 1)) == Lumen::OpCodeTailCall);
             if (Lumen::Do::PosCall(L, firstArg))  /* complete it... */
                 L->Top = L->CallInfo->Top;  /* and correct top if not multiple results */
         } else  /* yielded inside a hook: just continue its execution */
@@ -401,7 +400,7 @@ int Lumen::Do::ResumeError(Lumen::State *L, const char *msg) {
 }
 
 int Lumen::Do::PCall(Lumen::State *L, Lumen::Do::PFunc func, void *u,
-                   Lumen::Integer old_top, Lumen::Integer ef) {
+                     Lumen::Integer old_top, Lumen::Integer ef) {
     int status;
     unsigned short oldNCCalls = L->NCCalls;
     Lumen::Integer old_ci = LumenSaveCI(L, L->CallInfo);
@@ -430,14 +429,14 @@ static void funcParser(Lumen::State *L, void *ud) {
     Lumen::Closure *cl;
     struct Lumen::Parser *p = cast(struct Lumen::Parser *, ud);
     int c = Lumen::ZIO::LookAhead(p->z);
-    LumenGCCheckGC(L);
+    L->CheckGC();
     tf = ((c == LUA_SIGNATURE[0]) ? Lumen::Dumper::UnDump : Lumen::Parser::Parse)(L, p->z,
-                                                                              &p->buff, p->name);
-    cl = Lumen::LClosure::New(L, tf->NUpValues, LumenTableValue(LumenGlobalTable(L)));
+                                                                                  &p->buff, p->name);
+    cl = Lumen::LClosure::New(L, tf->NUpValues, LumenGlobalTable(L)->GetTable());
     cl->AsLua.Func = tf;
     for (i = 0; i < tf->NUpValues; i++)  /* initialize eventual upValues */
         cl->AsLua.UpValues[i] = Lumen::UpValue::New(L);
-    LumenSetClosureValue(L, L->Top, cl);
+    L->Top->SetClosure(L, cl);
     LumenIncrTop(L);
 }
 

@@ -13,9 +13,9 @@
 #define LUA_CORE
 
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/state.h"
 #include "lumen/string.h"
-#include "lumen/table.h"
 #include "lumen/tm.h"
 
 
@@ -43,15 +43,15 @@ void Lumen::TM::Init(Lumen::State *L) {
 
 const Lumen::Object *Lumen::TM::GetByObject(Lumen::State *L, const Lumen::Object *o, Lumen::TM::Name event) {
     Lumen::Table *mt;
-    switch (LumenTypeOf(o)) {
+    switch (o->Type) {
         case Lumen::TypeTable:
-            mt = LumenTableValue(o)->Metatable;
+            mt = o->GetTable()->Metatable;
             break;
         case Lumen::TypeUserdata:
-            mt = LumenUDataValue(o)->Metatable;
+            mt = o->GetUData()->Metatable;
             break;
         default:
-            mt = LumenGlobalState(L)->Metatable[LumenTypeOf(o)];
+            mt = LumenGlobalState(L)->Metatable[(o)->Type];
     }
     return (mt ? Lumen::Table::GetString(mt, LumenGlobalState(L)->MetatableName[event]) : Lumen::NilObject);
 }

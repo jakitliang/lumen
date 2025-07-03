@@ -15,11 +15,12 @@
 #include "lumen/gc.h"
 #include "lumen/memory.h"
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/state.h"
 
 
 Lumen::Closure *Lumen::CClosure::New(Lumen::State *L, int nElements, Lumen::Table *e) {
-    Lumen::Closure *c = cast(Lumen::Closure *, LumenMemoryAlloc(L, LumenCClosureSize(nElements)));
+    Lumen::Closure *c = cast(Lumen::Closure *, LumenMemoryAlloc(L, Lumen::CClosure::SizeOf(nElements)));
     Lumen::GC::Link(L, LumenObject2GCObject(c), Lumen::TypeFunction);
     c->AsC.IsC = Lumen::BasicClosure::KindC;
     c->AsC.Env = e;
@@ -29,7 +30,7 @@ Lumen::Closure *Lumen::CClosure::New(Lumen::State *L, int nElements, Lumen::Tabl
 
 
 Lumen::Closure *Lumen::LClosure::New(Lumen::State *L, int nElements, Lumen::Table *e) {
-    Lumen::Closure *c = cast(Lumen::Closure *, LumenMemoryAlloc(L, LumenLClosureSize(nElements)));
+    Lumen::Closure *c = cast(Lumen::Closure *, LumenMemoryAlloc(L, Lumen::LClosure::SizeOf(nElements)));
     Lumen::GC::Link(L, LumenObject2GCObject(c), Lumen::TypeFunction);
     c->AsLua.IsC = Lumen::BasicClosure::KindLua;
     c->AsLua.Env = e;
@@ -43,7 +44,7 @@ Lumen::UpValue *Lumen::UpValue::New(Lumen::State *L) {
     Lumen::UpValue *uv = LumenMemoryNew(L, Lumen::UpValue);
     Lumen::GC::Link(L, LumenObject2GCObject(uv), Lumen::TypeUpValue);
     uv->SelfValue = &uv->Value;
-    LumenSetNilValue(uv->SelfValue);
+    uv->SelfValue->SetNil();
     return uv;
 }
 
@@ -53,18 +54,18 @@ Lumen::UpValue *Lumen::UpValue::Find(Lumen::State *L, Lumen::Value level) {
     Lumen::GCObject **pp = &L->OpenedUpValue;
     Lumen::UpValue *p;
     Lumen::UpValue *uv;
-    while (*pp != nullptr && (p = LumenNullGCObject2UpValue(*pp))->SelfValue >= level) {
+    while (*pp != nullptr && (p = Lumen::GCObject::ToNullableUpValue(*pp))->SelfValue >= level) {
         LumenAssert(p->SelfValue != &p->Value);
         if (p->SelfValue == level) {  /* found a corresponding upvalue? */
-            if (LumenGCIsDead(g, LumenObject2GCObject(p)))  /* is it dead? */
-                LumenGCChangeWhite(LumenObject2GCObject(p));  /* ressurect it */
+            if (g->IsDead(LumenObject2GCObject(p)))  /* is it dead? */
+                LumenObject2GCObject(p)->ChangeWhite();  /* ressurect it */
             return p;
         }
         pp = &p->GCNext;
     }
     uv = LumenMemoryNew(L, Lumen::UpValue);  /* not found: create a new one */
     uv->Type = Lumen::TypeUpValue;
-    uv->Marked = LumenGCWhite(g);
+    uv->Marked = g->GetWhite();
     uv->SelfValue = level;  /* current value lives in the stack */
     uv->GCNext = *pp;  /* chain it in the proper position */
     *pp = LumenObject2GCObject(uv);
@@ -94,15 +95,16 @@ void Lumen::UpValue::Free(Lumen::State *L, Lumen::UpValue *uv) {
 void Lumen::UpValue::Close(Lumen::State *L, Lumen::Value level) {
     Lumen::UpValue *uv;
     Lumen::GlobalState *g = LumenGlobalState(L);
-    while (L->OpenedUpValue != nullptr && (uv = LumenNullGCObject2UpValue(L->OpenedUpValue))->SelfValue >= level) {
+    while (L->OpenedUpValue != nullptr
+           && (uv = Lumen::GCObject::ToNullableUpValue(L->OpenedUpValue))->SelfValue >= level) {
         Lumen::GCObject *o = LumenObject2GCObject(uv);
-        LumenAssert(!LumenGCIsBlack(o) && uv->SelfValue != &uv->Value);
+        LumenAssert(!o->IsBlack() && uv->SelfValue != &uv->Value);
         L->OpenedUpValue = uv->GCNext;  /* remove from `open' list */
-        if (LumenGCIsDead(g, o))
+        if (g->IsDead(o))
             Lumen::UpValue::Free(L, uv);  /* free upvalue */
         else {
             unlinkUpValue(uv);
-            LumenSetObject(L, &uv->Value, uv->SelfValue);
+            (&uv->Value)->SetObject(L, uv->SelfValue);
             uv->SelfValue = &uv->Value;  /* now current value lives here */
             Lumen::GC::LinkUpValue(L, uv);  /* link upvalue into `gcroot' list */
         }
@@ -148,7 +150,7 @@ void Lumen::Proto::Free(Lumen::State *L, Lumen::Proto *f) {
 
 
 void Lumen::Closure::Free(Lumen::State *L, Lumen::Closure *c) {
-    int size = (c->AsC.IsC) ? LumenCClosureSize(c->AsC.NUpValues) : LumenLClosureSize(c->AsLua.NUpValues);
+    int size = c->Size();
     LumenMemoryFreeMemory(L, c, size);
 }
 
@@ -163,7 +165,7 @@ const char *Lumen::Proto::GetLocalName(const Lumen::Proto *f, int local_number, 
         if (pc < f->LocalVars[i].EndPC) {  /* is variable active? */
             local_number--;
             if (local_number == 0)
-                return LumenStringCString(f->LocalVars[i].VarName);
+                return f->LocalVars[i].VarName->CString();
         }
     }
     return nullptr;  /* not found */

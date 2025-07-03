@@ -22,6 +22,6 @@
 #define LumenStringNewLiteral(L, s) \
     (Lumen::String::New(L, "" s, (sizeof(s)/sizeof(char))-1))
 
-#define LumenStringFix(s)    LumenGCLSetBit((s)->Marked, Lumen::GC::MarkFixedBit)
+#define LumenStringFix(s)    Lumen::GC::LSetBit((s)->Marked, Lumen::GC::MarkFixedBit)
 
 #endif

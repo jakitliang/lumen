@@ -13,14 +13,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cstdint>
 
 #define LUA_CORE
 
 #include "lumen/do.h"
-#include "lumen/memory.h"
 #include "lumen/object.h"
+#include "lumen/common.inl"
 #include "lumen/state.h"
-#include "lumen/string.h"
 #include "lumen/vm.h"
 
 
@@ -48,19 +48,19 @@ int Lumen::Log2(unsigned int x) {
 Lumen::Number Lumen::Arith(Lumen::ArithOp op, Lumen::Number v1, Lumen::Number v2) {
     switch (op) {
         case Lumen::ArithOpAdd:
-            return luai_numadd(v1, v2);
+            return LumenNumAdd(v1, v2);
         case Lumen::ArithOpSub:
-            return luai_numsub(v1, v2);
+            return LumenNumSub(v1, v2);
         case Lumen::ArithOpMul:
-            return luai_nummul(v1, v2);
+            return LumenNumMul(v1, v2);
         case Lumen::ArithOpDiv:
-            return luai_numdiv(v1, v2);
+            return LumenNumDiv(v1, v2);
         case Lumen::ArithOpMod:
-            return luai_nummod(v1, v2);
+            return LumenNumMod(v1, v2);
         case Lumen::ArithOpPow:
-            return luai_numpow(v1, v2);
+            return LumenNumPow(v1, v2);
         case Lumen::ArithOpUnm:
-            return luai_numunm(v1);
+            return LumenNumUnm(v1);
         default:
             LumenAssert(0);
             return 0;
@@ -75,6 +75,41 @@ static void pushCString(Lumen::State *L, const char *str) {
 static void pushCString(Lumen::State *L, const char *str, Lumen::UInteger length) {
     LumenSetStringValue2S(L, L->Top, Lumen::String::New(L, str, length));
     LumenIncrTop(L);
+}
+
+static const char *formatPointer(const void *ptr, char *buffer) {
+    auto value = reinterpret_cast<uintptr_t>(ptr);
+
+    if (value == 0) {
+        buffer[0] = 'N';
+        buffer[1] = 'U';
+        buffer[2] = 'L';
+        buffer[3] = 'L';
+        buffer[4] = '\0';
+        return buffer;
+    }
+
+    // Prefix 0x
+    char *p = buffer;
+    *p++ = '0';
+    *p++ = 'x';
+
+    // 16bit + '\0'
+    static constexpr char hex[] = "0123456789abcdef";
+    char digits[2 * sizeof(void *)];
+    int len = 0;
+
+    while (value) {
+        digits[len++] = hex[value & 0xF];
+        value >>= 4;
+    }
+
+    // Reverse
+    for (int i = len - 1; i >= 0; --i)
+        *p++ = digits[i];
+    *p = '\0';
+
+    return buffer;
 }
 
 // this function handles only `%d`, `%c`, %f, %p, and `%s` formats
@@ -101,18 +136,19 @@ const char *Lumen::PushVFString(Lumen::State *L, const char *fmt, va_list argP) 
                 break;
             }
             case 'd': {
-                LumenSetNumberValue(L->Top, cast_num(va_arg(argP, int)));
+                L->Top->SetNumber(cast_num(va_arg(argP, int)));
                 LumenIncrTop(L);
                 break;
             }
             case 'f': {
-                LumenSetNumberValue(L->Top, cast_num(va_arg(argP, Lumen::UACNumber)));
+                L->Top->SetNumber(cast_num(va_arg(argP, Lumen::UACNumber)));
                 LumenIncrTop(L);
                 break;
             }
             case 'p': {
                 char buff[4 * sizeof(void *) + 8]; /* should be enough space for a `%p` */
-                sprintf(buff, "%p", va_arg(argP, void *));
+//                sprintf(buff, "%p", va_arg(argP, void *));
+                formatPointer(va_arg(argP, void *), buff);
                 pushCString(L, buff);
                 break;
             }
@@ -141,7 +177,7 @@ const char *Lumen::PushVFString(Lumen::State *L, const char *fmt, va_list argP) 
     pushCString(L, fmt);
     Lumen::VM::Concat(L, n + 1, cast_int(L->Top - L->Base) - 1);
     L->Top -= n;
-    return LumenStringValue2CString(L->Top - 1);
+    return (L->Top - 1)->ToCString();
 }
 
 
@@ -188,8 +224,8 @@ void Lumen::ChunkId(char *out, const char *source, Lumen::UInteger buffLen) {
 
 const char *Lumen::Object::GetUpValueInfo(int n, Lumen::Object **val) {
     Lumen::Closure *f;
-    if (!LumenTypeIsFunction(this)) return nullptr;
-    f = LumenClosureValue(this);
+    if (!IsFunction()) return nullptr;
+    f = GetClosure();
     if (f->AsC.IsC) {
         if (!(1 <= n && n <= f->AsC.NUpValues)) return nullptr;
         *val = &f->AsC.UpValues[n - 1];
@@ -198,6 +234,6 @@ const char *Lumen::Object::GetUpValueInfo(int n, Lumen::Object **val) {
         Lumen::Proto *p = f->AsLua.Func;
         if (!(1 <= n && n <= p->UpValuesCount)) return nullptr;
         *val = f->AsLua.UpValues[n - 1]->SelfValue;
-        return LumenStringCString(p->UpValues[n - 1]);
+        return p->UpValues[n - 1]->CString();
     }
 }

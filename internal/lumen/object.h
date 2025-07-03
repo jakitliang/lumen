@@ -44,12 +44,110 @@ namespace Lumen {
         Lumen::GCObject *GCNext;
     };
 
+    /**
+     * Union of all Lua values
+     */
+    union Variant {
+        Lumen::GCObject *gc;
+        void *p;
+        Lumen::Number n;
+        int b;
+    };
+
+    struct String;
+
+    struct Userdata;
+
+    struct Closure;
+
+    struct LClosure;
+
+    struct CClosure;
+
+    struct Table;
+
+    struct Proto;
+
+    struct Object : TypeInfo {
+        Variant value;
+
+        const char *GetUpValueInfo(int n, Lumen::Object **val);
+
+        bool IsFalse() const; // NOLINT
+
+        bool IsCollectable() const; // NOLINT
+
+        bool IsCFunction() const; // NOLINT
+
+        bool IsLFunction() const; // NOLINT
+
+        bool IsWhite() const; // NOLINT
+
+        GCObject *GetGCObject() const; // NOLINT
+
+        void *GetLUData() const; // NOLINT
+
+        Lumen::Number GetNumber() const; // NOLINT
+
+        String *GetString() const; // NOLINT
+
+        Userdata *GetUData() const; // NOLINT
+
+        Closure *GetClosure() const; // NOLINT
+
+        LClosure *GetLClosure() const; // NOLINT
+
+        CClosure *GetCClosure() const; // NOLINT
+
+        Table *GetTable() const; // NOLINT
+
+        int GetBool() const; // NOLINT
+
+        Lumen::State *GetThread() const; // NOLINT
+
+        void SetType(Lumen::Type t);
+
+        void SetNil();
+
+        void SetNumber(Lumen::Number x);
+
+        void SetLUData(void *x);
+
+        void SetBool(int x);
+
+        void SetString(Lumen::State *L, String *x);
+
+        void SetUData(Lumen::State *L, Userdata *x);
+
+        void SetThread(Lumen::State *L, Lumen::State *x);
+
+        void SetClosure(Lumen::State *L, Closure *x);
+
+        void SetTable(Lumen::State *L, Table *x);
+
+        void SetProto(Lumen::State *L, Proto *x);
+
+        void SetObject(Lumen::State *L, const Object *other);
+
+        char *ToCString() const; // NOLINT
+    };
+
+    /**
+     * Value is a pointer to Object
+     * and index to stack elements
+     */
+    typedef Lumen::Object *Value;
+
     struct String : BasicObject {
         Lumen::Byte Reserved;
         unsigned int Hash;
         Lumen::UInteger Length;
 
         void Intern(Lumen::State *L);
+
+        char *CString();
+
+        const char *CString() const; // NOLINT
 
         static void Resize(Lumen::State *L, int newSize);
 
@@ -198,11 +296,11 @@ namespace Lumen {
         Lumen::Table *Env;
     };
 
-    struct Closure;
-
     struct CClosure : Lumen::BasicClosure {
         Lumen::Delegate Func;
         Lumen::Object UpValues[1];
+
+        static Lumen::UInteger SizeOf(Lumen::UInteger nUpValues);
 
         static Lumen::Closure *New(Lumen::State *L, int nElements, Lumen::Table *e);
     };
@@ -211,14 +309,19 @@ namespace Lumen {
         Lumen::Proto *Func;
         Lumen::UpValue *UpValues[1];
 
+        static Lumen::UInteger SizeOf(Lumen::UInteger nUpValues);
+
         static Lumen::Closure *New(Lumen::State *L, int nElements, Lumen::Table *e);
     };
 
     struct Closure {
         union {
+            Lumen::BasicClosure Basic;
             Lumen::CClosure AsC;
             Lumen::LClosure AsLua;
         };
+
+        int Size() const; // NOLINT
 
         static void Free(Lumen::State *L, Lumen::Closure *c);
     };
@@ -254,148 +357,34 @@ namespace Lumen {
     inline const Lumen::Object *NilObject = &NilValue;
 }
 
-
-/* Macros to test type */
-#define LumenTypeOf(o)    (o)->Type
-#define LumenTypeIsNil(o)    (LumenTypeOf(o) == Lumen::TypeNil)
-#define LumenTypeIsNumber(o)    (LumenTypeOf(o) == Lumen::TypeNumber)
-#define LumenTypeIsString(o)    (LumenTypeOf(o) == Lumen::TypeString)
-#define LumenTypeIsTable(o)    (LumenTypeOf(o) == Lumen::TypeTable)
-#define LumenTypeIsFunction(o)    (LumenTypeOf(o) == Lumen::TypeFunction)
-#define LumenTypeIsBoolean(o)    (LumenTypeOf(o) == Lumen::TypeBool)
-#define LumenTypeIsUData(o)    (LumenTypeOf(o) == Lumen::TypeUserdata)
-#define LumenTypeIsThread(o)    (LumenTypeOf(o) == Lumen::TypeThread)
-#define LumenTypeIsLUData(o)    (LumenTypeOf(o) == Lumen::TypeLightUserdata)
-#define LumenTypeIsEqual(o1, o2)    (LumenTypeOf(o1) == LumenTypeOf(o2))
-
-/* Macros to access values */
-#define LumenGCValue(o)    LumenCheckExp(LumenIsCollectable(o), (o)->value.gc)
-#define LumenLUDataValue(o)    LumenCheckExp(LumenTypeIsLUData(o), (o)->value.p)
-#define LumenNumberValue(o)    LumenCheckExp(LumenTypeIsNumber(o), (o)->value.n)
-#define LumenStringValue(o)    LumenCheckExp(LumenTypeIsString(o), &(o)->value.gc->AsString)
-#define LumenUDataValue(o)    LumenCheckExp(LumenTypeIsUData(o), &(o)->value.gc->AsUserdata)
-#define LumenClosureValue(o)    LumenCheckExp(LumenTypeIsFunction(o), &(o)->value.gc->AsClosure)
-#define LumenLClosureValue(o)    LumenCheckExp(LumenTypeIsFunction(o), &(o)->value.gc->AsClosure.AsLua)
-#define LumenCClosureValue(o)    LumenCheckExp(LumenTypeIsFunction(o), &(o)->value.gc->AsClosure.AsC)
-#define LumenTableValue(o)    LumenCheckExp(LumenTypeIsTable(o), &(o)->value.gc->AsTable)
-#define LumenBoolValue(o)    LumenCheckExp(LumenTypeIsBoolean(o), (o)->value.b)
-#define LumenThreadValue(o)    LumenCheckExp(LumenTypeIsThread(o), &(o)->value.gc->AsThread)
-
-#define LumenIsFalse(o)    (LumenTypeIsNil(o) || (LumenTypeIsBoolean(o) && LumenBoolValue(o) == 0))
-#define LumenIsCollectable(o)    (LumenTypeOf(o) >= Lumen::TypeString)
-
 /*
 ** for internal debug only
 */
 #define LumenCheckConsistency(obj) \
-LumenAssert(!LumenIsCollectable(obj) || (LumenTypeOf(obj) == (obj)->value.gc->AsObject.Type))
+LumenAssert(!(obj)->IsCollectable() || ((obj)->Type == (obj)->value.gc->AsObject.Type))
 
 #define LumenCheckLiveness(g, obj) \
-LumenAssert(!LumenIsCollectable(obj) || \
-    ((LumenTypeOf(obj) == (obj)->value.gc->AsObject.Type) && !LumenGCIsDead(g, (obj)->value.gc)))
-
-
-/* Macros to set values */
-#define LumenSetNilValue(obj) ((obj)->Type=Lumen::TypeNil)
-
-#define LumenSetNumberValue(obj, x) \
-LumenDo( Lumen::Object *i_o=(obj); i_o->value.n=(x); i_o->Type=Lumen::TypeNumber; )
-
-#define LumenSetLUDataValue(obj, x) \
-LumenDo( Lumen::Object *i_o=(obj); i_o->value.p=(x); i_o->Type=Lumen::TypeLightUserdata; )
-
-#define LumenSetBoolValue(obj, x) \
-LumenDo( Lumen::Object *i_o=(obj); i_o->value.b=(x); i_o->Type=Lumen::TypeBool; )
-
-#define LumenSetStringValue(L, obj, x) \
-LumenDo(                               \
-    Lumen::Object *i_o=(obj);           \
-    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeString; \
-    LumenCheckLiveness(LumenGlobalState(L), i_o);                              \
-)
-
-#define LumenSetUDataValue(L, obj, x) \
-LumenDo(                              \
-    Lumen::Object *i_o=(obj);          \
-    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeUserdata; \
-    LumenCheckLiveness(LumenGlobalState(L), i_o);                                \
-)
-
-#define LumenSetThreadValue(L, obj, x) \
-LumenDo(                               \
-    Lumen::Object *i_o=(obj);           \
-    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeThread; \
-    LumenCheckLiveness(LumenGlobalState(L), i_o);                              \
-)
-
-#define LumenSetClosureValue(L, obj, x) \
-LumenDo(                                \
-    Lumen::Object *i_o=(obj);            \
-    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeFunction; \
-    LumenCheckLiveness(LumenGlobalState(L), i_o);                                \
-)
-
-#define LumenSetTableValue(L, obj, x) \
-LumenDo(                              \
-    Lumen::Object *i_o=(obj);          \
-    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeTable; \
-    LumenCheckLiveness(LumenGlobalState(L), i_o);                             \
-)
-
-#define LumenSetProtoValue(L, obj, x) \
-LumenDo(                              \
-    Lumen::Object *i_o=(obj);          \
-    i_o->value.gc=cast(Lumen::GCObject *, (x)); i_o->Type=Lumen::TypeProto; \
-    LumenCheckLiveness(LumenGlobalState(L),i_o);                             \
-)
-
-#define LumenSetObject(L, obj1, obj2) \
-LumenDo(                              \
-    const Lumen::Object *i_o2=(obj2); \
-    Lumen::Object *i_o1=(obj1);       \
-    i_o1->value = i_o2->value;        \
-    i_o1->Type = i_o2->Type;          \
-    LumenCheckLiveness(LumenGlobalState(L), i_o1); \
-)
-
+LumenAssert(!(obj)->IsCollectable() || \
+    (((obj)->Type == (obj)->value.gc->AsObject.Type) && !(g)->IsDead((obj)->value.gc)))
 
 /*
 ** different types of sets, according to destination
 */
 
 /* from stack to (same) stack */
-#define LumenSetObjectS2S(L, obj1, obj2)    LumenSetObject(L, obj1, obj2)
+#define LumenSetObjectS2S(L, obj1, obj2)    (obj1)->SetObject(L, obj2)
 /* to stack (not from same stack) */
-#define LumenSetObject2S(L, obj1, obj2)    LumenSetObject(L, obj1, obj2)
-#define LumenSetStringValue2S(L, obj, x)    LumenSetStringValue(L, obj, x)
-#define LumenSetTableValue2S(L, obj, x)    LumenSetTableValue(L, obj, x)
-#define LumenSetProtoValue2S(L, obj, x)    LumenSetProtoValue(L, obj, x)
+#define LumenSetObject2S(L, obj1, obj2)    (obj1)->SetObject(L, obj2)
+#define LumenSetStringValue2S(L, obj, x)   (obj)->SetString(L, x)
+#define LumenSetTableValue2S(L, obj, x)    (obj)->SetTable(L, x)
+#define LumenSetProtoValue2S(L, obj, x)    (obj)->SetProto(L, x)
 /* from table to same table */
-#define LumenSetObjectT2T(L, obj1, obj2)    LumenSetObject(L, obj1, obj2)
+#define LumenSetObjectT2T(L, obj1, obj2)   (obj1)->SetObject(L, obj2)
 /* to table */
-#define LumenSetObject2T(L, obj1, obj2)    LumenSetObject(L, obj1, obj2)
+#define LumenSetObject2T(L, obj1, obj2)    (obj1)->SetObject(L, obj2)
 /* to new object */
-#define LumenSetObject2N(L, obj1, obj2)    LumenSetObject(L, obj1, obj2)
-#define LumenSetStringValue2N(L, obj, x)    LumenSetStringValue(L, obj, x)
-
-#define LumenSetType(obj, Type) (LumenTypeOf(obj) = (Type))
-
-
-// String helpers
-
-#define LumenStringCString(ts)         cast(const char *, (ts) + 1)
-#define LumenStringValue2CString(o)    LumenStringCString(LumenStringValue(o))
-
-// Closure helpers
-
-#define LumenIsCFunction(o)    (LumenTypeOf(o) == Lumen::TypeFunction && LumenClosureValue(o)->AsC.IsC)
-#define LumenIsLFunction(o)    (LumenTypeOf(o) == Lumen::TypeFunction && !LumenClosureValue(o)->AsC.IsC)
-
-#define LumenCClosureSize(n)    (cast(int, sizeof(Lumen::CClosure)) + \
-                         cast(int, sizeof(Lumen::Object) * ((n) - 1)))
-
-#define LumenLClosureSize(n)    (cast(int, sizeof(Lumen::LClosure)) + \
-                         cast(int, sizeof(Lumen::Object *) * ((n) - 1)))
+#define LumenSetObject2N(L, obj1, obj2)    (obj1)->SetObject(L, obj2)
+#define LumenSetStringValue2N(L, obj, x)   (obj)->SetString(L, x)
 
 // Other helpers
 
@@ -409,68 +398,6 @@ LumenDo(                              \
 #define LumenTableNodeCount(t)    (LumenTableTwoTo((t)->NodeCount))
 
 #define LumenTableCeilLog2(x)    (Lumen::Log2((x) - 1) + 1)
-
-inline int Lumen::Int2FB(unsigned int x) {
-    int e = 0;  /* exponent */
-    while (x >= 16) {
-        x = (x + 1) >> 1;
-        e++;
-    }
-    if (x < 8) return static_cast<int>(x);
-    else return ((e + 1) << 3) | (static_cast<int>(x) - 8);
-}
-
-inline int Lumen::FB2Int(int x) {
-    int e = (x >> 3) & 31;
-    if (e == 0) return x;
-    else return ((x & 7) + 8) << (e - 1);
-}
-
-inline int Lumen::RawEqualObject(const Lumen::Object *t1, const Lumen::Object *t2) {
-    if (LumenTypeOf(t1) != LumenTypeOf(t2)) return 0;
-    switch (LumenTypeOf(t1)) {
-        case Lumen::TypeNil:
-            return 1;
-        case Lumen::TypeNumber:
-            return LumenNumberValue(t1) == LumenNumberValue(t2);
-        case Lumen::TypeBool:
-            return LumenBoolValue(t1) == LumenBoolValue(t2);  /* boolean true must be 1 !! */
-        case Lumen::TypeLightUserdata:
-            return LumenLUDataValue(t1) == LumenLUDataValue(t2);
-        default:
-            LumenAssert(LumenIsCollectable(t1));
-            return LumenGCValue(t1) == LumenGCValue(t2);
-    }
-}
-
-inline int Lumen::String2Decimal(const char *s, Lumen::Number *result) {
-    char *endPtr;
-    *result = lua_str2number(s, &endPtr);
-    if (endPtr == s) return 0;  /* conversion failed */
-    if (*endPtr == 'x' || *endPtr == 'X')  /* maybe an hexadecimal constant? */
-        *result = cast_num(strtoul(s, &endPtr, 16));
-    if (*endPtr == '\0') return 1;  /* most common case */
-    while (isspace(cast(unsigned char, *endPtr))) endPtr++;
-    if (*endPtr != '\0') return 0;  /* invalid trailing characters? */
-    return 1;
-}
-
-inline int Lumen::Utf8Esc(char *buff, unsigned long x) {
-    int n = 1;  /* number of bytes put in buffer (backwards) */
-    LumenAssert(x <= 0x7FFFFFFFu);
-    if (x < 0x80)  /* ascii? */
-        buff[Lumen::UTF8BufferSize - 1] = cast_char(x);
-    else {  /* need continuation bytes */
-        unsigned int mfb = 0x3f;  /* maximum that fits in first byte */
-        do {  /* add continuation bytes */
-            buff[Lumen::UTF8BufferSize - (n++)] = cast_char(0x80 | (x & 0x3f));
-            x >>= 6;  /* remove added bits */
-            mfb >>= 1;  /* now there is one less bit available in first byte */
-        } while (x > mfb);  /* still needs continuation byte? */
-        buff[Lumen::UTF8BufferSize - n] = cast_char((~mfb << 1) | x);  /* add first byte */
-    }
-    return n;
-}
 
 #endif
 

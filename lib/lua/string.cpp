@@ -693,7 +693,7 @@ struct MatchState {
     struct {
         const char *Init;
         ptrdiff_t Length;
-    } Capture[LUA_MAXCAPTURES];
+    } Capture[LUA_MAX_CAPTURES];
 };
 
 
@@ -870,7 +870,7 @@ static const char *startCapture(MatchState *ms, const char *s,
                                 const char *p, int what) {
     const char *res;
     int level = ms->Level;
-    if (level >= LUA_MAXCAPTURES) ms->L->Error("too many captures");
+    if (level >= LUA_MAX_CAPTURES) ms->L->Error("too many captures");
     ms->Capture[level].Init = s;
     ms->Capture[level].Length = what;
     ms->Level = level + 1;
@@ -1213,7 +1213,7 @@ int Lua::String::Context::GSub(Lua::State *L) {
 ** maximum size of each format specification (such as '%-099.99d')
 ** (+10 accounts for %99.99x plus margin of error)
 */
-#define MAX_FORMAT    (sizeof(FLAGS) + sizeof(LUA_INTFRMLEN) + 10)
+#define MAX_FORMAT    (sizeof(FLAGS) + sizeof(LUA_INT_FMT_LEN) + 10)
 
 
 static void addQuoted(Lua::State *L, Lua::Buffer *b, int arg) {
@@ -1272,9 +1272,9 @@ static const char *scanFormat(Lua::State *L, const char *strFormat, char *form) 
 static void addIntLength(char *form) {
     size_t l = std::string_view(form).length();
     char spec = form[l - 1];
-    strcpy(form + l - 1, LUA_INTFRMLEN);
-    form[l + sizeof(LUA_INTFRMLEN) - 2] = spec;
-    form[l + sizeof(LUA_INTFRMLEN) - 1] = '\0';
+    strcpy(form + l - 1, LUA_INT_FMT_LEN);
+    form[l + sizeof(LUA_INT_FMT_LEN) - 2] = spec;
+    form[l + sizeof(LUA_INT_FMT_LEN) - 1] = '\0';
 }
 
 
@@ -1305,7 +1305,7 @@ int Lua::String::Context::Format(Lua::State *L) {
                 case 'd':
                 case 'i': {
                     addIntLength(form);
-                    sprintf(buff, form, (LUA_INTFRM_T) L->CheckNumber(arg));
+                    sprintf(buff, form, (LUA_INT_FMT) L->CheckNumber(arg));
                     break;
                 }
                 case 'o':
@@ -1313,7 +1313,7 @@ int Lua::String::Context::Format(Lua::State *L) {
                 case 'x':
                 case 'X': {
                     addIntLength(form);
-                    sprintf(buff, form, (unsigned LUA_INTFRM_T) L->CheckNumber(arg));
+                    sprintf(buff, form, (unsigned LUA_INT_FMT) L->CheckNumber(arg));
                     break;
                 }
                 case 'e':

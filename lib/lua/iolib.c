@@ -336,7 +336,7 @@ static int g_read(lua_State *L, FILE *f, int first) {
         success = read_line(L, f);
         n = first + 1;  /* to return 1 result */
     } else {  /* ensure stack space for all results and for auxlib's buffer */
-        luaL_checkstack(L, nargs + LUA_MINSTACK, "too many arguments");
+        luaL_checkstack(L, nargs + LUA_MIN_STACK, "too many arguments");
         success = 1;
         for (n = first; nargs-- && success; n++) {
             if (lua_type(L, n) == LUA_TNUMBER) {
