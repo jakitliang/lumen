@@ -11,7 +11,7 @@
 #include <cstdarg>
 #include <cstring>
 
-#define LUA_CORE
+#define LUA_LIB
 
 #include "lumen/object.h"
 #include "lumen/state.h"

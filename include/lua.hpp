@@ -18,10 +18,6 @@
 
 #include "luaconf.h"
 
-#ifndef LUA_SIGNATURE
-#define LUA_SIGNATURE    "\033Lua"
-#endif
-
 namespace Lua {
     using Byte = unsigned char;
     using Number = LUA_NUMBER;
