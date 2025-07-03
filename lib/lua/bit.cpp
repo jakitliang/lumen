@@ -9,13 +9,16 @@
 
 #define LUA_BITOP_VERSION    "1.0.2"
 
-#include <stdint.h>
+#include <cstdint>
 
 #define LUA_LIB
 
 #include "lua.h"
+
 #include "lauxlib.h"
 #include "lualib.h"
+
+#include "lua.hpp"
 
 typedef int32_t SBits;
 typedef uint32_t UBits;
@@ -129,19 +132,19 @@ static int bit_tohex(lua_State *L) {
 }
 
 static const luaL_Reg bit_funcs[] = {
-        {"tobit",   bit_tobit},
-        {"bnot",    bit_bnot},
-        {"band",    bit_band},
-        {"bor",     bit_bor},
-        {"bxor",    bit_bxor},
-        {"lshift",  bit_lshift},
-        {"rshift",  bit_rshift},
-        {"arshift", bit_arshift},
-        {"rol",     bit_rol},
-        {"ror",     bit_ror},
-        {"bswap",   bit_bswap},
-        {"tohex",   bit_tohex},
-        {NULL, NULL}
+    {"tobit",   bit_tobit},
+    {"bnot",    bit_bnot},
+    {"band",    bit_band},
+    {"bor",     bit_bor},
+    {"bxor",    bit_bxor},
+    {"lshift",  bit_lshift},
+    {"rshift",  bit_rshift},
+    {"arshift", bit_arshift},
+    {"rol",     bit_rol},
+    {"ror",     bit_ror},
+    {"bswap",   bit_bswap},
+    {"tohex",   bit_tohex},
+    {nullptr,   nullptr}
 };
 
 /* Signed right-shifts are implementation-defined per C89/C99.
@@ -149,6 +152,34 @@ static const luaL_Reg bit_funcs[] = {
 ** complement CPUs. This behaviour is required here, so test for it.
 */
 #define BAD_SAR        (bsar(-8, 2) != (SBits)-2)
+#define PPToLua(L)     reinterpret_cast<lua_State *>(L)
+
+template<>
+LPP_API int Lua::Open<Lua::Bit>(Lua::State *L) {
+    UBits b;
+    L->PushNumber((Lua::Number) 1437217655L);
+    b = barg(PPToLua(L), -1);
+    if (b != (UBits) 1437217655L || BAD_SAR) {  /* Perform a simple self-test. */
+        const char *msg = "compiled with incompatible luaconf.h";
+#ifdef LUA_NUMBER_DOUBLE
+#ifdef _WIN32
+        if (b == (UBits) 1610612736L)
+            msg = "use D3DCREATE_FPU_PRESERVE with DirectX";
+#endif
+        if (b == (UBits) 1127743488L)
+            msg = "not compiled with SWAPPED_DOUBLE";
+#endif
+        if (BAD_SAR)
+            msg = "arithmetic right-shift broken";
+        L->Error("bit library self-test failed (%s)", msg);
+    }
+#if LUA_VERSION_NUM < 502
+    L->Register(LUA_BITLIBNAME, bit_funcs);
+#else
+    L->NewLib(bit_funcs);
+#endif
+    return 1;
+}
 
 LUALIB_API int luaopen_bit(lua_State *L) {
     UBits b;

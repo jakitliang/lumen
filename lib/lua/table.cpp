@@ -8,7 +8,7 @@
  */
 
 
-#include <stddef.h>
+#include <cstddef>
 
 #define LUA_LIB
 
@@ -17,6 +17,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "lua.hpp"
 
 #define aux_getn(L, n)    (luaL_checktype(L, n, LUA_TTABLE), luaL_getn(L, n))
 
@@ -139,7 +140,7 @@ static int tremove(lua_State *L) {
 ** "possible" means destination after original range, or smaller
 ** than origin, or copying to another table.
 */
-static int tmove (lua_State *L) {
+static int tmove(lua_State *L) {
     lua_Integer f = luaL_checkinteger(L, 2);
     lua_Integer e = luaL_checkinteger(L, 3);
     lua_Integer t = luaL_checkinteger(L, 4);
@@ -158,8 +159,7 @@ static int tmove (lua_State *L) {
                 lua_rawgeti(L, 1, f + i);
                 lua_rawseti(L, tt, t + i);
             }
-        }
-        else {
+        } else {
             for (i = n - 1; i >= 0; i--) {
                 lua_rawgeti(L, 1, f + i);
                 lua_rawseti(L, tt, t + i);
@@ -307,19 +307,24 @@ static int sort(lua_State *L) {
 
 
 static const luaL_Reg tab_funcs[] = {
-        {"concat",   tconcat},
-        {"foreach",  foreach},
-        {"foreachi", foreachi},
-        {"getn",     getn},
-        {"maxn",     maxn},
-        {"insert",   tinsert},
-        {"remove",   tremove},
-        {"setn",     setn},
-        {"sort",     sort},
-        {"move",     tmove},
-        {NULL, NULL}
+    {"concat",   tconcat},
+    {"foreach",  foreach},
+    {"foreachi", foreachi},
+    {"getn",     getn},
+    {"maxn",     maxn},
+    {"insert",   tinsert},
+    {"remove",   tremove},
+    {"setn",     setn},
+    {"sort",     sort},
+    {"move",     tmove},
+    {nullptr,    nullptr}
 };
 
+template<>
+LPP_API int Lua::Open<Lua::Table>(Lua::State *L) {
+    L->Register(LUA_TABLIBNAME, tab_funcs);
+    return 1;
+}
 
 LUALIB_API int luaopen_table(lua_State *L) {
     luaL_register(L, LUA_TABLIBNAME, tab_funcs);

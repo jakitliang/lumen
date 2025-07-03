@@ -171,15 +171,29 @@ namespace Lua {
         Lua::Type Type;
     };
 
+    struct Object;
+
     struct Base;
 
     struct Coroutine;
 
-    struct Object;
+    struct Package;
+
+    struct Table;
+
+    struct IO;
+
+    struct OS;
 
     struct String;
 
+    struct Math;
+
     struct UTF8;
+
+    struct Bit;
+
+    struct Debug;
 
     struct State {
         // MARK: state manipulation
@@ -622,24 +636,6 @@ namespace Lua {
         }
 
         // MARK: Library export
-
-        LPP_API int OpenBase();
-
-        LPP_API int OpenTable();
-
-        LPP_API int OpenIO();
-
-        LPP_API int OpenOS();
-
-        LPP_API int OpenString();
-
-        LPP_API int OpenMath();
-
-        LPP_API int OpenDebug();
-
-        LPP_API int OpenBit();
-
-        LPP_API int OpenPackage();
 
         LPP_API void OpenLibs();
     };

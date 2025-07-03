@@ -1367,6 +1367,17 @@ static void createMetatable(Lua::State *L) {
 
 #define LUA_STRLIBNAME "string"
 
+template<>
+LPP_API int Lua::Open<Lua::String>(Lua::State *L) {
+    L->Register(LUA_STRLIBNAME, strLib);
+#if defined(LUA_COMPAT_GFIND)
+    L->GetField(-1, "gmatch");
+    L->SetField(-2, "gfind");
+#endif
+    createMetatable(L);
+    return 1;
+}
+
 /*
 ** Open string library
 */

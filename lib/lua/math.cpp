@@ -8,8 +8,8 @@
  */
 
 
-#include <stdlib.h>
-#include <math.h>
+#include <cstdlib>
+#include <cmath>
 
 #define LUA_LIB
 
@@ -18,6 +18,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "lua.hpp"
 
 #undef PI
 #define PI (3.14159265358979323846)
@@ -214,37 +215,50 @@ static int math_randomseed(lua_State *L) {
 
 
 static const luaL_Reg mathlib[] = {
-        {"abs",        math_abs},
-        {"acos",       math_acos},
-        {"asin",       math_asin},
-        {"atan2",      math_atan2},
-        {"atan",       math_atan},
-        {"ceil",       math_ceil},
-        {"cosh",       math_cosh},
-        {"cos",        math_cos},
-        {"deg",        math_deg},
-        {"exp",        math_exp},
-        {"floor",      math_floor},
-        {"fmod",       math_fmod},
-        {"frexp",      math_frexp},
-        {"ldexp",      math_ldexp},
-        {"log10",      math_log10},
-        {"log",        math_log},
-        {"max",        math_max},
-        {"min",        math_min},
-        {"modf",       math_modf},
-        {"pow",        math_pow},
-        {"rad",        math_rad},
-        {"random",     math_random},
-        {"randomseed", math_randomseed},
-        {"sinh",       math_sinh},
-        {"sin",        math_sin},
-        {"sqrt",       math_sqrt},
-        {"tanh",       math_tanh},
-        {"tan",        math_tan},
-        {NULL, NULL}
+    {"abs",        math_abs},
+    {"acos",       math_acos},
+    {"asin",       math_asin},
+    {"atan2",      math_atan2},
+    {"atan",       math_atan},
+    {"ceil",       math_ceil},
+    {"cosh",       math_cosh},
+    {"cos",        math_cos},
+    {"deg",        math_deg},
+    {"exp",        math_exp},
+    {"floor",      math_floor},
+    {"fmod",       math_fmod},
+    {"frexp",      math_frexp},
+    {"ldexp",      math_ldexp},
+    {"log10",      math_log10},
+    {"log",        math_log},
+    {"max",        math_max},
+    {"min",        math_min},
+    {"modf",       math_modf},
+    {"pow",        math_pow},
+    {"rad",        math_rad},
+    {"random",     math_random},
+    {"randomseed", math_randomseed},
+    {"sinh",       math_sinh},
+    {"sin",        math_sin},
+    {"sqrt",       math_sqrt},
+    {"tanh",       math_tanh},
+    {"tan",        math_tan},
+    {nullptr,      nullptr}
 };
 
+template<>
+LPP_API int Lua::Open<Lua::Math>(Lua::State *L) {
+    L->Register(LUA_MATHLIBNAME, mathlib);
+    L->PushNumber(PI);
+    L->SetField(-2, "pi");
+    L->PushNumber(HUGE_VAL);
+    L->SetField(-2, "huge");
+#if defined(LUA_COMPAT_MOD)
+    L->GetField(-1, "fmod");
+    L->SetField(-2, "mod");
+#endif
+    return 1;
+}
 
 /*
 ** Open math library

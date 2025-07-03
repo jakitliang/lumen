@@ -4,20 +4,20 @@ add_library(
     auxiliary.cpp
 #    baselib.c
     base.cpp
-    bitlib.c
+    bit.cpp
     buffer.cpp
     c_api.cpp
     c_aux.cpp
-    dblib.c
-    init.c
-    iolib.c
-    loadlib.c
+    debug.cpp
+    init.cpp
+    io.cpp
+    load.cpp
     load_platform.c
-    mathlib.c
-    oslib.c
+    math.cpp
+    os.cpp
     state.cpp
     string.cpp
-    tablib.c
+    table.cpp
     utf8lib.cpp
 )
 if (LUA_BUILD_TYPE MATCHES "SHARED")
