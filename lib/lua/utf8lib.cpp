@@ -13,10 +13,6 @@
 #include <cstring>
 #include <string>
 
-#ifdef _WIN32
-#include <Windows.h>
-#endif
-
 #define LUA_LIB
 
 #include "lua.h"
@@ -24,6 +20,11 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "lua.hpp"
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 #define MAXUNICODE    0x10FFFFu
 
@@ -326,9 +327,9 @@ static int utf8_sub(lua_State *L) {
 const char *Utf8ToLocale(const char *utf8Str, int wLen, int &len) {
 #ifdef _WIN32
     thread_local std::string localeStr;
-//    if (wLen == 0) {
+    if (wLen == 0) {
         wLen = MultiByteToWideChar(CP_UTF8, 0, utf8Str, wLen, nullptr, 0);
-//    }
+    }
     if (wLen == 0) return "";
 
     std::wstring wStr(wLen, L'\0');
@@ -372,6 +373,29 @@ static const luaL_Reg funcs[] = {
     {nullptr,       nullptr}
 };
 
+template<>
+LPP_API int Lua::Open<Lua::UTF8>(Lua::State *L) {
+    static const Lua::Registry utf8Lib[] = {
+        {"offset",      byteoffset},
+        {"codepoint",   codepoint},
+        {"char",        utfchar},
+        {"len",         utflen},
+        {"codes",       iter_codes},
+        {"sub",         utf8_sub},
+        {"toLocal",     UTF8ToLocale},
+        /* placeholders */
+        {"charpattern", nullptr},
+        {nullptr,       nullptr}
+    };
+#if LUA_VERSION_NUM < 502
+    L->Register(LUA_UTF8LIBNAME, funcs);
+#else
+    L->NewLib(funcs);
+#endif
+    L->PushString(UTF8PATT, sizeof(UTF8PATT) / sizeof(char) - 1);
+    L->SetField(-2, "charpattern");
+    return 1;
+}
 
 LUALIB_API int luaopen_utf8(lua_State *L) {
 #if LUA_VERSION_NUM < 502

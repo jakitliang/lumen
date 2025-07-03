@@ -84,11 +84,6 @@ static inline int infSize(const Lua::Interface *l) {
     return size;
 }
 
-static inline int infSize(const Lua::Registry *l) {
-    int size = 0;
-    for (; l->Name; l++) size++;
-    return size;
-}
 
 void Lua::State::OpenLib(const char *name, const Lua::Interface *inf, int nUpValue) {
     if (name) {
@@ -117,33 +112,6 @@ void Lua::State::OpenLib(const char *name, const Lua::Interface *inf, int nUpVal
     Pop(nUpValue);  /* remove upvalues */
 }
 
-void Lua::State::OpenLib(const char *name, const Lua::Registry *inf, int nUpValue) {
-    if (name) {
-        int size = infSize(inf);
-        /* check whether lib already exists */
-        FindTable(Lua::RegistryIndex, "_LOADED", 1);
-        GetField(-1, name);  /* get _LOADED[name] */
-        if (!IsTable(-1)) {  /* not found? */
-            Pop(1);  /* remove previous result */
-            /* try global variable (and create one if it does not exist) */
-            if (FindTable(Lua::GlobalIndex, name, size) != nullptr)
-                Error("name conflict for module " LUA_QS, name);
-            PushValue(-1);
-            SetField(-3, name);  /* _LOADED[name] = new table */
-        }
-        Remove(-2);  /* remove _LOADED table */
-        Insert(-(nUpValue + 1));  /* move library table to below upvalues */
-    }
-    for (; inf->Name; inf++) {
-        int i;
-        for (i = 0; i < nUpValue; i++)  /* copy upvalues to the top */
-            PushValue(-nUpValue);
-        PushFunction(inf->Invoke, nUpValue);
-        SetField(-(nUpValue + 2), inf->Name);
-    }
-    Pop(nUpValue);  /* remove upvalues */
-}
-
 void Lua::State::Register(const Lua::Interface *l, int nUpValue) {
     CheckStack(nUpValue, "too many upvalues");
     for (; l->Name != nullptr; l++) {  /* fill the table with given functions */
@@ -151,18 +119,6 @@ void Lua::State::Register(const Lua::Interface *l, int nUpValue) {
         for (i = 0; i < nUpValue; i++)  /* copy upvalues to the top */
             PushValue(-nUpValue);
         PushDelegate(l->Invoke, nUpValue);  /* closure with those upvalues */
-        SetField(-(nUpValue + 2), l->Name);
-    }
-    Pop(nUpValue);  /* remove upvalues */
-}
-
-void Lua::State::Register(const Lua::Registry *l, int nUpValue) {
-    CheckStack(nUpValue, "too many upvalues");
-    for (; l->Name != nullptr; l++) {  /* fill the table with given functions */
-        int i;
-        for (i = 0; i < nUpValue; i++)  /* copy upvalues to the top */
-            PushValue(-nUpValue);
-        PushFunction(l->Invoke, nUpValue);  /* closure with those upvalues */
         SetField(-(nUpValue + 2), l->Name);
     }
     Pop(nUpValue);  /* remove upvalues */
@@ -513,7 +469,7 @@ const char *Lua::State::FindTable(int idx, const char *name, int hintSize) {
 }
 
 int Lua::State::OpenBase() {
-    return luaopen_base(LuaToLumen(this));
+    return Lua::Open<Lua::Base>(this);
 }
 
 int Lua::State::OpenTable() {
@@ -548,24 +504,25 @@ int Lua::State::OpenPackage() {
     return luaopen_package(LuaToLumen(this));
 }
 
-static const Lua::Registry luaLibs[] = {
-    {"",              luaopen_base},
-    {LUA_LOADLIBNAME, luaopen_package},
-    {LUA_TABLIBNAME,  luaopen_table},
-    {LUA_IOLIBNAME,   luaopen_io},
-    {LUA_OSLIBNAME,   luaopen_os},
-    {LUA_STRLIBNAME,  luaopen_string},
-    {LUA_MATHLIBNAME, luaopen_math},
-    {LUA_UTF8LIBNAME, luaopen_utf8},
-    {LUA_BITLIBNAME,  luaopen_bit},
-    {LUA_DBLIBNAME,   luaopen_debug},
-    {nullptr,         nullptr}
-};
-
 void Lua::State::OpenLibs() {
+    static const Lua::Interface luaLibs[] = {
+        {"",              Lua::Open<Lua::Base>},
+        {LUA_COLIBNAME,   Lua::Open<Lua::Coroutine>},
+        {LUA_LOADLIBNAME, reinterpret_cast<Lua::Delegate>(luaopen_package)},
+        {LUA_TABLIBNAME,  reinterpret_cast<Lua::Delegate>(luaopen_table)},
+        {LUA_IOLIBNAME,   reinterpret_cast<Lua::Delegate>(luaopen_io)},
+        {LUA_OSLIBNAME,   reinterpret_cast<Lua::Delegate>(luaopen_os)},
+        {LUA_STRLIBNAME,  reinterpret_cast<Lua::Delegate>(luaopen_string)},
+        {LUA_MATHLIBNAME, reinterpret_cast<Lua::Delegate>(luaopen_math)},
+        {LUA_UTF8LIBNAME, Lua::Open<Lua::UTF8>},
+        {LUA_BITLIBNAME,  reinterpret_cast<Lua::Delegate>(luaopen_bit)},
+        {LUA_DBLIBNAME,   reinterpret_cast<Lua::Delegate>(luaopen_debug)},
+        {nullptr,         nullptr}
+    };
+
     auto lib = luaLibs;
     for (; lib->Invoke; lib++) {
-        PushFunction(lib->Invoke);
+        PushDelegate(lib->Invoke);
         PushString(lib->Name);
         Call(1, 0);
     }

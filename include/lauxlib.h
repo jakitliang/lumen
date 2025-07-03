@@ -39,14 +39,10 @@ enum {
     LUA_ERRFILE = LUA_ERRERR + 1
 };
 
-#ifndef LUAI_INTERFACE
-typedef struct {
+typedef struct luaL_Reg {
     const char *name;
     lua_CFunction func;
 } luaL_Reg;
-#else
-typedef LUAI_INTERFACE luaL_Reg;
-#endif
 
 LUALIB_API void (luaI_openlib)(lua_State *L, const char *libname,
                                const luaL_Reg *l, int nup);

@@ -12,6 +12,7 @@ add_library(
     init.c
     iolib.c
     loadlib.c
+    load_platform.c
     mathlib.c
     oslib.c
     state.cpp

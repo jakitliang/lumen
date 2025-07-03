@@ -28,7 +28,7 @@ namespace Lua {
     using Integer = LUA_INTEGER;
     using UInteger = LUA_UINTEGER;
 
-    using CState = struct lua_State;
+    typedef struct lua_State CState;
 
     struct State;
 
@@ -90,10 +90,7 @@ namespace Lua {
     /**
      * Fallback support to old C API wrapper
      */
-    struct Registry {
-        const char *Name;
-        Function Invoke;
-    };
+    typedef struct luaL_Reg Registry;
 
     typedef LUA_ENUM(int, Ret) {
         RetMul = -1,
@@ -181,6 +178,8 @@ namespace Lua {
     struct Object;
 
     struct String;
+
+    struct UTF8;
 
     struct State {
         // MARK: state manipulation
@@ -494,11 +493,15 @@ namespace Lua {
 
         LPP_API void OpenLib(const char *name, const Interface *i, int nUpValue);
 
-        LPP_API void OpenLib(const char *name, const Registry *i, int nUpValue);
+        inline void OpenLib(const char *name, const Registry *i, int nUpValue) {
+            OpenLib(name, reinterpret_cast<const Interface *>(i), nUpValue);
+        }
 
         LPP_API void Register(const Interface *i, int nUpValue);
 
-        LPP_API void Register(const Registry *i, int nUpValue);
+        inline void Register(const Registry *i, int nUpValue) {
+            Register(reinterpret_cast<const Interface *>(i), nUpValue);
+        }
 
         inline void Register(const char *name, const Interface *i) {
             OpenLib(name, i, 0);

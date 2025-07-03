@@ -19,6 +19,9 @@
 
 #include "lumen/memory.h"
 
+namespace Lua {
+    struct Base {};
+}
 
 /*
 ** If your system does not support `stdout', you can just remove this function.
@@ -666,6 +669,18 @@ static void base_open(Lua::State *L) {
 template<>
 LPP_API int Lua::Open<Lua::Base>(Lua::State *L) {
     base_open(L);
+    return 1;
+}
+
+template<>
+LPP_API int Lua::Open<Lua::Coroutine>(Lua::State *L) {
+    L->Register(LUA_COLIBNAME, co_funcs);
+    return 1;
+}
+
+LUALIB_API int luaopen_coroutine(struct lua_State *l) {
+    auto L = reinterpret_cast<Lua::State *>(l);
+    L->Register(LUA_COLIBNAME, co_funcs);
     return 1;
 }
 
