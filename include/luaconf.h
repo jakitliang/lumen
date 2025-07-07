@@ -704,8 +704,8 @@ struct luaL_Reg;
 #define LUMEN_AUTHORS      "Jakit Liang"
 
 #define LUMEN_VERSION_MAJOR_N      1
-#define LUMEN_VERSION_MINOR_N      1
-#define LUMEN_VERSION_RELEASE_N    5
+#define LUMEN_VERSION_MINOR_N      2
+#define LUMEN_VERSION_RELEASE_N    0
 
 #define LUMEN_RELEASE  "Lumen " \
 LUA_TO_STRING(LUMEN_VERSION_MAJOR_N) "." \

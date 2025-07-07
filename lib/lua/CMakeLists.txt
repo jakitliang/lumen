@@ -82,10 +82,9 @@ if (NOT LUA_SKIP_INSTALL)
         FILES
         ${LUMEN_BASE_SOURCE_DIR}/include/lauxlib.h
         ${LUMEN_BASE_SOURCE_DIR}/include/lua.h
-        ${LUMEN_BASE_SOURCE_DIR}/include/lua.hpp
         ${LUMEN_BASE_SOURCE_DIR}/include/luaconf.h
         ${LUMEN_BASE_SOURCE_DIR}/include/lualib.h
-#        ${LUMEN_BASE_SOURCE_DIR}/include/lumen.h
+        ${LUMEN_BASE_SOURCE_DIR}/include/lumen.h
         DESTINATION include
     )
     install(
