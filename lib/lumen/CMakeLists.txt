@@ -5,13 +5,16 @@ endif ()
 
 add_library(
     lumen-core OBJECT
+    buffer.cpp
     code.cpp
     debug.cpp
     do.cpp
     dump.cpp
     func.cpp
     gc.cpp
+    i_state.cpp
     lex.cpp
+    lumen.cpp
     memory.cpp
     object.cpp
     opcodes.cpp

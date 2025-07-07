@@ -82,7 +82,7 @@ namespace Lumen {
     /*
     ** `per thread' state
     */
-    struct State : Lumen::BasicObject {
+    struct State : Lumen::BasicObject, Lumen::IState {
         Lumen::Byte Status;
         Lumen::Value Top;  /* first free slot in the stack */
         Lumen::Value Base;  /* base of current function */
@@ -109,7 +109,7 @@ namespace Lumen {
         Lumen::LongJump *ErrorJmp;  /* current error recover point */
         Lumen::Integer ErrFunc;  /* current error handling function (stack index) */
 
-        void PushObject(const Lumen::Object *o);
+
 
         Lumen::Object *ToObject(int idx);
 

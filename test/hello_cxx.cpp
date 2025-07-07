@@ -7,11 +7,11 @@
  * Licensed under the BSD License.
  */
 
-#include "lua.hpp"
+#include "lumen.h"
 #include <iostream>
 
 int main() {
-    auto L = Lua::Open();
+    auto L = Lumen::Open();
     L->OpenLibs();
     L->PushLiteral("my_value");
     L->SetGlobal("my_key");
@@ -19,7 +19,7 @@ int main() {
 print(my_key);
 )");
 
-    L->PushDelegate([](Lua::State *l) {
+    L->PushDelegate([](Lumen::IState *l) {
         auto n = l->OptNumber(1, 123);
         std::cout << "Got number: " << n << std::endl;
         return 1;
@@ -28,7 +28,6 @@ print(my_key);
     L->DoString<0>(R"(
 TestNumber(555);
 )");
-
 
     L->DoString<0>(R"(
 Super = {a = 123}
@@ -41,7 +40,7 @@ Super.__index = Super
 
     std::cout << L->InstanceOf(-1, -2) << std::endl;
 
-    Lua::Close(L);
+    Lumen::Close(L);
 
     return 0;
 }

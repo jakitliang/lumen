@@ -19,7 +19,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "lua.hpp"
+#include "lumen.h"
 
 
 static int db_getregistry(lua_State *L) {
@@ -390,7 +390,7 @@ static const luaL_Reg dblib[] = {
 };
 
 template<>
-LPP_API int Lua::Open<Lua::Debug>(Lua::State *L) {
+LPP_API int Lumen::Open<Lumen::IDebug>(Lumen::IState *L) {
     L->Register(LUA_DBLIBNAME, dblib);
     return 1;
 }

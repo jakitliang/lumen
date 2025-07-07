@@ -18,7 +18,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "lua.hpp"
+#include "lumen.h"
 
 #undef PI
 #define PI (3.14159265358979323846)
@@ -247,7 +247,7 @@ static const luaL_Reg mathlib[] = {
 };
 
 template<>
-LPP_API int Lua::Open<Lua::Math>(Lua::State *L) {
+LPP_API int Lumen::Open<Lumen::IMath>(Lumen::IState *L) {
     L->Register(LUA_MATHLIBNAME, mathlib);
     L->PushNumber(PI);
     L->SetField(-2, "pi");
@@ -256,6 +256,53 @@ LPP_API int Lua::Open<Lua::Math>(Lua::State *L) {
 #if defined(LUA_COMPAT_MOD)
     L->GetField(-1, "fmod");
     L->SetField(-2, "mod");
+#endif
+    return 1;
+}
+
+/*
+** Open math library
+*/
+LUALIB_API int luaopen_Lumen_Math(lua_State *L) {
+    static const luaL_Reg mathLib[] = {
+        {"Abs",        math_abs},
+        {"ACos",       math_acos},
+        {"ASin",       math_asin},
+        {"ATan2",      math_atan2},
+        {"ATan",       math_atan},
+        {"Ceil",       math_ceil},
+        {"Cosh",       math_cosh},
+        {"Cos",        math_cos},
+        {"Deg",        math_deg},
+        {"Exp",        math_exp},
+        {"Floor",      math_floor},
+        {"FMod",       math_fmod},
+        {"FRExp",      math_frexp},
+        {"LDExp",      math_ldexp},
+        {"Log10",      math_log10},
+        {"Log",        math_log},
+        {"Max",        math_max},
+        {"Min",        math_min},
+        {"ModF",       math_modf},
+        {"Pow",        math_pow},
+        {"Rad",        math_rad},
+        {"Random",     math_random},
+        {"RandomSeed", math_randomseed},
+        {"SinH",       math_sinh},
+        {"Sin",        math_sin},
+        {"Sqrt",       math_sqrt},
+        {"TanH",       math_tanh},
+        {"Tan",        math_tan},
+        {nullptr,      nullptr}
+    };
+    luaL_register(L, "Lumen.Math", mathLib);
+    lua_pushnumber(L, PI);
+    lua_setfield(L, -2, "PI");
+    lua_pushnumber(L, HUGE_VAL);
+    lua_setfield(L, -2, "Huge");
+#if defined(LUA_COMPAT_MOD)
+    lua_getfield(L, -1, "FMod");
+    lua_setfield(L, -2, "Mod");
 #endif
     return 1;
 }

@@ -1,15 +1,16 @@
 /*!
- * @brief Lua State API
+ * @brief Lumen State APIs
  * @author Jakit
- * @date 2025/6/14
+ * @date 2025/7/8
  * @copyright
  * Copyright (c) 2025 Jakit. All rights reserved.
  * Licensed under the BSD License.
  */
 
-#include <cassert>
+//#include <cassert>
 #include <cstdarg>
 #include <cstring>
+#include <string>
 
 #define LUA_CORE
 
@@ -25,20 +26,18 @@
 #include "lumen/protected_call.h"
 #include "lumen/api.h"
 
-#include "lua.hpp"
-
-#define LuaToLumen(L) reinterpret_cast<Lumen::State *>(L)
-#define LumenToLua(L) reinterpret_cast<Lua::State *>(L)
+// NOLINTNEXTLINE
+#define ToState(L) static_cast<Lumen::State *>(L)
 
 // MARK: state manipulation
 
-Lua::State *Lua::State::New(Lua::Allocator allocator, void *userdata) {
+Lumen::IState *Lumen::IState::New(Lumen::Allocator allocator, void *userdata) {
     auto L = Lumen::State::New(allocator, userdata);
-    return L == nullptr ? nullptr : LumenToLua(L);
+    return L == nullptr ? nullptr : L;
 }
 
-Lua::State *Lua::State::NewThread() {
-    auto L = LuaToLumen(this);
+Lumen::IState *Lumen::IState::NewThread() {
+    auto L = ToState(this);
     Lumen::State *L1;
     LumenLock(L);
     L->CheckGC();
@@ -47,40 +46,40 @@ Lua::State *Lua::State::NewThread() {
     LumenApiIncrTop(L);
     LumenUnlock(L);
     luai_userstatethread(L, L1);
-    return L1 == nullptr ? nullptr : LumenToLua(L1);
+    return L1 == nullptr ? nullptr : L1;
 }
 
-Lua::Delegate Lua::State::AtPanic(Lua::Delegate pInvoke) {
-    auto L = LuaToLumen(this);
-    Lua::Delegate old;
+Lumen::Delegate Lumen::IState::AtPanic(Lumen::Delegate pInvoke) {
+    auto L = ToState(this);
+    Lumen::Delegate old;
     LumenLock(L);
-    old = reinterpret_cast<Lua::Delegate>(LumenGlobalState(L)->Panic);
+    old = reinterpret_cast<Lumen::Delegate>(LumenGlobalState(L)->Panic);
     LumenGlobalState(L)->Panic = reinterpret_cast<Lumen::Delegate>(pInvoke);
     LumenUnlock(L);
     return old;
 }
 
-const Lua::Number *Lua::State::Version() {
+const Lumen::Number *Lumen::IState::Version() {
     static const Lumen::Number lua_version_number = LUA_VERSION_NUM;
     return &lua_version_number;
 }
 
 // MARK: basic stack manipulation
 
-int Lua::State::AbsIndex(int idx) {
-    auto L = LuaToLumen(this);
+int Lumen::IState::AbsIndex(int idx) {
+    auto L = ToState(this);
     return (idx > 0 || LumenApiIsPseudo(idx))
            ? idx
            : cast_int((L->Top - L->Base) + 1 + idx);
 }
 
-int Lua::State::GetTop() {
-    auto L = LuaToLumen(this);
+int Lumen::IState::GetTop() {
+    auto L = ToState(this);
     return cast_int(L->Top - L->Base);
 }
 
-void Lua::State::SetTop(int idx) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::SetTop(int idx) {
+    auto L = ToState(this);
     LumenLock(L);
     if (idx >= 0) {
         LumenApiCheck(L, idx <= L->StackLast - L->Base);
@@ -94,16 +93,16 @@ void Lua::State::SetTop(int idx) {
     LumenUnlock(L);
 }
 
-void Lua::State::PushValue(int idx) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::PushValue(int idx) {
+    auto L = ToState(this);
     LumenLock(L);
     LumenSetObject2S(L, L->Top, L->ToObject(idx));
     LumenApiIncrTop(L);
     LumenUnlock(L);
 }
 
-void Lua::State::Remove(int idx) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::Remove(int idx) {
+    auto L = ToState(this);
     Lumen::Value p;
     LumenLock(L);
     p = L->ToObject(idx);
@@ -113,8 +112,8 @@ void Lua::State::Remove(int idx) {
     LumenUnlock(L);
 }
 
-void Lua::State::Insert(int idx) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::Insert(int idx) {
+    auto L = ToState(this);
     Lumen::Value p;
     Lumen::Value q;
     LumenLock(L);
@@ -140,8 +139,8 @@ static void moveTo(Lumen::State *L, Lumen::Object *from, int idx) {
     }
 }
 
-void Lua::State::Replace(int idx) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::Replace(int idx) {
+    auto L = ToState(this);
     LumenLock(L);
     /* explicit test for incompatible code */
     if (idx == Lumen::EnvIndex && L->CallInfo == L->BaseCI)
@@ -152,8 +151,8 @@ void Lua::State::Replace(int idx) {
     LumenUnlock(L);
 }
 
-void Lua::State::Copy(int fromIdx, int toIdx) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::Copy(int fromIdx, int toIdx) {
+    auto L = ToState(this);
     Lumen::Object *from;
     LumenLock(L);
     if (toIdx == Lumen::EnvIndex && L->CallInfo == L->BaseCI)
@@ -163,7 +162,7 @@ void Lua::State::Copy(int fromIdx, int toIdx) {
     LumenUnlock(L);
 }
 
-static void compatReverse(Lua::State *L, int a, int b) {
+static void compatReverse(Lumen::IState *L, int a, int b) {
     for (; a < b; ++a, --b) {
         L->PushValue(a);
         L->PushValue(b);
@@ -172,8 +171,8 @@ static void compatReverse(Lua::State *L, int a, int b) {
     }
 }
 
-void Lua::State::Rotate(int idx, int n) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::Rotate(int idx, int n) {
+    auto L = ToState(this);
     int n_elems = 0;
     idx = AbsIndex(idx);
     n_elems = GetTop() - idx + 1;
@@ -191,8 +190,8 @@ void Lua::State::Rotate(int idx, int n) {
     }
 }
 
-bool Lua::State::CheckStack(int size) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::CheckStack(int size) {
+    auto L = ToState(this);
     int res = 1;
     LumenLock(L);
     if (size > LUA_MAX_C_STACK || (L->Top - L->Base + size) > LUA_MAX_C_STACK)
@@ -208,47 +207,47 @@ bool Lua::State::CheckStack(int size) {
 
 // MARK: access functions (stack -> C)
 
-bool Lua::State::IsNumber(int idx) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::IsNumber(int idx) {
+    auto L = ToState(this);
     Lumen::Object n; // NOLINT
     const Lumen::Object *o = L->ToObject(idx);
     return Lumen::VM::FastToNumber(o, &n);
 }
 
-bool Lua::State::IsString(int idx) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::IsString(int idx) {
+    auto L = ToState(this);
     Lumen::Value o = L->ToObject(idx);
     return o->IsString();
 }
 
-bool Lua::State::IsDelegate(int idx) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::IsDelegate(int idx) {
+    auto L = ToState(this);
     Lumen::Value o = L->ToObject(idx);
     return o->IsCFunction();
 }
 
-bool Lua::State::IsUserdata(int idx) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::IsUserdata(int idx) {
+    auto L = ToState(this);
     const Lumen::Object *o = L->ToObject(idx);
     return (o->IsUData() || o->IsLUData());
 }
 
-Lua::Type Lua::State::Type(int idx) {
-    auto L = LuaToLumen(this);
+Lumen::Type Lumen::IState::TypeId(int idx) {
+    auto L = ToState(this);
     Lumen::Value o = L->ToObject(idx);
-    return (o == Lumen::NilObject) ? Lua::TypeNone : (o)->Type;
+    return (o == Lumen::NilObject) ? Lumen::TypeNone : (o)->Type;
 }
 
-const char *Lua::State::TypeId(int tp) {
-    return (tp == Lua::TypeNone) ? "no value" : Lumen::TM::TypeNames[tp];
+const char *Lumen::IState::TypeOf(int tp) {
+    return (tp == Lumen::TypeNone) ? "no value" : Lumen::TM::TypeNames[tp];
 }
 
-void Lua::State::Arith(Lua::ArithOp op) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::Arith(Lumen::ArithOp op) {
+    auto L = ToState(this);
     Lumen::Value o1;  /* 1st operand */
     Lumen::Value o2;  /* 2nd operand */
     LumenLock(L);
-    if (op != Lua::ArithOpUnm) /* all other operations expect two operands */
+    if (op != Lumen::ArithOpUnm) /* all other operations expect two operands */
         LumenApiCheckElementCount(L, 2);
     else {  /* for unary minus, add fake 2nd operand */
         LumenApiCheckElementCount(L, 1);
@@ -260,13 +259,13 @@ void Lua::State::Arith(Lua::ArithOp op) {
     if (o1->IsNumber() && o2->IsNumber()) {
         o1->SetNumber(Lumen::Arith(op, o1->GetNumber(), o2->GetNumber()));
     } else
-        Lumen::VM::ArithValue(L, o1, o1, o2, cast(Lumen::TM::Name, op - Lua::ArithOpAdd + Lumen::TM::NameAdd));
+        Lumen::VM::ArithValue(L, o1, o1, o2, cast(Lumen::TM::Name, op - Lumen::ArithOpAdd + Lumen::TM::NameAdd));
     L->Top--;
     LumenUnlock(L);
 }
 
-int Lua::State::Compare(int idx1, int idx2, Lua::ArithOp op) {
-    auto L = LuaToLumen(this);
+int Lumen::IState::Compare(int idx1, int idx2, Lumen::ArithOp op) {
+    auto L = ToState(this);
     Lumen::Value o1, o2;
     int i = 0;
     LumenLock(L);  /* may call tag method */
@@ -274,13 +273,13 @@ int Lua::State::Compare(int idx1, int idx2, Lua::ArithOp op) {
     o2 = L->ToObject(idx2);
     if (LumenApiIsValid(o1) && LumenApiIsValid(o2)) {
         switch (op) {
-            case Lua::CompareOpEQ:
+            case Lumen::CompareOpEQ:
                 i = Lumen::VM::EqualObject(L, o1, o2);
                 break;
-            case Lua::CompareOpLT:
+            case Lumen::CompareOpLT:
                 i = Lumen::VM::LessThan(L, o1, o2);
                 break;
-            case Lua::CompareOpLE:
+            case Lumen::CompareOpLE:
                 i = Lumen::VM::LessEqual(L, o1, o2);
                 break;
             default:
@@ -291,8 +290,8 @@ int Lua::State::Compare(int idx1, int idx2, Lua::ArithOp op) {
     return i;
 }
 
-bool Lua::State::Equal(int idx1, int idx2) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::Equal(int idx1, int idx2) {
+    auto L = ToState(this);
     Lumen::Value o1, o2;
     int i;
     LumenLock(L);  /* may call tag method */
@@ -303,15 +302,15 @@ bool Lua::State::Equal(int idx1, int idx2) {
     return i;
 }
 
-bool Lua::State::RawEqual(int idx1, int idx2) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::RawEqual(int idx1, int idx2) {
+    auto L = ToState(this);
     Lumen::Value o1 = L->ToObject(idx1);
     Lumen::Value o2 = L->ToObject(idx2);
     return !(o1 == Lumen::NilObject || o2 == Lumen::NilObject) && Lumen::RawEqualObject(o1, o2);
 }
 
-bool Lua::State::LessThan(int idx1, int idx2) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::LessThan(int idx1, int idx2) {
+    auto L = ToState(this);
     Lumen::Value o1, o2;
     int i;
     LumenLock(L);  /* may call tag method */
@@ -323,8 +322,8 @@ bool Lua::State::LessThan(int idx1, int idx2) {
     return i;
 }
 
-Lua::Number Lua::State::ToNumber(int idx) {
-    auto L = LuaToLumen(this);
+Lumen::Number Lumen::IState::ToNumber(int idx) {
+    auto L = ToState(this);
     Lumen::Object n; // NOLINT
     const Lumen::Object *o = L->ToObject(idx);
     if (Lumen::VM::FastToNumber(o, &n))
@@ -333,8 +332,8 @@ Lua::Number Lua::State::ToNumber(int idx) {
         return 0;
 }
 
-Lua::Integer Lua::State::ToInteger(int idx) {
-    auto L = LuaToLumen(this);
+Lumen::Integer Lumen::IState::ToInteger(int idx) {
+    auto L = ToState(this);
     Lumen::Object n; // NOLINT
     const Lumen::Object *o = L->ToObject(idx);
     if (Lumen::VM::FastToNumber(o, &n)) {
@@ -346,14 +345,14 @@ Lua::Integer Lua::State::ToInteger(int idx) {
         return 0;
 }
 
-bool Lua::State::ToBoolean(int idx) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::ToBoolean(int idx) {
+    auto L = ToState(this);
     const Lumen::Object *o = L->ToObject(idx);
     return !o->IsFalse();
 }
 
-const char *Lua::State::ToString(int idx, Lua::UInteger *len) {
-    auto L = LuaToLumen(this);
+const char *Lumen::IState::ToString(int idx, Lumen::UInteger *len) {
+    auto L = ToState(this);
     Lumen::Value o = L->ToObject(idx);
     if (!o->IsString()) {
         LumenLock(L);  /* `Lumen::VM::ToString' may create a new string */
@@ -370,8 +369,8 @@ const char *Lua::State::ToString(int idx, Lua::UInteger *len) {
     return o->ToCString();
 }
 
-bool Lua::State::InstanceOf(int idxChild, int idxSuper) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::InstanceOf(int idxChild, int idxSuper) {
+    auto L = ToState(this);
     const Lumen::Object *oChild = L->ToObject(idxChild);
     const Lumen::Object *oSuper = L->ToObject(idxSuper);
     if (oChild == Lumen::NilObject || oSuper == Lumen::NilObject) return false;
@@ -394,18 +393,18 @@ bool Lua::State::InstanceOf(int idxChild, int idxSuper) {
     return false;
 }
 
-Lua::UInteger Lua::State::ObjectLength(int idx) {
-    auto L = LuaToLumen(this);
+Lumen::UInteger Lumen::IState::ObjectLength(int idx) {
+    auto L = ToState(this);
     Lumen::Value o = L->ToObject(idx);
     switch (o->Type) {
-        case Lua::TypeString:
+        case Lumen::TypeString:
             return o->GetString()->Length;
-        case Lua::TypeUserdata:
+        case Lumen::TypeUserdata:
             return o->GetUData()->Length;
-        case Lua::TypeTable:
+        case Lumen::TypeTable:
             return Lumen::Table::GetN(o->GetTable());
-        case Lua::TypeNumber: {
-            Lua::UInteger l;
+        case Lumen::TypeNumber: {
+            Lumen::UInteger l;
             LumenLock(L);  /* `Lumen::VM::ToString' may create a new string */
             l = (Lumen::VM::ToString(L, o) ? o->GetString()->Length : 0);
             LumenUnlock(L);
@@ -416,43 +415,43 @@ Lua::UInteger Lua::State::ObjectLength(int idx) {
     }
 }
 
-Lua::Delegate Lua::State::ToDelegate(int idx) {
-    auto L = LuaToLumen(this);
+Lumen::Delegate Lumen::IState::ToDelegate(int idx) {
+    auto L = ToState(this);
     Lumen::Value o = L->ToObject(idx);
-    return (!o->IsCFunction()) ? nullptr : reinterpret_cast<Lua::Delegate>(o->GetClosure()->AsC.Func);
+    return (!o->IsCFunction()) ? nullptr : reinterpret_cast<Lumen::Delegate>(o->GetClosure()->AsC.Func);
 }
 
-void *Lua::State::ToUserdata(int idx) {
-    auto L = LuaToLumen(this);
+void *Lumen::IState::ToUserdata(int idx) {
+    auto L = ToState(this);
     Lumen::Value o = L->ToObject(idx);
     switch (o->Type) {
-        case Lua::TypeUserdata:
+        case Lumen::TypeUserdata:
             return (o->GetUData() + 1);
-        case Lua::TypeLightUserdata:
+        case Lumen::TypeLightUserdata:
             return o->GetLUData();
         default:
             return nullptr;
     }
 }
 
-Lua::State *Lua::State::ToThread(int idx) {
-    auto L = LuaToLumen(this);
+Lumen::IState *Lumen::IState::ToThread(int idx) {
+    auto L = ToState(this);
     Lumen::Value o = L->ToObject(idx);
-    return (!o->IsThread()) ? nullptr : LumenToLua(o->GetThread());
+    return (!o->IsThread()) ? nullptr : o->GetThread();
 }
 
-const void *Lua::State::ToPointer(int idx) {
-    auto L = LuaToLumen(this);
+const void *Lumen::IState::ToPointer(int idx) {
+    auto L = ToState(this);
     Lumen::Value o = L->ToObject(idx);
     switch (o->Type) {
-        case Lua::TypeTable:
+        case Lumen::TypeTable:
             return o->GetTable();
-        case Lua::TypeFunction:
+        case Lumen::TypeFunction:
             return o->GetClosure();
-        case Lua::TypeThread:
+        case Lumen::TypeThread:
             return o->GetThread();
-        case Lua::TypeUserdata:
-        case Lua::TypeLightUserdata:
+        case Lumen::TypeUserdata:
+        case Lumen::TypeLightUserdata:
             return ToUserdata(idx);
         default:
             return nullptr;
@@ -461,32 +460,32 @@ const void *Lua::State::ToPointer(int idx) {
 
 // MARK: push functions (C -> stack)
 
-void Lua::State::PushNil() {
-    auto L = LuaToLumen(this);
+void Lumen::IState::PushNil() {
+    auto L = ToState(this);
     LumenLock(L);
     L->Top->SetNil();
     LumenApiIncrTop(L);
     LumenUnlock(L);
 }
 
-void Lua::State::PushNumber(Lua::Number n) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::PushNumber(Lumen::Number n) {
+    auto L = ToState(this);
     LumenLock(L);
     L->Top->SetNumber(n);
     LumenApiIncrTop(L);
     LumenUnlock(L);
 }
 
-void Lua::State::PushInteger(Lua::Integer n) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::PushInteger(Lumen::Integer n) {
+    auto L = ToState(this);
     LumenLock(L);
     L->Top->SetNumber(cast_num(n));
     LumenApiIncrTop(L);
     LumenUnlock(L);
 }
 
-void Lua::State::PushString(const char *s, Lua::UInteger length) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::PushString(const char *s, Lumen::UInteger length) {
+    auto L = ToState(this);
     LumenLock(L);
     L->CheckGC();
     LumenSetStringValue2S(L, L->Top,
@@ -495,15 +494,15 @@ void Lua::State::PushString(const char *s, Lua::UInteger length) {
     LumenUnlock(L);
 }
 
-void Lua::State::PushString(const char *s) {
+void Lumen::IState::PushString(const char *s) {
     if (s == nullptr)
         PushNil();
     else
         PushString(s, Lumen::String::LengthOf(s));
 }
 
-const char *Lua::State::PushVFString(const char *fmt, va_list argP) {
-    auto L = LuaToLumen(this);
+const char *Lumen::IState::PushVFString(const char *fmt, va_list argP) {
+    auto L = ToState(this);
     const char *ret;
     LumenLock(L);
     L->CheckGC();
@@ -512,8 +511,8 @@ const char *Lua::State::PushVFString(const char *fmt, va_list argP) {
     return ret;
 }
 
-const char *Lua::State::PushFString(const char *fmt, ...) {
-    auto L = LuaToLumen(this);
+const char *Lumen::IState::PushFString(const char *fmt, ...) {
+    auto L = ToState(this);
     const char *ret;
     va_list argP;
     LumenLock(L);
@@ -525,8 +524,8 @@ const char *Lua::State::PushFString(const char *fmt, ...) {
     return ret;
 }
 
-void Lua::State::PushDelegate(Lua::Delegate invoke, int n) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::PushDelegate(Lumen::Delegate invoke, int n) {
+    auto L = ToState(this);
     Lumen::Closure *cl;
     LumenLock(L);
     L->CheckGC();
@@ -542,24 +541,24 @@ void Lua::State::PushDelegate(Lua::Delegate invoke, int n) {
     LumenUnlock(L);
 }
 
-void Lua::State::PushBoolean(int b) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::PushBoolean(int b) {
+    auto L = ToState(this);
     LumenLock(L);
     L->Top->SetBool(b != 0);  /* ensure that true is 1 */
     LumenApiIncrTop(L);
     LumenUnlock(L);
 }
 
-void Lua::State::PushLightUserdata(void *p) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::PushLightUserdata(void *p) {
+    auto L = ToState(this);
     LumenLock(L);
     L->Top->SetLUData(p);
     LumenApiIncrTop(L);
     LumenUnlock(L);
 }
 
-int Lua::State::PushThread() {
-    auto L = LuaToLumen(this);
+int Lumen::IState::PushThread() {
+    auto L = ToState(this);
     LumenLock(L);
     L->Top->SetThread(L, L);
     LumenApiIncrTop(L);
@@ -567,20 +566,27 @@ int Lua::State::PushThread() {
     return (LumenGlobalState(L)->MainThread == L);
 }
 
-// MARK: get functions (LuaToState(this)ua -> stack)
+void Lumen::IState::PushObject(const Lumen::IObject *o) {
+    auto L = ToState(this);
+    LumenSetObject2S(L, L->Top, static_cast<const Lumen::Object *>(o));
+    LumenApiIncrTop(ToState(this));
+}
 
-void Lua::State::GetTable(int idx) {
-    auto L = LuaToLumen(this);
+// MARK: get functions (lua -> stack)
+
+Lumen::Type Lumen::IState::GetTable(int idx) {
+    auto L = ToState(this);
     Lumen::Value t;
     LumenLock(L);
     t = L->ToObject(idx);
     LumenApiCheckValidIndex(L, t);
     Lumen::VM::GetTable(L, t, L->Top - 1, L->Top - 1);
     LumenUnlock(L);
+    return (L->Top - 1)->Type;
 }
 
-void Lua::State::GetField(int idx, const char *k) {
-    auto L = LuaToLumen(this);
+Lumen::Type Lumen::IState::GetField(int idx, const char *k) {
+    auto L = ToState(this);
     Lumen::Value t;
     Lumen::Object key; // NOLINT
     LumenLock(L);
@@ -590,20 +596,22 @@ void Lua::State::GetField(int idx, const char *k) {
     Lumen::VM::GetTable(L, t, &key, L->Top);
     LumenApiIncrTop(L);
     LumenUnlock(L);
+    return (L->Top - 1)->Type;
 }
 
-void Lua::State::RawGet(int idx) {
-    auto L = LuaToLumen(this);
+Lumen::Type Lumen::IState::RawGet(int idx) {
+    auto L = ToState(this);
     Lumen::Value t;
     LumenLock(L);
     t = L->ToObject(idx);
     LumenApiCheck(L, t->IsTable());
     LumenSetObject2S(L, L->Top - 1, Lumen::Table::Get(t->GetTable(), L->Top - 1));
     LumenUnlock(L);
+    return (L->Top - 1)->Type;
 }
 
-void Lua::State::RawGetAt(int idx, int n) {
-    auto L = LuaToLumen(this);
+Lumen::Type Lumen::IState::RawGetAt(int idx, int n) {
+    auto L = ToState(this);
     Lumen::Value o;
     LumenLock(L);
     o = L->ToObject(idx);
@@ -611,10 +619,11 @@ void Lua::State::RawGetAt(int idx, int n) {
     LumenSetObject2S(L, L->Top, Lumen::Table::GetNum(o->GetTable(), n));
     LumenApiIncrTop(L);
     LumenUnlock(L);
+    return (L->Top - 1)->Type;
 }
 
-void Lua::State::RawGetPtr(int idx, const void *p) {
-    auto L = LuaToLumen(this);
+Lumen::Type Lumen::IState::RawGetPtr(int idx, const void *p) {
+    auto L = ToState(this);
     Lumen::Value t;
     Lumen::Object k; // NOLINT
     LumenLock(L);
@@ -624,10 +633,11 @@ void Lua::State::RawGetPtr(int idx, const void *p) {
     LumenSetObject2S(L, L->Top, Lumen::Table::Get(t->GetTable(), &k));
     LumenApiIncrTop(L);
     LumenUnlock(L);
+    return (L->Top - 1)->Type;
 }
 
-void Lua::State::CreateTable(int nArray, int nRec) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::CreateTable(int nArray, int nRec) {
+    auto L = ToState(this);
     LumenLock(L);
     L->CheckGC();
     L->Top->SetTable(L, Lumen::Table::New(L, nArray, nRec));
@@ -635,8 +645,8 @@ void Lua::State::CreateTable(int nArray, int nRec) {
     LumenUnlock(L);
 }
 
-void *Lua::State::NewUserdata(Lua::UInteger size) {
-    auto L = LuaToLumen(this);
+void *Lumen::IState::NewUserdata(Lumen::UInteger size) {
+    auto L = ToState(this);
     Lumen::Userdata *u;
     LumenLock(L);
     L->CheckGC();
@@ -647,18 +657,18 @@ void *Lua::State::NewUserdata(Lua::UInteger size) {
     return u + 1;
 }
 
-bool Lua::State::GetMetatable(int objIndex) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::GetMetatable(int objIndex) {
+    auto L = ToState(this);
     const Lumen::Object *obj;
     Lumen::Table *mt;
     int res;
     LumenLock(L);
     obj = L->ToObject(objIndex);
     switch (obj->Type) {
-        case Lua::TypeTable:
+        case Lumen::TypeTable:
             mt = obj->GetTable()->Metatable;
             break;
-        case Lua::TypeUserdata:
+        case Lumen::TypeUserdata:
             mt = obj->GetUData()->Metatable;
             break;
         default:
@@ -676,20 +686,20 @@ bool Lua::State::GetMetatable(int objIndex) {
     return res;
 }
 
-void Lua::State::GetFEnv(int idx) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::GetFEnv(int idx) {
+    auto L = ToState(this);
     Lumen::Value o;
     LumenLock(L);
     o = L->ToObject(idx);
     LumenApiCheckValidIndex(L, o);
     switch (o->Type) {
-        case Lua::TypeFunction:
+        case Lumen::TypeFunction:
             L->Top->SetTable(L, o->GetClosure()->AsC.Env);
             break;
-        case Lua::TypeUserdata:
+        case Lumen::TypeUserdata:
             L->Top->SetTable(L, o->GetUData()->Env);
             break;
-        case Lua::TypeThread:
+        case Lumen::TypeThread:
             LumenSetObject2S(L, L->Top, LumenGlobalTable(o->GetThread()));
             break;
         default:
@@ -702,8 +712,8 @@ void Lua::State::GetFEnv(int idx) {
 
 // MARK: set functions (stack -> Lua)
 
-void Lua::State::SetTable(int idx) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::SetTable(int idx) {
+    auto L = ToState(this);
     Lumen::Value t;
     LumenLock(L);
     LumenApiCheckElementCount(L, 2);
@@ -714,8 +724,8 @@ void Lua::State::SetTable(int idx) {
     LumenUnlock(L);
 }
 
-void Lua::State::SetField(int idx, const char *k) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::SetField(int idx, const char *k) {
+    auto L = ToState(this);
     Lumen::Value t;
     Lumen::Object key; // NOLINT
     LumenLock(L);
@@ -728,8 +738,8 @@ void Lua::State::SetField(int idx, const char *k) {
     LumenUnlock(L);
 }
 
-void Lua::State::RawSet(int idx) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::RawSet(int idx) {
+    auto L = ToState(this);
     Lumen::Value t;
     LumenLock(L);
     LumenApiCheckElementCount(L, 2);
@@ -741,8 +751,8 @@ void Lua::State::RawSet(int idx) {
     LumenUnlock(L);
 }
 
-void Lua::State::RawSetAt(int idx, int n) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::RawSetAt(int idx, int n) {
+    auto L = ToState(this);
     Lumen::Value o;
     LumenLock(L);
     LumenApiCheckElementCount(L, 1);
@@ -754,8 +764,8 @@ void Lua::State::RawSetAt(int idx, int n) {
     LumenUnlock(L);
 }
 
-void Lua::State::RawSetPtr(int idx, const void *p) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::RawSetPtr(int idx, const void *p) {
+    auto L = ToState(this);
     Lumen::Value t;
     Lumen::Object k; // NOLINT
     LumenLock(L);
@@ -769,8 +779,8 @@ void Lua::State::RawSetPtr(int idx, const void *p) {
     LumenUnlock(L);
 }
 
-bool Lua::State::SetMetatable(int objIndex) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::SetMetatable(int objIndex) {
+    auto L = ToState(this);
     Lumen::Object *obj;
     Lumen::Table *mt;
     LumenLock(L);
@@ -784,13 +794,13 @@ bool Lua::State::SetMetatable(int objIndex) {
         mt = (L->Top - 1)->GetTable();
     }
     switch (obj->Type) {
-        case Lua::TypeTable: {
+        case Lumen::TypeTable: {
             obj->GetTable()->Metatable = mt;
             if (mt)
                 L->BarrierGCObjectTable(obj->GetTable(), mt);
             break;
         }
-        case Lua::TypeUserdata: {
+        case Lumen::TypeUserdata: {
             obj->GetUData()->Metatable = mt;
             if (mt)
                 L->BarrierGCObject(obj->GetUData(), mt);
@@ -806,8 +816,8 @@ bool Lua::State::SetMetatable(int objIndex) {
     return true;
 }
 
-bool Lua::State::SetFEnv(int idx) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::SetFEnv(int idx) {
+    auto L = ToState(this);
     Lumen::Value o;
     int res = 1;
     LumenLock(L);
@@ -816,13 +826,13 @@ bool Lua::State::SetFEnv(int idx) {
     LumenApiCheckValidIndex(L, o);
     LumenApiCheck(L, (L->Top - 1)->IsTable());
     switch (o->Type) {
-        case Lua::TypeFunction:
+        case Lumen::TypeFunction:
             o->GetClosure()->AsC.Env = (L->Top - 1)->GetTable();
             break;
-        case Lua::TypeUserdata:
+        case Lumen::TypeUserdata:
             o->GetUData()->Env = (L->Top - 1)->GetTable();
             break;
-        case Lua::TypeThread:
+        case Lumen::TypeThread:
             LumenGlobalTable(o->GetThread())->SetTable(L, (L->Top - 1)->GetTable());
             break;
         default:
@@ -837,8 +847,8 @@ bool Lua::State::SetFEnv(int idx) {
 
 // MARK: `load' and `call' functions (load and run Lua code)
 
-void Lua::State::Call(int nargs, int nResults) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::Call(int nargs, int nResults) {
+    auto L = ToState(this);
     Lumen::Value func;
     LumenLock(L);
     LumenApiCheckElementCount(L, nargs + 1);
@@ -849,8 +859,8 @@ void Lua::State::Call(int nargs, int nResults) {
     LumenUnlock(L);
 }
 
-Lua::Ret Lua::State::TryCall(int nargs, int nResults, int errFunc) {
-    auto L = LuaToLumen(this);
+Lumen::Ret Lumen::IState::TryCall(int nargs, int nResults, int errFunc) {
+    auto L = ToState(this);
     Lumen::ProtectedCall c; // NOLINT
     int status;
     ptrdiff_t func;
@@ -874,8 +884,8 @@ Lua::Ret Lua::State::TryCall(int nargs, int nResults, int errFunc) {
     return status;
 }
 
-Lua::Ret Lua::State::TryCall(Lua::Delegate invoke, void *userdata) {
-    auto L = LuaToLumen(this);
+Lumen::Ret Lumen::IState::TryCall(Lumen::Delegate invoke, void *userdata) {
+    auto L = ToState(this);
     Lumen::ProtectedCCall c; // NOLINT
     int status;
     LumenLock(L);
@@ -888,8 +898,8 @@ Lua::Ret Lua::State::TryCall(Lua::Delegate invoke, void *userdata) {
     return status;
 }
 
-Lua::Ret Lua::State::Load(Lua::Reader reader, void *data, const char *chunkName) {
-    auto L = LuaToLumen(this);
+Lumen::Ret Lumen::IState::Load(Lumen::Reader reader, void *data, const char *chunkName) {
+    auto L = ToState(this);
     Lumen::ZIO z; // NOLINT
     int status;
     LumenLock(L);
@@ -900,8 +910,8 @@ Lua::Ret Lua::State::Load(Lua::Reader reader, void *data, const char *chunkName)
     return status;
 }
 
-Lua::Ret Lua::State::Dump(Lua::Writer writer, void *data) {
-    auto L = LuaToLumen(this);
+Lumen::Ret Lumen::IState::Dump(Lumen::Writer writer, void *data) {
+    auto L = ToState(this);
     int status;
     Lumen::Object *o;
     LumenLock(L);
@@ -919,23 +929,23 @@ Lua::Ret Lua::State::Dump(Lua::Writer writer, void *data) {
 
 // MARK: coroutine functions
 
-Lua::Ret Lua::State::Yield(int nResults) {
-    auto L = LuaToLumen(this);
+Lumen::Ret Lumen::IState::Yield(int nResults) {
+    auto L = ToState(this);
     luai_userstateyield(L, nResults);
     LumenLock(L);
     if (L->NCCalls > L->BaseCCalls)
         Lumen::Debug::RunError(L, "attempt to yield across metaMethod/C-call boundary");
     L->Base = L->Top - nResults;  /* protect stack slots below */
-    L->Status = Lua::RetYield;
+    L->Status = Lumen::RetYield;
     LumenUnlock(L);
     return -1;
 }
 
-Lua::Ret Lua::State::Resume(int nArgs) {
-    auto L = LuaToLumen(this);
+Lumen::Ret Lumen::IState::Resume(int nArgs) {
+    auto L = ToState(this);
     int status;
     LumenLock(L);
-    if (L->Status != Lua::RetYield && (L->Status != 0 || L->CallInfo != L->BaseCI))
+    if (L->Status != Lumen::RetYield && (L->Status != 0 || L->CallInfo != L->BaseCI))
         return Lumen::Do::ResumeError(L, "cannot resume non-suspended coroutine");
     if (L->NCCalls >= LUA_MAX_C_CALLS)
         return Lumen::Do::ResumeError(L, "C stack overflow");
@@ -956,45 +966,45 @@ Lua::Ret Lua::State::Resume(int nArgs) {
     return status;
 }
 
-Lua::Ret Lua::State::Status() {
-    return LuaToLumen(this)->Status;
+Lumen::Ret Lumen::IState::Status() {
+    return ToState(this)->Status;
 }
 
-bool Lua::State::CanYield() {
-    return LuaToLumen(this)->NCCalls == 0;
+bool Lumen::IState::CanYield() {
+    return ToState(this)->NCCalls == 0;
 }
 
 // MARK: garbage-collection function and options
 
-int Lua::State::GC(Lua::GCAction what, int data) {
-    auto L = LuaToLumen(this);
+int Lumen::IState::GC(Lumen::GCAction what, int data) {
+    auto L = ToState(this);
     int res = 0;
     Lumen::GlobalState *g;
     LumenLock(L);
     g = LumenGlobalState(L);
     switch (what) {
-        case Lua::GCStop: {
+        case Lumen::GCStop: {
             g->GCThreshold = Lumen::MaxUMemory;
             break;
         }
-        case Lua::GCRestart: {
+        case Lumen::GCRestart: {
             g->GCThreshold = g->TotalBytes;
             break;
         }
-        case Lua::GCCollect: {
+        case Lumen::GCCollect: {
             Lumen::GC::FullGC(L);
             break;
         }
-        case Lua::GCCount: {
+        case Lumen::GCCount: {
             /* GC values are expressed in KBytes: #bytes/2^10 */
             res = cast_int(g->TotalBytes >> 10);
             break;
         }
-        case Lua::GCCountB: {
+        case Lumen::GCCountB: {
             res = cast_int(g->TotalBytes & 0x3ff);
             break;
         }
-        case Lua::GCStep: {
+        case Lumen::GCStep: {
             Lumen::MemorySize a = (cast(Lumen::MemorySize, data) << 10);
             if (a <= g->TotalBytes)
                 g->GCThreshold = g->TotalBytes - a;
@@ -1009,12 +1019,12 @@ int Lua::State::GC(Lua::GCAction what, int data) {
             }
             break;
         }
-        case Lua::GCSetPause: {
+        case Lumen::GCSetPause: {
             res = g->GCPause;
             g->GCPause = data;
             break;
         }
-        case Lua::GCSetStepMul: {
+        case Lumen::GCSetStepMul: {
             res = g->GCStepMul;
             g->GCStepMul = data;
             break;
@@ -1028,8 +1038,8 @@ int Lua::State::GC(Lua::GCAction what, int data) {
 
 // MARK: miscellaneous functions
 
-Lua::Ret Lua::State::Error() {
-    auto L = LuaToLumen(this);
+Lumen::Ret Lumen::IState::Error() {
+    auto L = ToState(this);
     LumenLock(L);
     LumenApiCheckElementCount(L, 1);
     Lumen::Debug::ErrorMessage(L);
@@ -1037,8 +1047,8 @@ Lua::Ret Lua::State::Error() {
     return 0;  /* to avoid warnings */
 }
 
-bool Lua::State::Next(int idx) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::Next(int idx) {
+    auto L = ToState(this);
     Lumen::Value t;
     int more;
     LumenLock(L);
@@ -1053,8 +1063,8 @@ bool Lua::State::Next(int idx) {
     return more;
 }
 
-void Lua::State::Concat(int n) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::Concat(int n) {
+    auto L = ToState(this);
     LumenLock(L);
     LumenApiCheckElementCount(L, n);
     if (n >= 2) {
@@ -1069,8 +1079,8 @@ void Lua::State::Concat(int n) {
     LumenUnlock(L);
 }
 
-void Lua::State::LengthOf(int idx) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::LengthOf(int idx) {
+    auto L = ToState(this);
     Lumen::Value t;
     LumenLock(L);
     t = L->ToObject(idx);
@@ -1079,8 +1089,8 @@ void Lua::State::LengthOf(int idx) {
     LumenUnlock(L);
 }
 
-Lua::Allocator Lua::State::GetAllocator(void **ud) {
-    auto L = LuaToLumen(this);
+Lumen::Allocator Lumen::IState::GetAllocator(void **ud) {
+    auto L = ToState(this);
     Lumen::Allocator f;
     LumenLock(L);
     if (ud) *ud = LumenGlobalState(L)->ReAllocatorUData;
@@ -1089,8 +1099,8 @@ Lua::Allocator Lua::State::GetAllocator(void **ud) {
     return f;
 }
 
-void Lua::State::SetAllocator(Lua::Allocator f, void *ud) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::SetAllocator(Lumen::Allocator f, void *ud) {
+    auto L = ToState(this);
     LumenLock(L);
     LumenGlobalState(L)->ReAllocatorUData = ud;
     LumenGlobalState(L)->ReAllocator = f;
@@ -1099,8 +1109,8 @@ void Lua::State::SetAllocator(Lua::Allocator f, void *ud) {
 
 // MARK: Debug APIs
 
-bool Lua::State::GetStack(int level, Lua::DebugInfo *ar) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::GetStack(int level, Lumen::DebugInfo *ar) {
+    auto L = ToState(this);
     bool status;
     Lumen::CallInfo *ci;
     LumenLock(L);
@@ -1120,8 +1130,8 @@ bool Lua::State::GetStack(int level, Lua::DebugInfo *ar) {
     return status;
 }
 
-bool Lua::State::GetInfo(const char *what, Lua::DebugInfo *ar) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::GetInfo(const char *what, Lumen::DebugInfo *ar) {
+    auto L = ToState(this);
     int status;
     Lumen::Closure *f = nullptr;
     Lumen::CallInfo *ci = nullptr;
@@ -1150,8 +1160,8 @@ bool Lua::State::GetInfo(const char *what, Lua::DebugInfo *ar) {
     return status;
 }
 
-const char *Lua::State::GetLocal(const Lua::DebugInfo *ar, int n) {
-    auto L = LuaToLumen(this);
+const char *Lumen::IState::GetLocal(const Lumen::DebugInfo *ar, int n) {
+    auto L = ToState(this);
     Lumen::CallInfo *ci = L->BaseCI + reinterpret_cast<const Lumen::DebugInfo *>(ar)->CurrentCI;
     const char *name = L->FindLocal(ci, n);
     LumenLock(L);
@@ -1161,8 +1171,8 @@ const char *Lua::State::GetLocal(const Lua::DebugInfo *ar, int n) {
     return name;
 }
 
-const char *Lua::State::SetLocal(const Lua::DebugInfo *ar, int n) {
-    auto L = LuaToLumen(this);
+const char *Lumen::IState::SetLocal(const Lumen::DebugInfo *ar, int n) {
+    auto L = ToState(this);
     Lumen::CallInfo *ci = L->BaseCI + reinterpret_cast<const Lumen::DebugInfo *>(ar)->CurrentCI;
     const char *name = L->FindLocal(ci, n);
     LumenLock(L);
@@ -1173,8 +1183,8 @@ const char *Lua::State::SetLocal(const Lua::DebugInfo *ar, int n) {
     return name;
 }
 
-const char *Lua::State::GetUpValue(int funcIndex, int n) {
-    auto L = LuaToLumen(this);
+const char *Lumen::IState::GetUpValue(int funcIndex, int n) {
+    auto L = ToState(this);
     const char *name;
     Lumen::Object *val;
     LumenLock(L);
@@ -1187,8 +1197,8 @@ const char *Lua::State::GetUpValue(int funcIndex, int n) {
     return name;
 }
 
-const char *Lua::State::SetUpValue(int funcIndex, int n) {
-    auto L = LuaToLumen(this);
+const char *Lumen::IState::SetUpValue(int funcIndex, int n) {
+    auto L = ToState(this);
     const char *name;
     Lumen::Object *val;
     Lumen::Value fi;
@@ -1215,8 +1225,8 @@ static Lumen::UpValue **getUpValueRef(Lumen::State *L, int fIdx, int n, Lumen::L
     return &f->UpValues[n - 1];  /* get its upvalue pointer */
 }
 
-void *Lua::State::GetUpValueId(int fIdx, int n) {
-    auto L = LuaToLumen(this);
+void *Lumen::IState::GetUpValueId(int fIdx, int n) {
+    auto L = ToState(this);
     Lumen::Value fi = L->ToObject(fIdx);
     if (fi->IsLFunction()) { /* lua closure */
         return *getUpValueRef(L, fIdx, n, nullptr);
@@ -1230,8 +1240,8 @@ void *Lua::State::GetUpValueId(int fIdx, int n) {
     }
 }
 
-void Lua::State::JoinUpValue(int fIdx1, int n1, int fIdx2, int n2) {
-    auto L = LuaToLumen(this);
+void Lumen::IState::JoinUpValue(int fIdx1, int n1, int fIdx2, int n2) {
+    auto L = ToState(this);
     Lumen::LClosure *f1;
     Lumen::UpValue **up1 = getUpValueRef(L, fIdx1, n1, &f1);
     Lumen::UpValue **up2 = getUpValueRef(L, fIdx2, n2, nullptr);
@@ -1239,8 +1249,8 @@ void Lua::State::JoinUpValue(int fIdx1, int n1, int fIdx2, int n2) {
     L->BarrierGCObject(f1, *up2);
 }
 
-bool Lua::State::SetHook(Lua::Hook func, Lua::HookMask mask, int count) {
-    auto L = LuaToLumen(this);
+bool Lumen::IState::SetHook(Lumen::Hook func, Lumen::HookMask mask, int count) {
+    auto L = ToState(this);
     if (func == nullptr || mask == 0) {  /* turn off hooks? */
         mask = 0;
         func = nullptr;
@@ -1252,16 +1262,438 @@ bool Lua::State::SetHook(Lua::Hook func, Lua::HookMask mask, int count) {
     return true;
 }
 
-Lua::Hook Lua::State::GetHook() {
-    return reinterpret_cast<Lua::Hook>(LuaToLumen(this)->Hook);
+Lumen::Hook Lumen::IState::GetHook() {
+    return reinterpret_cast<Lumen::Hook>(ToState(this)->Hook);
 }
 
-int Lua::State::GetHookMask() {
-    return LuaToLumen(this)->HookMask;
+int Lumen::IState::GetHookMask() {
+    return ToState(this)->HookMask;
 }
 
-int Lua::State::GetHookCount() {
-    return LuaToLumen(this)->BaseHookCount;
+int Lumen::IState::GetHookCount() {
+    return ToState(this)->BaseHookCount;
 }
 
+// MARK: Auxiliary
 
+#define FREELIST_REF    0    /* free list of references */
+
+static inline int infSize(const Lumen::Interface *l) {
+    int size = 0;
+    for (; l->Name; l++) size++;
+    return size;
+}
+
+void Lumen::IState::OpenLib(const char *name, const Lumen::Interface *inf, int nUpValue) {
+    if (name) {
+        int size = infSize(inf);
+        /* check whether lib already exists */
+        FindTable(Lumen::RegistryIndex, "_LOADED", 1);
+        GetField(-1, name);  /* get _LOADED[name] */
+        if (!IsTable(-1)) {  /* not found? */
+            Pop(1);  /* remove previous result */
+            /* try global variable (and create one if it does not exist) */
+            if (FindTable(Lumen::GlobalIndex, name, size) != nullptr)
+                Error("name conflict for module " LUA_QS, name);
+            PushValue(-1);
+            SetField(-3, name);  /* _LOADED[name] = new table */
+        }
+        Remove(-2);  /* remove _LOADED table */
+        Insert(-(nUpValue + 1));  /* move library table to below upvalues */
+    }
+    for (; inf->Name; inf++) {
+        int i;
+        for (i = 0; i < nUpValue; i++)  /* copy upvalues to the top */
+            PushValue(-nUpValue);
+        PushDelegate(inf->Invoke, nUpValue);
+        SetField(-(nUpValue + 2), inf->Name);
+    }
+    Pop(nUpValue);  /* remove upvalues */
+}
+
+void Lumen::IState::Register(const Lumen::Interface *l, int nUpValue) {
+    CheckStack(nUpValue, "too many upvalues");
+    for (; l->Name != nullptr; l++) {  /* fill the table with given functions */
+        int i;
+        for (i = 0; i < nUpValue; i++)  /* copy upvalues to the top */
+            PushValue(-nUpValue);
+        PushDelegate(l->Invoke, nUpValue);  /* closure with those upvalues */
+        SetField(-(nUpValue + 2), l->Name);
+    }
+    Pop(nUpValue);  /* remove upvalues */
+}
+
+bool Lumen::IState::GetMetaField(int obj, const char *e) {
+    if (!GetMetatable(obj))  /* no metatable? */
+        return false;
+    PushString(e);
+    RawGet(-2);
+    if (IsNil(-1)) {
+        Pop(2);  /* remove metatable and metaField */
+        return false;
+    } else {
+        Remove(-2);  /* remove only metatable */
+        return true;
+    }
+}
+
+bool Lumen::IState::CallMeta(int obj, const char *e) {
+    obj = AbsIndex(obj);
+    if (!GetMetaField(obj, e))  /* no metaField? */
+        return false;
+    PushValue(obj);
+    Call(1, 1);
+    return true;
+}
+
+int Lumen::IState::TypeError(int nArg, const char *tName) {
+    const char *msg = PushFString("%s expected, got %s",
+                                  tName, TypeName(nArg));
+    return ArgError(nArg, msg);
+}
+
+int Lumen::IState::ArgError(int nArg, const char *extraMsg) {
+    Lumen::DebugInfo ar; // NOLINT
+    if (!GetStack(0, &ar))  /* no stack frame? */
+        return Error("bad argument #%d (%s)", nArg, extraMsg);
+    GetInfo("n", &ar);
+    if (strcmp(ar.NameSpace, "method") == 0) {
+        nArg--;  /* do not count `self` */
+        if (nArg == 0)  /* error is in the self argument itself? */
+            return Error("calling " LUA_QS " on bad self (%s)",
+                         ar.Name, extraMsg);
+    }
+    if (ar.Name == nullptr)
+        ar.Name = "?";
+    return Error("bad argument #%d to " LUA_QS " (%s)",
+                 nArg, ar.Name, extraMsg);
+}
+
+static void tagError(Lumen::IState *L, int nArg, int tag) {
+    L->TypeError(nArg, L->TypeName(tag));
+}
+
+const char *Lumen::IState::CheckString(int nArg, size_t *length) {
+    const char *s = ToString(nArg, length);
+    if (!s) tagError(this, nArg, Lumen::TypeString);
+    return s;
+}
+
+const char *Lumen::IState::OptString(int nArg, const char *def, size_t *length) {
+    if (IsNoneOrNil(nArg)) {
+        if (length)
+            *length = (def ? strlen(def) : 0);
+        return def;
+    }
+    return CheckString(nArg, length);
+}
+
+Lumen::Number Lumen::IState::CheckNumber(int nArg) {
+    auto d = ToNumber(nArg);
+    if (d == 0 && !IsNumber(nArg))  /* avoid extra test when d is not 0 */
+        tagError(this, nArg, Lumen::TypeNumber);
+    return d;
+}
+
+Lumen::Number Lumen::IState::OptNumber(int nArg, Lumen::Number def) {
+    return Opt(&Lumen::IState::CheckNumber, nArg, def);
+}
+
+Lumen::Integer Lumen::IState::CheckInteger(int nArg) {
+    auto d = ToInteger(nArg);
+    if (d == 0 && !IsNumber(nArg))  /* avoid extra test when d is not 0 */
+        tagError(this, nArg, Lumen::TypeNumber);
+    return d;
+}
+
+Lumen::Integer Lumen::IState::OptInteger(int nArg, Lumen::Integer def) {
+    return Opt(&Lumen::IState::CheckInteger, nArg, def);
+}
+
+void Lumen::IState::CheckStack(int sz, const char *msg) {
+    if (!CheckStack(sz)) {
+        if (msg)
+            Error("stack overflow (%s)", msg);
+        else
+            Error("stack overflow");
+    }
+}
+
+void Lumen::IState::CheckType(int nArg, Lumen::Type t) {
+    if (TypeId(nArg) != t)
+        tagError(this, nArg, t);
+}
+
+void Lumen::IState::CheckAny(int nArg) {
+    if (TypeId(nArg) == Lumen::TypeNone)
+        ArgError(nArg, "value expected");
+}
+
+bool Lumen::IState::NewMetatable(const char *tName) {
+    GetField(Lumen::RegistryIndex, tName);  /* get registry.name */
+    if (!IsNil(-1))  /* name already in use? */
+        return false;  /* leave previous value on top, but return false */
+    Pop(1);
+    NewTable();  /* create metatable */
+    PushValue(-1);
+    SetField(Lumen::RegistryIndex, tName);  /* registry.name = metatable */
+    return true;
+}
+
+void *Lumen::IState::TestUserdata(int ud, const char *tName) {
+    auto p = ToUserdata(ud);
+    if (p != nullptr) {  /* value is a userdata? */
+        if (GetMetatable(ud)) {  /* does it have a metatable? */
+            GetMetatable(tName);  /* get correct metatable */
+            if (!RawEqual(-1, -2)) {  /* not the same mt? */
+                p = nullptr;
+            }
+            Pop(2);  /* remove both metatables */
+            return p;
+        }
+    }
+    return nullptr;
+}
+
+void *Lumen::IState::CheckUserdata(int ud, const char *tName) {
+    auto p = TestUserdata(ud, tName);
+    if (p == nullptr) TypeError(ud, tName);  /* else error */
+    return p;  /* to avoid warnings */
+}
+
+void Lumen::IState::Where(int level) {
+    Lumen::DebugInfo ar; // NOLINT
+    if (GetStack(level, &ar)) {  /* check function at level */
+        GetInfo("Sl", &ar);  /* get info about it */
+        if (ar.CurrentLine > 0) {  /* is there info? */
+            PushFString("%s:%d: ", ar.SourceHint, ar.CurrentLine);
+            return;
+        }
+    }
+    PushLiteral("");  /* else, no information available... */
+}
+
+int Lumen::IState::Error(const char *fmt, ...) {
+    va_list argP;
+        va_start(argP, fmt);
+    Where(1);
+    PushVFString(fmt, argP);
+        va_end(argP);
+    Concat(2);
+    return Error();
+}
+
+int Lumen::IState::CheckOption(int nArg, const char *def, const char *const *lst) {
+    const char *name = (def) ? OptString(nArg, def) : CheckString(nArg);
+    int i;
+    for (i = 0; lst[i]; i++)
+        if (strcmp(lst[i], name) == 0)
+            return i;
+    return ArgError(nArg, PushFString("invalid option " LUA_QS, name));
+}
+
+Lumen::Ref Lumen::IState::Ref(int t) {
+    int ref;
+    t = AbsIndex(t);
+    if (IsNil(-1)) {
+        Pop(1);  /* remove from stack */
+        return Lumen::RefNil;  /* `nil' has a unique fixed reference */
+    }
+    RawGetAt(t, FREELIST_REF);  /* get first free element */
+    ref = (int) ToInteger(-1);  /* ref = t[FREELIST_REF] */
+    Pop(1);  /* remove it from stack */
+    if (ref != 0) {  /* any free element? */
+        RawGetAt(t, ref);  /* remove it from list */
+        RawSetAt(t, FREELIST_REF);  /* (t[FREELIST_REF] = t[ref]) */
+    } else {  /* no free elements */
+        ref = (int) ObjectLength(t);
+        ref++;  /* create new reference */
+    }
+    RawSetAt(t, ref);
+    return ref;
+}
+
+void Lumen::IState::Unref(int t, Lumen::Ref ref) {
+    if (ref >= 0) {
+        t = AbsIndex(t);
+        RawGetAt(t, FREELIST_REF);
+        RawSetAt(t, ref);  /* t[ref] = t[FREELIST_REF] */
+        PushInteger(ref);
+        RawSetAt(t, FREELIST_REF);  /* t[FREELIST_REF] = ref */
+    }
+}
+
+struct LoadFunc {
+    int ExtraLine;
+    FILE *f;
+    char Buff[LUAL_BUFFERSIZE];
+};
+
+static const char *getF(Lumen::IState *, void *ud, size_t *size) {
+    auto lf = (LoadFunc *) ud;
+    if (lf->ExtraLine) {
+        lf->ExtraLine = 0;
+        *size = 1;
+        return "\n";
+    }
+    if (feof(lf->f)) return nullptr;
+    *size = fread(lf->Buff, 1, sizeof(lf->Buff), lf->f);
+    return (*size > 0) ? lf->Buff : nullptr;
+}
+
+static int fileErr(Lumen::IState *L, const char *what, int fileNameIdx) {
+    const char *strErr = strerror(errno);
+    const char *filename = L->ToString(fileNameIdx) + 1;
+    L->PushFString("cannot %s %s: %s", what, filename, strErr);
+    L->Remove(fileNameIdx);
+    return Lumen::RetErrFile;
+}
+
+Lumen::Ret Lumen::IState::LoadFile(const char *filename) {
+    LoadFunc lf; // NOLINT
+    int status, readStatus;
+    int c;
+    int fileNameIndex = GetTop() + 1;  /* index of filename on the stack */
+    lf.ExtraLine = 0;
+    if (filename == nullptr) {
+        PushLiteral("=stdin");
+        lf.f = stdin;
+    } else {
+        PushFString("@%s", filename);
+        lf.f = fopen(filename, "r");
+        if (lf.f == nullptr) return fileErr(this, "open", fileNameIndex);
+    }
+    c = getc(lf.f);
+    if (c == '#') {  /* Unix exec. file? */
+        lf.ExtraLine = 1;
+        while ((c = getc(lf.f)) != EOF && c != '\n');  /* skip first line */
+        if (c == '\n') c = getc(lf.f);
+    }
+    if (c == LUA_SIGNATURE[0] && filename) {  /* binary file? */
+        lf.f = freopen(filename, "rb", lf.f);  /* reopen in binary mode */
+        if (lf.f == nullptr) return fileErr(this, "reopen", fileNameIndex);
+        /* skip eventual `#!...' */
+        while ((c = getc(lf.f)) != EOF && c != LUA_SIGNATURE[0]);
+        lf.ExtraLine = 0;
+    }
+    ungetc(c, lf.f);
+    status = Load(reinterpret_cast<Lumen::Reader>(getF), &lf, ToString(-1));
+    readStatus = ferror(lf.f);
+    if (filename) fclose(lf.f);  /* close file (even in case of errors) */
+    if (readStatus) {
+        SetTop(fileNameIndex);  /* ignore results from `lua_load' */
+        return fileErr(this, "read", fileNameIndex);
+    }
+    Remove(fileNameIndex);
+    return status;
+}
+
+struct LoadState {
+    const char *s;
+    size_t size;
+};
+
+static const char *getS(Lumen::IState *, void *ud, size_t *size) {
+    auto ls = (LoadState *) ud;
+    if (ls->size == 0) return nullptr;
+    *size = ls->size;
+    ls->size = 0;
+    return ls->s;
+}
+
+Lumen::Ret Lumen::IState::LoadBuffer(const char *buff, size_t size, const char *name) {
+    LoadState ls{buff, size};
+    return Load(reinterpret_cast<Lumen::Reader>(getS), &ls, name);
+}
+
+Lumen::Ret Lumen::IState::LoadString(const char *s) {
+    return LoadBuffer(s, strlen(s), s);
+}
+
+static int panic(Lumen::IState *L) {
+    (void) L;  /* to avoid warnings */
+    fprintf(stderr, "PANIC: unprotected error in call to Lua API (%s)\n",
+            L->ToString(-1));
+    return false;
+}
+
+Lumen::IState *Lumen::IState::New() {
+    auto L = New(&Lumen::Memory::Alloc, nullptr);
+    if (L) L->AtPanic(reinterpret_cast<Lumen::Delegate>(panic));
+    return L;
+}
+
+const char *Lumen::IState::GSub(const char *s, const char *p, const char *r) {
+    std::string result;
+    size_t l = strlen(p);
+    if (l == 0) {
+        PushString(s);
+        return ToString(-1);
+    }
+
+    const char *wild;
+    while ((wild = strstr(s, p)) != nullptr) {
+        result.append(s, wild);
+        result.append(r);
+        s = wild + l;
+    }
+
+    result.append(s);
+    PushString(result.c_str());
+    return ToString(-1);
+}
+
+const char *Lumen::IState::FindTable(int idx, const char *name, int hintSize) {
+    const char *e;
+    PushValue(idx);
+    do {
+        e = strchr(name, '.');
+        if (e == nullptr) e = name + strlen(name);
+        PushString(name, e - name);
+        RawGet(-2);
+        if (IsNil(-1)) {  /* no such field? */
+            Pop(1);  /* remove this nil */
+            CreateTable(0, (*e == '.' ? 1 : hintSize)); /* new table for field */
+            PushString(name, e - name);
+            PushValue(-2);
+            SetTable(-4);  /* set new table into field */
+        } else if (!IsTable(-1)) {  /* field has a non-table value? */
+            Pop(2);  /* remove table and value */
+            return name;  /* return problematic part of the name */
+        }
+        Remove(-2);  /* remove previous table */
+        name = e + 1;
+    } while (*e == '.');
+    return nullptr;
+}
+
+bool Lumen::IState::FindOrCreateTable(int idx, const char *name) {
+    if (GetField(idx, name) == Lumen::TypeTable)
+        return true;  /* table already there */
+    else {
+        Pop(1);  /* remove previous result */
+        idx = AbsIndex(idx);
+        NewTable();
+        PushValue(-1);  /* copy to be left at top */
+        SetField(idx, name);  /* assign new table to field */
+        return false;  /* false, because did not find table there */
+    }
+}
+
+void Lumen::IState::Require(const char *modName, Lumen::Delegate loader, bool exported) {
+    FindOrCreateTable(Lumen::RegistryIndex, "_LOADED");
+    GetField(-1, modName);  /* LOADED[modname] */
+    if (!ToBoolean(-1)) {  /* package not already loaded? */
+        Pop(1);  /* remove field */
+        PushDelegate(loader);
+        PushString(modName);  /* argument to open function */
+        Call(1, 1);  /* call 'loader' to open module */
+        PushValue(-1);  /* make copy of module (call result) */
+        SetField(-3, modName);  /* LOADED[modname] = module */
+    }
+    Remove(-2);  /* remove LOADED table */
+    if (exported) {
+        PushValue(-1);  /* copy of module */
+        SetGlobal(modName);  /* _G[modname] = module */
+    }
+}

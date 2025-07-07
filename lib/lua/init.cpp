@@ -15,21 +15,21 @@
 #include "lualib.h"
 #include "lauxlib.h"
 
-#include "lua.hpp"
+#include "lumen.h"
 
-void Lua::State::OpenLibs() {
-    static const Lua::Interface luaLibs[] = {
-        {"",              Lua::Open<Lua::Base>},
-        {LUA_COLIBNAME,   Lua::Open<Lua::Coroutine>},
-        {LUA_LOADLIBNAME, Lua::Open<Lua::Package>},
-        {LUA_TABLIBNAME,  Lua::Open<Lua::Table>},
-        {LUA_IOLIBNAME,   Lua::Open<Lua::IO>},
-        {LUA_OSLIBNAME,   Lua::Open<Lua::OS>},
-        {LUA_STRLIBNAME,  Lua::Open<Lua::String>},
-        {LUA_MATHLIBNAME, Lua::Open<Lua::Math>},
-        {LUA_UTF8LIBNAME, Lua::Open<Lua::UTF8>},
-        {LUA_BITLIBNAME,  Lua::Open<Lua::Bit>},
-        {LUA_DBLIBNAME,   Lua::Open<Lua::Debug>},
+void Lumen::IState::OpenLibs() {
+    static const Lumen::Interface luaLibs[] = {
+        {"",              Lumen::Open<Lumen::IBase>},
+        {LUA_COLIBNAME,   Lumen::Open<Lumen::ICoroutine>},
+        {LUA_LOADLIBNAME, Lumen::Open<Lumen::IPackage>},
+        {LUA_TABLIBNAME,  Lumen::Open<Lumen::ITable>},
+        {LUA_IOLIBNAME,   Lumen::Open<Lumen::IIO>},
+        {LUA_OSLIBNAME,   Lumen::Open<Lumen::IOS>},
+        {LUA_STRLIBNAME,  Lumen::Open<Lumen::IString>},
+        {LUA_MATHLIBNAME, Lumen::Open<Lumen::IMath>},
+        {LUA_UTF8LIBNAME, Lumen::Open<Lumen::IUTF8>},
+        {LUA_BITLIBNAME,  Lumen::Open<Lumen::IBit>},
+        {LUA_DBLIBNAME,   Lumen::Open<Lumen::IDebug>},
         {nullptr,         nullptr}
     };
 

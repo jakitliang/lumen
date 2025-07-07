@@ -20,7 +20,6 @@
 #include "lumen/state.h"
 #include "lumen/string.h"
 #include "lumen/tm.h"
-#include "lumen/api.h"
 #include "lumen/common.inl"
 
 
@@ -113,11 +112,6 @@ static void LuaStateClose(Lumen::State *L) {
     stackFree(L, L);
     LumenAssert(g->TotalBytes == sizeof(LG));
     (*g->ReAllocator)(g->ReAllocatorUData, fromState(L), sizeOfState(LG), 0);
-}
-
-void Lumen::State::PushObject(const Lumen::Object *o) {
-    LumenSetObject2S(this, Top, o);
-    LumenApiIncrTop(this);
 }
 
 Lumen::Object *Lumen::State::ToObject(int idx) {
@@ -231,8 +225,7 @@ Lumen::State *Lumen::State::New(Lumen::Allocator allocator, void *userData) {
     return L;
 }
 
-static void LuaStateCallAllGcTM(Lumen::State *L, void *ud) {
-    UNUSED(ud);
+static void LuaStateCallAllGcTM(Lumen::State *L, void *) {
     Lumen::GC::CallGCTM(L);  /* call GC metaMethods for all uData */
 }
 

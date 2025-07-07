@@ -20,56 +20,56 @@
 
 #include "lumen/memory.h"
 
-#include "lua.hpp"
+#include "lumen.h"
 
 
 /* macro to `unsigned` a character */
 #define uchar(c) static_cast<unsigned char>(c)
-#define LuaToLumen(L) reinterpret_cast<Lumen::State *>(L)
-#define LumenToLua(L) reinterpret_cast<Lua::State *>(L)
+#define LuaToLumen(L) reinterpret_cast<Lumen::IState *>(L)
+#define LumenToLua(L) reinterpret_cast<Lumen::IState *>(L)
 
-struct Lua::String {
-    static int Byte(Lua::State *L);
+struct Lumen::IString {
+    static int Byte(Lumen::IState *L);
 
-    static int Char(Lua::State *L);
+    static int Char(Lumen::IState *L);
 
-    static int Dump(Lua::State *L);
+    static int Dump(Lumen::IState *L);
 
-    static int Find(Lua::State *L);
+    static int Find(Lumen::IState *L);
 
-    static int Format(Lua::State *L);
+    static int Format(Lumen::IState *L);
 
-    static int GFindNodeF(Lua::State *L);
+    static int GFindNodeF(Lumen::IState *L);
 
-    static int GMatch(Lua::State *L);
+    static int GMatch(Lumen::IState *L);
 
-    static int GSub(Lua::State *L);
+    static int GSub(Lumen::IState *L);
 
-    static int Length(Lua::State *L);
+    static int Length(Lumen::IState *L);
 
-    static int Lower(Lua::State *L);
+    static int Lower(Lumen::IState *L);
 
-    static int Match(Lua::State *L);
+    static int Match(Lumen::IState *L);
 
-    static int Rep(Lua::State *L);
+    static int Rep(Lumen::IState *L);
 
-    static int Reverse(Lua::State *L);
+    static int Reverse(Lumen::IState *L);
 
-    static int Sub(Lua::State *L);
+    static int Sub(Lumen::IState *L);
 
-    static int Upper(Lua::State *L);
+    static int Upper(Lumen::IState *L);
 
-    static int Pack(Lua::State *L);
+    static int Pack(Lumen::IState *L);
 
-    static int PackSize(Lua::State *L);
+    static int PackSize(Lumen::IState *L);
 
-    static int Unpack(Lua::State *L);
+    static int Unpack(Lumen::IState *L);
 };
 
-int Lua::String::Length(Lua::State *L) {
-    Lua::UInteger length;
+int Lumen::IString::Length(Lumen::IState *L) {
+    Lumen::UInteger length;
     L->CheckString(1, &length);
-    L->PushInteger((Lua::Integer) length);
+    L->PushInteger((Lumen::Integer) length);
     return 1;
 }
 
@@ -81,7 +81,7 @@ static ptrdiff_t relStringPos(ptrdiff_t pos, size_t len) {
 }
 
 
-int Lua::String::Sub(Lua::State *L) {
+int Lumen::IString::Sub(Lumen::IState *L) {
     size_t l;
     const char *s = L->CheckString(1, &l);
     ptrdiff_t start = relStringPos(L->CheckInteger(2), l);
@@ -96,9 +96,9 @@ int Lua::String::Sub(Lua::State *L) {
 }
 
 
-int Lua::String::Reverse(Lua::State *L) {
+int Lumen::IString::Reverse(Lumen::IState *L) {
     size_t l;
-    Lua::Buffer b; // NOLINT
+    Lumen::Buffer b; // NOLINT
     const char *s = L->CheckString(1, &l);
     b.Init(L);
     while (l--) b.AddChar(s[l]);
@@ -107,10 +107,10 @@ int Lua::String::Reverse(Lua::State *L) {
 }
 
 
-int Lua::String::Lower(Lua::State *L) {
+int Lumen::IString::Lower(Lumen::IState *L) {
     size_t l;
     size_t i;
-    Lua::Buffer b; // NOLINT
+    Lumen::Buffer b; // NOLINT
     const char *s = L->CheckString(1, &l);
     b.Init(L);
     for (i = 0; i < l; i++)
@@ -119,10 +119,10 @@ int Lua::String::Lower(Lua::State *L) {
     return 1;
 }
 
-int Lua::String::Upper(Lua::State *L) {
+int Lumen::IString::Upper(Lumen::IState *L) {
     size_t l;
     size_t i;
-    Lua::Buffer b; // NOLINT
+    Lumen::Buffer b; // NOLINT
     const char *s = L->CheckString(1, &l);
     b.Init(L);
     for (i = 0; i < l; i++)
@@ -131,9 +131,9 @@ int Lua::String::Upper(Lua::State *L) {
     return 1;
 }
 
-int Lua::String::Rep(Lua::State *L) {
+int Lumen::IString::Rep(Lumen::IState *L) {
     size_t l;
-    Lua::Buffer b; // NOLINT
+    Lumen::Buffer b; // NOLINT
     const char *s = L->CheckString(1, &l);
     int n = L->CheckInt(2);
     b.Init(L);
@@ -143,7 +143,7 @@ int Lua::String::Rep(Lua::State *L) {
     return 1;
 }
 
-int Lua::String::Byte(Lua::State *L) {
+int Lumen::IString::Byte(Lumen::IState *L) {
     size_t l;
     const char *s = L->CheckString(1, &l);
     ptrdiff_t posI = relStringPos(L->OptInteger(2, 1), l);
@@ -162,10 +162,10 @@ int Lua::String::Byte(Lua::State *L) {
 }
 
 
-int Lua::String::Char(Lua::State *L) {
+int Lumen::IString::Char(Lumen::IState *L) {
     int n = L->GetTop();  /* number of arguments */
     int i;
-    Lua::Buffer b; // NOLINT
+    Lumen::Buffer b; // NOLINT
     b.Init(L);
     for (i = 1; i <= n; i++) {
         int c = L->CheckInt(i);
@@ -181,15 +181,15 @@ int Lua::String::Char(Lua::State *L) {
 union FType {
     float f;
     double d;
-    Lua::Number n;
-    char buff[5 * sizeof(Lua::Number)];  /* enough for any float type */
+    Lumen::Number n;
+    char buff[5 * sizeof(Lumen::Number)];  /* enough for any float type */
 };
 
 /*
 ** information to pack/unpack stuff
 */
 struct Header {
-    Lua::State *L;
+    Lumen::IState *L;
     int islittle;
     int maxalign;
 };
@@ -374,8 +374,8 @@ static KOption getdetails(Header *h, size_t totalsize,
 }
 
 #define LUAL_PACKPADBYTE        0x00
-/* size of a Lua::Integer */
-#define SZINT    ((int) sizeof(Lua::Integer))
+/* size of a Lumen::Integer */
+#define SZINT    ((int) sizeof(Lumen::Integer))
 
 #define MC    ((1 << CHAR_BIT) - 1)
 
@@ -385,7 +385,7 @@ static KOption getdetails(Header *h, size_t totalsize,
 ** the size of a Lua integer, correcting the extra sign-extension
 ** bytes if necessary (by default they would be zeros).
 */
-static void packInt(std::vector<char> *b, Lua::UInteger n,
+static void packInt(std::vector<char> *b, Lumen::UInteger n,
                     int isLittle, int size, int neg) {
     auto oldLength = b->size();
     b->resize(b->size() + size);
@@ -418,7 +418,7 @@ static void copyWithEndian(volatile char *dest, volatile const char *src,
     }
 }
 
-int Lua::String::Pack(Lua::State *L) {
+int Lumen::IString::Pack(Lumen::IState *L) {
     std::vector<char> b;
     Header h{L, NativeEndian.little, 1};
     const char *fmt = L->CheckString(1);  /* format string */
@@ -435,20 +435,20 @@ int Lua::String::Pack(Lua::State *L) {
         arg++;
         switch (opt) {
             case Kint: {  /* signed integers */
-                Lua::Integer n = L->CheckInteger(arg);
+                Lumen::Integer n = L->CheckInteger(arg);
                 if (size < SZINT) {  /* need overflow check? */
-                    Lua::Integer lim = (Lua::Integer) 1 << ((size * CHAR_BIT) - 1);
+                    Lumen::Integer lim = (Lumen::Integer) 1 << ((size * CHAR_BIT) - 1);
                     L->ArgCheck(-lim <= n && n < lim, arg, "integer overflow");
                 }
-                packInt(&b, (Lua::UInteger) n, h.islittle, size, (n < 0));
+                packInt(&b, (Lumen::UInteger) n, h.islittle, size, (n < 0));
                 break;
             }
             case Kuint: {  /* unsigned integers */
-                Lua::Integer n = L->CheckInteger(arg);
+                Lumen::Integer n = L->CheckInteger(arg);
                 if (size < SZINT)  /* need overflow check? */
-                    L->ArgCheck((Lua::UInteger) n < ((Lua::UInteger) 1 << (size * CHAR_BIT)),
+                    L->ArgCheck((Lumen::UInteger) n < ((Lumen::UInteger) 1 << (size * CHAR_BIT)),
                                 arg, "unsigned overflow");
-                packInt(&b, (Lua::UInteger) n, h.islittle, size, 0);
+                packInt(&b, (Lumen::UInteger) n, h.islittle, size, 0);
                 break;
             }
             case Kfloat: {  /* floating-point options */
@@ -456,7 +456,7 @@ int Lua::String::Pack(Lua::State *L) {
                 auto oldLength = b.size();
                 b.resize(oldLength + size);
                 char *buff = b.data() + oldLength;
-                Lua::Number n = L->CheckNumber(arg);  /* get argument */
+                Lumen::Number n = L->CheckNumber(arg);  /* get argument */
                 if (size == sizeof(u.f)) u.f = (float) n;  /* copy it into 'u' */
                 else if (size == sizeof(u.d)) u.d = (double) n;
                 else u.n = n;
@@ -480,7 +480,7 @@ int Lua::String::Pack(Lua::State *L) {
                 L->ArgCheck(size >= (int) sizeof(size_t) ||
                             len < ((size_t) 1 << (size * CHAR_BIT)),
                             arg, "string length does not fit in given size");
-                packInt(&b, (Lua::UInteger) len, h.islittle, size, 0);  /* pack length */
+                packInt(&b, (Lumen::UInteger) len, h.islittle, size, 0);  /* pack length */
                 b.insert(b.end(), s, s + len);
                 totalSize += len;
                 break;
@@ -506,7 +506,7 @@ int Lua::String::Pack(Lua::State *L) {
     return 1;
 }
 
-int Lua::String::PackSize(Lua::State *L) {
+int Lumen::IString::PackSize(Lumen::IState *L) {
     Header h{L, NativeEndian.little, 1};
     const char *fmt = L->CheckString(1);  /* format string */
     size_t totalSize = 0;  /* accumulate total size of result */
@@ -526,7 +526,7 @@ int Lua::String::PackSize(Lua::State *L) {
                 break;
         }
     }
-    L->PushInteger((Lua::Integer) totalSize);
+    L->PushInteger((Lumen::Integer) totalSize);
     return 1;
 }
 
@@ -538,38 +538,38 @@ int Lua::String::PackSize(Lua::State *L) {
 ** it must check the unread bytes to see whether they do not cause an
 ** overflow.
 */
-static Lua::Integer unPackInt(Lua::State *L, const char *str,
-                              int isLittle, int size, int isSigned) {
-    Lua::UInteger res = 0;
+static Lumen::Integer unPackInt(Lumen::IState *L, const char *str,
+                                int isLittle, int size, int isSigned) {
+    Lumen::UInteger res = 0;
     int i;
     int limit = (size <= SZINT) ? size : SZINT;
     for (i = limit - 1; i >= 0; i--) {
         int index = isLittle ? i : size - 1 - i;
-        res |= ((Lua::UInteger) (unsigned char) str[index]) << (i * CHAR_BIT);
+        res |= ((Lumen::UInteger) (unsigned char) str[index]) << (i * CHAR_BIT);
     }
     if (size < SZINT) {  /* real size smaller than lua_Integer? */
         if (isSigned) {  /* needs sign extension? */
-            Lua::UInteger mask = (Lua::UInteger) 1 << (size * CHAR_BIT - 1);
+            Lumen::UInteger mask = (Lumen::UInteger) 1 << (size * CHAR_BIT - 1);
             res = ((res ^ mask) - mask);  /* do sign extension */
         }
     } else if (size > SZINT) {  /* must check unread bytes */
-        int mask = (!isSigned || (Lua::Integer) res >= 0) ? 0 : MC;
+        int mask = (!isSigned || (Lumen::Integer) res >= 0) ? 0 : MC;
         for (i = limit; i < size; i++) {
             if ((unsigned char) str[isLittle ? i : size - 1 - i] != mask)
                 L->Error("%d-byte integer does not fit into Lua Integer", size);
         }
     }
-    return (Lua::Integer) res;
+    return (Lumen::Integer) res;
 }
 
 /* translate a relative string position: negative means back from end */
-static Lua::Integer posRel(Lua::Integer pos, size_t len) {
+static Lumen::Integer posRel(Lumen::Integer pos, size_t len) {
     if (pos >= 0) return pos;
     else if (0u - (size_t) pos > len) return 0;
-    else return (Lua::Integer) len + pos + 1;
+    else return (Lumen::Integer) len + pos + 1;
 }
 
-int Lua::String::Unpack(Lua::State *L) {
+int Lumen::IString::Unpack(Lumen::IState *L) {
     Header h{L, NativeEndian.little, 1};
     const char *fmt = L->CheckString(1);
     size_t ld;
@@ -589,17 +589,17 @@ int Lua::String::Unpack(Lua::State *L) {
         switch (opt) {
             case Kint:
             case Kuint: {
-                Lua::Integer res = unPackInt(L, data + pos, h.islittle, size,
-                                             (opt == Kint));
+                Lumen::Integer res = unPackInt(L, data + pos, h.islittle, size,
+                                               (opt == Kint));
                 L->PushInteger(res);
                 break;
             }
             case Kfloat: {
                 volatile FType u;
-                Lua::Number num;
+                Lumen::Number num;
                 copyWithEndian(u.buff, data + pos, size, h.islittle);
-                if (size == sizeof(u.f)) num = (Lua::Number) u.f;
-                else if (size == sizeof(u.d)) num = (Lua::Number) u.d;
+                if (size == sizeof(u.f)) num = (Lumen::Number) u.f;
+                else if (size == sizeof(u.d)) num = (Lumen::Number) u.d;
                 else num = u.n;
                 L->PushNumber(num);
                 break;
@@ -629,19 +629,19 @@ int Lua::String::Unpack(Lua::State *L) {
         }
         pos += size;
     }
-    L->PushInteger((Lua::Integer) pos + 1);  /* next position */
+    L->PushInteger((Lumen::Integer) pos + 1);  /* next position */
     return n + 1;
 }
 
-static int dumpWriter(Lua::State *, const void *b, size_t size, void *B) {
-    auto buffer = reinterpret_cast<Lua::Buffer *>(B);
+static int dumpWriter(Lumen::IState *, const void *b, size_t size, void *B) {
+    auto buffer = reinterpret_cast<Lumen::Buffer *>(B);
     buffer->AddString((const char *) b, size);
     return 0;
 }
 
-int Lua::String::Dump(Lua::State *L) {
-    Lua::Buffer b; // NOLINT
-    L->CheckType(1, Lua::TypeFunction);
+int Lumen::IString::Dump(Lumen::IState *L) {
+    Lumen::Buffer b; // NOLINT
+    L->CheckType(1, Lumen::TypeFunction);
     L->SetTop(1);
     b.Init(L);
     if (L->Dump(dumpWriter, &b) != 0)
@@ -664,7 +664,7 @@ int Lua::String::Dump(Lua::State *L) {
 struct MatchState {
     const char *SrcInit;  /* init of source string */
     const char *SrcEnd;  /* end (`\0') of source string */
-    Lua::State *L;
+    Lumen::IState *L;
     int Level;  /* total number of captures (finished or unfinished) */
     struct {
         const char *Init;
@@ -994,7 +994,7 @@ static int pushCaptures(MatchState *ms, const char *s, const char *e) {
 }
 
 
-static int strFindAux(Lua::State *L, int find) {
+static int strFindAux(Lumen::IState *L, int find) {
     size_t l1, l2;
     const char *s = L->CheckString(1, &l1);
     const char *p = L->CheckString(2, &l2);
@@ -1009,7 +1009,7 @@ static int strFindAux(Lua::State *L, int find) {
         const char *s2 = Lumen::Memory::Find(s + init, l1 - init, p, l2);
         if (s2) {
             L->PushInteger(s2 - s + 1);
-            L->PushInteger(static_cast<Lua::Integer>(s2 - s + l2));
+            L->PushInteger(static_cast<Lumen::Integer>(s2 - s + l2));
             return 2;
         }
     } else {
@@ -1037,33 +1037,33 @@ static int strFindAux(Lua::State *L, int find) {
 }
 
 
-int Lua::String::Find(Lua::State *L) {
+int Lumen::IString::Find(Lumen::IState *L) {
     return strFindAux(L, 1);
 }
 
-int Lua::String::Match(Lua::State *L) {
+int Lumen::IString::Match(Lumen::IState *L) {
     return strFindAux(L, 0);
 }
 
-static int GMatchAux(Lua::State *L) {
+static int GMatchAux(Lumen::IState *L) {
     MatchState ms; // NOLINT
     size_t ls;
-    const char *s = L->ToString(Lua::UpValueIndex(1), &ls);
-    const char *p = L->ToString(Lua::UpValueIndex(2));
+    const char *s = L->ToString(Lumen::UpValueIndex(1), &ls);
+    const char *p = L->ToString(Lumen::UpValueIndex(2));
     const char *src;
     ms.L = L;
     ms.SrcInit = s;
     ms.SrcEnd = s + ls;
-    for (src = s + (size_t) L->ToInteger(Lua::UpValueIndex(3));
+    for (src = s + (size_t) L->ToInteger(Lumen::UpValueIndex(3));
          src <= ms.SrcEnd;
          src++) {
         const char *e;
         ms.Level = 0;
         if ((e = match(&ms, src, p)) != nullptr) {
-            Lua::Integer newStart = e - s;
+            Lumen::Integer newStart = e - s;
             if (e == src) newStart++;  /* empty match? go at least one position */
             L->PushInteger(newStart);
-            L->Replace(Lua::UpValueIndex(3));
+            L->Replace(Lumen::UpValueIndex(3));
             return pushCaptures(&ms, src, e);
         }
     }
@@ -1071,7 +1071,7 @@ static int GMatchAux(Lua::State *L) {
 }
 
 
-int Lua::String::GMatch(Lua::State *L) {
+int Lumen::IString::GMatch(Lumen::IState *L) {
     L->CheckString(1);
     L->CheckString(2);
     L->SetTop(2);
@@ -1081,13 +1081,13 @@ int Lua::String::GMatch(Lua::State *L) {
 }
 
 
-int Lua::String::GFindNodeF(Lua::State *L) {
+int Lumen::IString::GFindNodeF(Lumen::IState *L) {
     return L->Error(LUA_QL("string.gfind") " was renamed to "
                     LUA_QL("string.gmatch"));
 }
 
 
-static void addCString(MatchState *ms, Lua::Buffer *b, const char *s,
+static void addCString(MatchState *ms, Lumen::Buffer *b, const char *s,
                        const char *e) {
     size_t l, i;
     const char *news = ms->L->ToString(3, &l);
@@ -1109,23 +1109,23 @@ static void addCString(MatchState *ms, Lua::Buffer *b, const char *s,
 }
 
 
-static void addValue(MatchState *ms, Lua::Buffer *b, const char *s,
+static void addValue(MatchState *ms, Lumen::Buffer *b, const char *s,
                      const char *e) {
-    Lua::State *L = ms->L;
-    switch (L->Type(3)) {
-        case Lua::TypeNumber:
-        case Lua::TypeString: {
+    Lumen::IState *L = ms->L;
+    switch (L->TypeId(3)) {
+        case Lumen::TypeNumber:
+        case Lumen::TypeString: {
             addCString(ms, b, s, e);
             return;
         }
-        case Lua::TypeFunction: {
+        case Lumen::TypeFunction: {
             int n;
             L->PushValue(3);
             n = pushCaptures(ms, s, e);
             L->Call(n, 1);
             break;
         }
-        case Lua::TypeTable: {
+        case Lumen::TypeTable: {
             pushOneCapture(ms, 0, s, e);
             L->GetTable(3);
             break;
@@ -1140,18 +1140,18 @@ static void addValue(MatchState *ms, Lua::Buffer *b, const char *s,
 }
 
 
-int Lua::String::GSub(Lua::State *L) {
+int Lumen::IString::GSub(Lumen::IState *L) {
     size_t srcl;
     const char *src = L->CheckString(1, &srcl);
     const char *p = L->CheckString(2);
-    auto tr = L->Type(3);
+    auto tr = L->TypeId(3);
     int max_s = L->OptInt(4, (int) srcl + 1);
     int anchor = (*p == '^') ? (p++, 1) : 0;
     int n = 0;
     MatchState ms; // NOLINT
-    Lua::Buffer b; // NOLINT
-    L->ArgCheck(tr == Lua::TypeNumber || tr == Lua::TypeString ||
-                tr == Lua::TypeFunction || tr == Lua::TypeTable, 3,
+    Lumen::Buffer b; // NOLINT
+    L->ArgCheck(tr == Lumen::TypeNumber || tr == Lumen::TypeString ||
+                tr == Lumen::TypeFunction || tr == Lumen::TypeTable, 3,
                 "string/function/table expected");
     b.Init(L);
     ms.L = L;
@@ -1192,7 +1192,7 @@ int Lua::String::GSub(Lua::State *L) {
 #define MAX_FORMAT    (sizeof(FLAGS) + sizeof(LUA_INT_FMT_LEN) + 10)
 
 
-static void addQuoted(Lua::State *L, Lua::Buffer *b, int arg) {
+static void addQuoted(Lumen::IState *L, Lumen::Buffer *b, int arg) {
     size_t l;
     const char *s = L->CheckString(arg, &l);
     b->AddChar('"');
@@ -1223,7 +1223,7 @@ static void addQuoted(Lua::State *L, Lua::Buffer *b, int arg) {
     b->AddChar('"');
 }
 
-static const char *scanFormat(Lua::State *L, const char *strFormat, char *form) {
+static const char *scanFormat(Lumen::IState *L, const char *strFormat, char *form) {
     const char *p = strFormat;
     while (*p != '\0' && strchr(FLAGS, *p) != nullptr) p++;  /* skip flags */
     if ((size_t) (p - strFormat) >= sizeof(FLAGS))
@@ -1254,13 +1254,13 @@ static void addIntLength(char *form) {
 }
 
 
-int Lua::String::Format(Lua::State *L) {
+int Lumen::IString::Format(Lumen::IState *L) {
     int top = L->GetTop();
     int arg = 1;
     size_t sfl;
     const char *strfrmt = L->CheckString(arg, &sfl);
     const char *strfrmt_end = strfrmt + sfl;
-    Lua::Buffer b; // NOLINT
+    Lumen::Buffer b; // NOLINT
     b.Init(L);
     while (strfrmt < strfrmt_end) {
         if (*strfrmt != L_ESC)
@@ -1331,30 +1331,30 @@ int Lua::String::Format(Lua::State *L) {
 }
 
 
-static const Lua::Interface strLib[] = {
-    {"byte",     Lua::String::Byte},
-    {"char",     Lua::String::Char},
-    {"dump",     Lua::String::Dump},
-    {"find",     Lua::String::Find},
-    {"format",   Lua::String::Format},
-    {"gfind",    Lua::String::GFindNodeF},
-    {"gmatch",   Lua::String::GMatch},
-    {"gsub",     Lua::String::GSub},
-    {"len",      Lua::String::Length},
-    {"lower",    Lua::String::Lower},
-    {"match",    Lua::String::Match},
-    {"rep",      Lua::String::Rep},
-    {"reverse",  Lua::String::Reverse},
-    {"sub",      Lua::String::Sub},
-    {"upper",    Lua::String::Upper},
-    {"pack",     Lua::String::Pack},
-    {"packsize", Lua::String::PackSize},
-    {"unpack",   Lua::String::Unpack},
+static const Lumen::Interface strLib[] = {
+    {"byte",     Lumen::IString::Byte},
+    {"char",     Lumen::IString::Char},
+    {"dump",     Lumen::IString::Dump},
+    {"find",     Lumen::IString::Find},
+    {"format",   Lumen::IString::Format},
+    {"gfind",    Lumen::IString::GFindNodeF},
+    {"gmatch",   Lumen::IString::GMatch},
+    {"gsub",     Lumen::IString::GSub},
+    {"len",      Lumen::IString::Length},
+    {"lower",    Lumen::IString::Lower},
+    {"match",    Lumen::IString::Match},
+    {"rep",      Lumen::IString::Rep},
+    {"reverse",  Lumen::IString::Reverse},
+    {"sub",      Lumen::IString::Sub},
+    {"upper",    Lumen::IString::Upper},
+    {"pack",     Lumen::IString::Pack},
+    {"packsize", Lumen::IString::PackSize},
+    {"unpack",   Lumen::IString::Unpack},
     {nullptr,    nullptr}
 };
 
 
-static void createMetatable(Lua::State *L) {
+static void createMetatable(Lumen::IState *L) {
     L->CreateTable(0, 1);  /* create metatable for strings */
     L->PushLiteral("");  /* dummy string */
     L->PushValue(-2);
@@ -1368,7 +1368,7 @@ static void createMetatable(Lua::State *L) {
 #define LUA_STRLIBNAME "string"
 
 template<>
-LPP_API int Lua::Open<Lua::String>(Lua::State *L) {
+LPP_API int Lumen::Open<Lumen::IString>(Lumen::IState *L) {
     L->Register(LUA_STRLIBNAME, strLib);
 #if defined(LUA_COMPAT_GFIND)
     L->GetField(-1, "gmatch");
@@ -1381,7 +1381,41 @@ LPP_API int Lua::Open<Lua::String>(Lua::State *L) {
 /*
 ** Open string library
 */
-LUALIB_API int luaopen_string(Lua::State *L) {
+LUALIB_API int luaopen_Lumen_String(Lumen::IState *L) {
+    static const Lumen::Interface strLib[] = {
+        {"Byte",     Lumen::IString::Byte},
+        {"Char",     Lumen::IString::Char},
+        {"Dump",     Lumen::IString::Dump},
+        {"Find",     Lumen::IString::Find},
+        {"Format",   Lumen::IString::Format},
+        {"GFind",    Lumen::IString::GFindNodeF},
+        {"GMatch",   Lumen::IString::GMatch},
+        {"GSub",     Lumen::IString::GSub},
+        {"Len",      Lumen::IString::Length},
+        {"Lower",    Lumen::IString::Lower},
+        {"Match",    Lumen::IString::Match},
+        {"Rep",      Lumen::IString::Rep},
+        {"Reverse",  Lumen::IString::Reverse},
+        {"Sub",      Lumen::IString::Sub},
+        {"Upper",    Lumen::IString::Upper},
+        {"Pack",     Lumen::IString::Pack},
+        {"PackSize", Lumen::IString::PackSize},
+        {"Unpack",   Lumen::IString::Unpack},
+        {nullptr,    nullptr}
+    };
+    L->Register("Lumen.String", strLib);
+#if defined(LUA_COMPAT_GFIND)
+    L->GetField(-1, "GMatch");
+    L->SetField(-2, "GFind");
+#endif
+    createMetatable(L);
+    return 1;
+}
+
+/*
+** Open string library
+*/
+LUALIB_API int luaopen_string(Lumen::IState *L) {
     L->Register(LUA_STRLIBNAME, strLib);
 #if defined(LUA_COMPAT_GFIND)
     L->GetField(-1, "gmatch");

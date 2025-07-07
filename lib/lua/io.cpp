@@ -20,7 +20,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "lua.hpp"
+#include "lumen.h"
 
 #define IO_INPUT    1
 #define IO_OUTPUT    2
@@ -529,11 +529,11 @@ static void newfenv(lua_State *L, lua_CFunction cls) {
 #define PPToLua(L) reinterpret_cast<lua_State *>(L)
 
 template<>
-LPP_API int Lua::Open<Lua::IO>(Lua::State *L) {
+LPP_API int Lumen::Open<Lumen::IIO>(Lumen::IState *L) {
     createmeta(PPToLua(L));
     /* create (private) environment (with fields IO_INPUT, IO_OUTPUT, __close) */
     newfenv(PPToLua(L), io_fclose);
-    L->Replace(Lua::EnvIndex);
+    L->Replace(Lumen::EnvIndex);
     /* open library */
     L->Register(LUA_IOLIBNAME, iolib);
     /* create (and set) default files */
@@ -546,6 +546,40 @@ LPP_API int Lua::Open<Lua::IO>(Lua::State *L) {
     newfenv(PPToLua(L), io_pclose);  /* create environment for 'popen' */
     L->SetFEnv(-2);  /* set fenv for 'popen' */
     L->Pop(1);  /* pop 'popen' */
+    return 1;
+}
+
+LUALIB_API int luaopen_Lumen_IO(lua_State *L) {
+    static const luaL_Reg ioLib[] = {
+        {"Close",   io_close},
+        {"Flush",   io_flush},
+        {"Input",   io_input},
+        {"Lines",   io_lines},
+        {"Open",    io_open},
+        {"Output",  io_output},
+        {"POpen",   io_popen},
+        {"Read",    io_read},
+        {"TmpFile", io_tmpfile},
+        {"Type",    io_type},
+        {"Write",   io_write},
+        {nullptr,   nullptr}
+    };
+    createmeta(L);
+    /* create (private) environment (with fields IO_INPUT, IO_OUTPUT, __close) */
+    newfenv(L, io_fclose);
+    lua_replace(L, LUA_ENVIRONINDEX);
+    /* open library */
+    luaL_register(L, "Lumen.IO", ioLib);
+    /* create (and set) default files */
+    newfenv(L, io_noclose);  /* close function for default files */
+    createstdfile(L, stdin, IO_INPUT, "stdin");
+    createstdfile(L, stdout, IO_OUTPUT, "stdout");
+    createstdfile(L, stderr, 0, "stderr");
+    lua_pop(L, 1);  /* pop environment for default files */
+    lua_getfield(L, -1, "POpen");
+    newfenv(L, io_pclose);  /* create environment for 'popen' */
+    lua_setfenv(L, -2);  /* set fenv for 'popen' */
+    lua_pop(L, 1);  /* pop 'popen' */
     return 1;
 }
 

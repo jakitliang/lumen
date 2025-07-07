@@ -1,14 +1,14 @@
 /*!
- * @brief Lumen C++ FrontEnd for Lua
- * @author Jakit
- * @date 2025/5/29
+ * @brief Lumen - A modernized and refined Lua
+ * @author Jakit (https://github.com/jakitliang/lumen)
+ * @date 2025/7/7
  * @copyright
  * Copyright (c) 2025 Jakit. All rights reserved.
- * Licensed under the BSD License.
+ * Licensed under the BSD 2-Clause License.
  */
 
-#ifndef lua_hpp
-#define lua_hpp
+#ifndef LUMEN_H
+#define LUMEN_H
 
 #include <cstdio>
 #include <climits>
@@ -18,75 +18,27 @@
 
 #include "luaconf.h"
 
-namespace Lua {
+namespace Lumen {
+    // MARK: Number types
+
     using Byte = unsigned char;
+    using Int32 = LUA_INT32;
+    using UInt32 = LUA_UINT32;
+
     using Number = LUA_NUMBER;
     using Integer = LUA_INTEGER;
     using UInteger = LUA_UINTEGER;
 
-    typedef struct lua_State CState;
+    using MemorySize = LUA_UMEM;
+    using MemoryDelta = LUA_MEM;
 
-    struct State;
+    using UACNumber = LUA_UAC_NUMBER; // Result of a `usual argument conversion' over lua_Number
 
-    typedef void *(*Allocator)(void *ud, void *ptr, UInteger oldSize, UInteger newSize);
-
-    typedef const char *(*Reader)(State *L, void *ud, UInteger *sz);
-
-    typedef int (*Writer)(State *L, const void *p, UInteger sz, void *ud);
-
-    typedef int (*Function)(CState *L);
-
-    typedef int (*Delegate)(Lua::State *L);
-
-    /*
-    ** Hook Event codes
-    */
-    typedef LUA_ENUM(int, HookEvent) {
-        HookCall = 0,
-        HookRet = 1,
-        HookLine = 2,
-        HookCount = 3,
-        HookTailRet = 4
+    typedef LUA_ENUM(int, Index) {
+        RegistryIndex = -10000,
+        EnvIndex = -10001,
+        GlobalIndex = -10002
     };
-
-    /*
-    ** Hook event masks
-    */
-    typedef LUA_ENUM(int, HookMask) {
-        HookMaskCall = (1 << HookCall),
-        HookMaskRet = (1 << HookRet),
-        HookMaskLine = (1 << HookLine),
-        HookMaskCount = (1 << HookCount)
-    };
-
-    struct DebugInfo {
-        HookEvent Event;
-        const char *Name;    /* (n) */
-        const char *NameSpace;    /* (n) `global', `local', `field', `method' */
-        const char *Space;    /* (S) `Lua', `C', `main', `tail' */
-        const char *Source;    /* (S) */
-        int CurrentLine;    /* (l) */
-        int NUpValues;        /* (u) number of upvalues */
-        int LineDefined;    /* (S) */
-        int LastLineDefined;    /* (S) */
-        char SourceHint[LUA_IDSIZE]; /* (S) */
-        int CurrentCI;  /* active function */
-    };
-
-    typedef void (*Hook)(State *L, DebugInfo *ar);
-
-    /**
-     * Interface for wrapping APIs to Lua
-     */
-    struct Interface {
-        const char *Name;
-        Delegate Invoke;
-    };
-
-    /**
-     * Fallback support to old C API wrapper
-     */
-    typedef struct luaL_Reg Registry;
 
     typedef LUA_ENUM(int, Ret) {
         RetMul = -1,
@@ -98,16 +50,6 @@ namespace Lua {
         RetErr = 5,
         RetErrFile = RetErr + 1
     };
-
-    typedef LUA_ENUM(int, Index) {
-        RegistryIndex = -10000,
-        EnvIndex = -10001,
-        GlobalIndex = -10002
-    };
-
-    inline int UpValueIndex(Index i) {
-        return GlobalIndex - (i);
-    }
 
     typedef LUA_ENUM(int, Ref) {
         RefNothing = -2,
@@ -131,6 +73,41 @@ namespace Lua {
     };
 
     /**
+     * GC Actions
+     */
+    typedef LUA_ENUM(int, GCAction) {
+        GCStop = 0,
+        GCRestart = 1,
+        GCCollect = 2,
+        GCCount = 3,
+        GCCountB = 4,
+        GCStep = 5,
+        GCSetPause = 6,
+        GCSetStepMul = 7
+    };
+
+    /*
+    ** Hook Event codes
+    */
+    typedef LUA_ENUM(int, HookEvent) {
+        HookCall = 0,
+        HookRet = 1,
+        HookLine = 2,
+        HookCount = 3,
+        HookTailRet = 4
+    };
+
+    /*
+    ** Hook event masks
+    */
+    typedef LUA_ENUM(int, HookMask) {
+        HookMaskCall = (1 << HookCall),
+        HookMaskRet = (1 << HookRet),
+        HookMaskLine = (1 << HookLine),
+        HookMaskCount = (1 << HookCount)
+    };
+
+    /**
      * Comparison and arithmetic functions
      */
     typedef LUA_ENUM(int, ArithOp) {
@@ -149,58 +126,109 @@ namespace Lua {
         CompareOpLE = 2
     };
 
-    /**
-     * GC Actions
-     */
-    typedef LUA_ENUM(int, GCAction) {
-        GCStop = 0,
-        GCRestart = 1,
-        GCCollect = 2,
-        GCCount = 3,
-        GCCountB = 4,
-        GCStep = 5,
-        GCSetPause = 6,
-        GCSetStepMul = 7
+    typedef struct lua_State CState;
+
+    struct IState;
+
+    typedef int (*Delegate)(IState *L);
+
+    typedef void *(*Allocator)(void *ud, void *ptr, UInteger oldSize, UInteger newSize);
+
+    typedef const char *(*Reader)(IState *L, void *ud, UInteger *sz);
+
+    typedef int (*Writer)(IState *L, const void *p, UInteger sz, void *ud);
+
+    typedef int (*Function)(CState *L);
+
+    struct DebugInfo {
+        HookEvent Event;
+        const char *Name;    /* (n) */
+        const char *NameSpace;    /* (n) `global', `local', `field', `method' */
+        const char *Space;    /* (S) `Lua', `C', `main', `tail' */
+        const char *Source;    /* (S) */
+        int CurrentLine;    /* (l) */
+        int NUpValues;        /* (u) number of upvalues */
+        int LineDefined;    /* (S) */
+        int LastLineDefined;    /* (S) */
+        char SourceHint[LUA_IDSIZE]; /* (S) */
+        int CurrentCI;  /* active function */
     };
+
+    typedef void (*Hook)(IState *L, DebugInfo *ar);
+
+    /**
+     * Interface for wrapping APIs to Lua
+     */
+    struct Interface {
+        const char *Name;
+        Delegate Invoke;
+    };
+
+    /**
+     * Fallback support to old C API wrapper
+     */
+    typedef struct luaL_Reg Registry;
+
+    inline int UpValueIndex(Index i) {
+        return GlobalIndex - (i);
+    }
 
     struct TypeInfo {
-        Lua::Type Type;
+        Lumen::Type Type;
+
+        inline bool IsNil() const { return Type == Lumen::TypeNil; } // NOLINT
+
+        inline bool IsNumber() const { return Type == Lumen::TypeNumber; } // NOLINT
+
+        inline bool IsString() const { return Type == Lumen::TypeString; } // NOLINT
+
+        inline bool IsTable() const { return Type == Lumen::TypeTable; } // NOLINT
+
+        inline bool IsFunction() const { return Type == Lumen::TypeFunction; } // NOLINT
+
+        inline bool IsBoolean() const { return Type == Lumen::TypeBool; } // NOLINT
+
+        inline bool IsUData() const { return Type == Lumen::TypeUserdata; } // NOLINT
+
+        inline bool IsThread() const { return Type == Lumen::TypeThread; } // NOLINT
+
+        inline bool IsLUData() const { return Type == Lumen::TypeLightUserdata; } // NOLINT
     };
 
-    struct Object;
+    using IObject = TypeInfo;
 
-    struct Base;
+    struct IBase;
 
-    struct Coroutine;
+    struct ICoroutine;
 
-    struct Package;
+    struct IPackage;
 
-    struct Table;
+    struct ITable;
 
-    struct IO;
+    struct IIO;
 
-    struct OS;
+    struct IOS;
 
-    struct String;
+    struct IString;
 
-    struct Math;
+    struct IMath;
 
-    struct UTF8;
+    struct IUTF8;
 
-    struct Bit;
+    struct IBit;
 
-    struct Debug;
+    struct IDebug;
 
-    struct State {
+    struct IState {
         // MARK: state manipulation
 
-        LPP_API static State *New(Allocator allocator, void *userdata);
+        LPP_API static IState *New(Allocator allocator, void *userdata);
 
-        LPP_API State *NewThread();
+        LPP_API IState *NewThread();
 
         LPP_API Delegate AtPanic(Delegate pInvoke);
 
-        LPP_API const Lua::Number *Version();
+        LPP_API const Lumen::Number *Version();
 
         // MARK: basic stack manipulation
 
@@ -234,12 +262,12 @@ namespace Lua {
 
         LPP_API bool IsUserdata(int idx);
 
-        LPP_API Lua::Type Type(int idx);
+        LPP_API Lumen::Type TypeId(int idx);
 
-        LPP_API const char *TypeId(int tp); // NOLINT
+        LPP_API const char *TypeOf(int tp); // NOLINT
 
         inline const char *TypeName(int idx) {
-            return TypeId(Type(idx));
+            return TypeOf(TypeId(idx));
         }
 
         LPP_API void Arith(ArithOp op);
@@ -270,7 +298,7 @@ namespace Lua {
 
         LPP_API void *ToUserdata(int idx);
 
-        LPP_API State *ToThread(int idx);
+        LPP_API IState *ToThread(int idx);
 
         LPP_API const void *ToPointer(int idx);
 
@@ -302,17 +330,19 @@ namespace Lua {
 
         LPP_API int PushThread();
 
+        void PushObject(const Lumen::IObject *o);
+
         // MARK: get functions (Lua -> stack)
 
-        LPP_API void GetTable(int idx);
+        LPP_API Lumen::Type GetTable(int idx);
 
-        LPP_API void GetField(int idx, const char *k);
+        LPP_API Lumen::Type GetField(int idx, const char *k);
 
-        LPP_API void RawGet(int idx);
+        LPP_API Lumen::Type RawGet(int idx);
 
-        LPP_API void RawGetAt(int idx, int n);
+        LPP_API Lumen::Type RawGetAt(int idx, int n);
 
-        LPP_API void RawGetPtr(int idx, const void *p);
+        LPP_API Lumen::Type RawGetPtr(int idx, const void *p);
 
         LPP_API void CreateTable(int nArray, int nRec);
 
@@ -342,27 +372,27 @@ namespace Lua {
 
         LPP_API void Call(int nargs, int nResults);
 
-        LPP_API Lua::Ret TryCall(int nargs, int nResults, int errFunc);
+        LPP_API Lumen::Ret TryCall(int nargs, int nResults, int errFunc);
 
         // Try C Call
-        LPP_API Lua::Ret TryCall(Delegate invoke, void *userdata);
+        LPP_API Lumen::Ret TryCall(Delegate invoke, void *userdata);
 
         // Try C Call
-        inline Lua::Ret TryCall(Function invoke, void *userdata) {
+        inline Lumen::Ret TryCall(Function invoke, void *userdata) {
             return TryCall(reinterpret_cast<Delegate>(invoke), userdata);
         }
 
-        LPP_API Lua::Ret Load(Reader reader, void *data, const char *chunkName);
+        LPP_API Lumen::Ret Load(Reader reader, void *data, const char *chunkName);
 
-        LPP_API Lua::Ret Dump(Writer writer, void *data);
+        LPP_API Lumen::Ret Dump(Writer writer, void *data);
 
         // MARK: coroutine functions
 
-        LPP_API Lua::Ret Yield(int nResults);
+        LPP_API Lumen::Ret Yield(int nResults);
 
-        LPP_API Lua::Ret Resume(int nArgs);
+        LPP_API Lumen::Ret Resume(int nArgs);
 
-        LPP_API Lua::Ret Status();
+        LPP_API Lumen::Ret Status();
 
         LPP_API bool CanYield();
 
@@ -372,7 +402,7 @@ namespace Lua {
 
         // MARK: miscellaneous functions
 
-        LPP_API Lua::Ret Error();
+        LPP_API Lumen::Ret Error();
 
         LPP_API bool Next(int idx);
 
@@ -407,35 +437,35 @@ namespace Lua {
         }
 
         inline bool IsFunction(int idx) {
-            return Type(idx) == TypeFunction;
+            return TypeId(idx) == TypeFunction;
         }
 
         inline bool IsTable(int idx) {
-            return Type(idx) == TypeTable;
+            return TypeId(idx) == TypeTable;
         }
 
         inline bool IsLightUserdata(int idx) {
-            return Type(idx) == TypeLightUserdata;
+            return TypeId(idx) == TypeLightUserdata;
         }
 
         inline bool IsNil(int idx) {
-            return Type(idx) == TypeNil;
+            return TypeId(idx) == TypeNil;
         }
 
         inline bool IsBoolean(int idx) {
-            return Type(idx) == TypeBool;
+            return TypeId(idx) == TypeBool;
         }
 
         inline bool IsThread(int idx) {
-            return Type(idx) == TypeThread;
+            return TypeId(idx) == TypeThread;
         }
 
         inline bool IsNone(int idx) {
-            return Type(idx) == TypeNone;
+            return TypeId(idx) == TypeNone;
         }
 
         inline bool IsNoneOrNil(int idx) {
-            return Type(idx) <= 0;
+            return TypeId(idx) <= 0;
         }
 
         template<UInteger S>
@@ -447,8 +477,8 @@ namespace Lua {
             SetField(GlobalIndex, key);
         }
 
-        inline void GetGlobal(const char *key) {
-            GetField(GlobalIndex, key);
+        inline Lumen::Type GetGlobal(const char *key) {
+            return GetField(GlobalIndex, key);
         }
 
         const char *ToString(int idx) {
@@ -489,7 +519,7 @@ namespace Lua {
 
         LPP_API Hook GetHook();
 
-        LPP_API Lua::HookMask GetHookMask();
+        LPP_API Lumen::HookMask GetHookMask();
 
         LPP_API int GetHookCount();
 
@@ -543,7 +573,7 @@ namespace Lua {
 
         LPP_API void CheckStack(int sz, const char *msg);
 
-        LPP_API void CheckType(int nArg, Lua::Type t);
+        LPP_API void CheckType(int nArg, Lumen::Type t);
 
         LPP_API void CheckAny(int nArg);
 
@@ -559,21 +589,29 @@ namespace Lua {
 
         LPP_API int CheckOption(int nArg, const char *def, const char *const lst[]);
 
-        LPP_API Lua::Ref Ref(int t);
+        LPP_API Lumen::Ref Ref(int t);
 
-        LPP_API void Unref(int t, Lua::Ref ref);
+        LPP_API void Unref(int t, Lumen::Ref ref);
 
-        LPP_API Lua::Ret LoadFile(const char *filename);
+        LPP_API Lumen::Ret LoadFile(const char *filename);
 
-        LPP_API Lua::Ret LoadBuffer(const char *buff, UInteger size, const char *name);
+        LPP_API Lumen::Ret LoadBuffer(const char *buff, UInteger size, const char *name);
 
-        LPP_API Lua::Ret LoadString(const char *s);
+        LPP_API Lumen::Ret LoadString(const char *s);
 
-        LPP_API static State *New();
+        LPP_API static IState *New();
 
         LPP_API const char *GSub(const char *s, const char *p, const char *r);
 
         LPP_API const char *FindTable(int idx, const char *name, int hintSize);
+
+        LPP_API bool FindOrCreateTable(int idx, const char *name);
+
+        LPP_API void Require(const char *modName, Lumen::Delegate loader, bool exported = false);
+
+        inline void Require(const char *modName, Lumen::Function loader, bool exported = false) {
+            Require(modName, reinterpret_cast<Lumen::Delegate>(loader), exported);
+        }
 
         // MARK: Auxiliary miscellaneous functions
 
@@ -606,7 +644,7 @@ namespace Lua {
         }
 
         inline const char *CheckTypeName(int idx) {
-            return TypeName(Type(idx));
+            return TypeName(TypeId(idx));
         }
 
         template<int R = RetMul>
@@ -624,7 +662,7 @@ namespace Lua {
         }
 
         template<typename T>
-        inline T Opt(T (Lua::State::*f)(int), int nArg, T def) {
+        inline T Opt(T (Lumen::IState::*f)(int), int nArg, T def) {
             if (IsNoneOrNil(nArg)) {
                 return def;
             }
@@ -639,10 +677,10 @@ namespace Lua {
     struct Buffer {
         char *p;      /* current position in buffer */
         int level;    /* number of strings in the stack (level) */
-        State *L;
+        IState *L;
         char buffer[LUAL_BUFFERSIZE];
 
-        inline void Init(Lua::State *l) {
+        inline void Init(Lumen::IState *l) {
             L = l;
             p = buffer;
             level = 0;
@@ -679,20 +717,20 @@ namespace Lua {
     };
 
     template<typename T>
-    LPP_API int Open(State *L);
+    LPP_API int Open(IState *L);
 
-    State *Open();
+    IState *Open();
 
-    LPP_API void Close(State *&L);
+    LPP_API void Close(IState *&L);
 
-    LPP_API void XMove(State *from, State *to, int n);
+    LPP_API void XMove(IState *from, IState *to, int n);
 
     /* hack */
-    LPP_API void SetLevel(State *from, State *to);
+    LPP_API void SetLevel(IState *from, IState *to);
 }
 
-inline Lua::State *Lua::Open() {
-    return Lua::State::New();
+inline Lumen::IState *Lumen::Open() {
+    return Lumen::IState::New();
 }
 
-#endif //lua_hpp
+#endif //LUMEN_H

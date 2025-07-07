@@ -1,11 +1,7 @@
 add_library(
     lumen-lua OBJECT
-    api.cpp
-    auxiliary.cpp
-#    baselib.c
     base.cpp
     bit.cpp
-    buffer.cpp
     c_api.cpp
     c_aux.cpp
     debug.cpp
@@ -15,7 +11,6 @@ add_library(
     load_platform.c
     math.cpp
     os.cpp
-    state.cpp
     string.cpp
     table.cpp
     utf8lib.cpp
@@ -90,6 +85,7 @@ if (NOT LUA_SKIP_INSTALL)
         ${LUMEN_BASE_SOURCE_DIR}/include/lua.hpp
         ${LUMEN_BASE_SOURCE_DIR}/include/luaconf.h
         ${LUMEN_BASE_SOURCE_DIR}/include/lualib.h
+#        ${LUMEN_BASE_SOURCE_DIR}/include/lumen.h
         DESTINATION include
     )
     install(

@@ -86,10 +86,10 @@ void luaL_where(lua_State *L, int level) {
 
 int luaL_error(lua_State *L, const char *fmt, ...) {
     va_list argP;
-            va_start(argP, fmt);
+        va_start(argP, fmt);
     luaL_where(L, 1);
     lua_pushvfstring(L, fmt, argP);
-            va_end(argP);
+        va_end(argP);
     lua_concat(L, 2);
     return lua_error(L);
 }
@@ -800,6 +800,38 @@ void luaL_setfuncs(lua_State *L, const luaL_Reg *l, int nup) {
         lua_setfield(L, -(nup + 2), l->name);
     }
     lua_pop(L, nup);  /* remove upvalues */
+}
+
+int luaL_getsubtable(lua_State *L, int idx, const char *name) {
+    if (lua_getfield(L, idx, name) == LUA_TTABLE)
+        return 1;  /* table already there */
+    else {
+        lua_pop(L, 1);  /* remove previous result */
+        idx = lua_absindex(L, idx);
+        lua_newtable(L);
+        lua_pushvalue(L, -1);  /* copy to be left at top */
+        lua_setfield(L, idx, name);  /* assign new table to field */
+        return 0;  /* false, because did not find table there */
+    }
+}
+
+void luaL_requiref(lua_State *L, const char *modname,
+                   lua_CFunction openF, int glb) {
+    luaL_getsubtable(L, LUA_REGISTRYINDEX, "_LOADED");
+    lua_getfield(L, -1, modname);  /* LOADED[modname] */
+    if (!lua_toboolean(L, -1)) {  /* package not already loaded? */
+        lua_pop(L, 1);  /* remove field */
+        lua_pushcfunction(L, openF);
+        lua_pushstring(L, modname);  /* argument to open function */
+        lua_call(L, 1, 1);  /* call 'openF' to open module */
+        lua_pushvalue(L, -1);  /* make copy of module (call result) */
+        lua_setfield(L, -3, modname);  /* LOADED[modname] = module */
+    }
+    lua_remove(L, -2);  /* remove LOADED table */
+    if (glb) {
+        lua_pushvalue(L, -1);  /* copy of module */
+        lua_setglobal(L, modname);  /* _G[modname] = module */
+    }
 }
 
 void luaL_pushmodule(lua_State *L, const char *modname, int hintSize) {

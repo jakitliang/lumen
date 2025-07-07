@@ -643,6 +643,10 @@
 
 // MARK: State configuration
 
+struct lua_State;
+
+struct luaL_Reg;
+
 /*
 @@ LUA_EXTRA_SPACE allows you to add user-specific data in a lua_State
 @* (the data goes just *before* the lua_State pointer).

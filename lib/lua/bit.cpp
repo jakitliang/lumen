@@ -18,7 +18,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "lua.hpp"
+#include "lumen.h"
 
 typedef int32_t SBits;
 typedef uint32_t UBits;
@@ -155,9 +155,9 @@ static const luaL_Reg bit_funcs[] = {
 #define PPToLua(L)     reinterpret_cast<lua_State *>(L)
 
 template<>
-LPP_API int Lua::Open<Lua::Bit>(Lua::State *L) {
+LPP_API int Lumen::Open<Lumen::IBit>(Lumen::IState *L) {
     UBits b;
-    L->PushNumber((Lua::Number) 1437217655L);
+    L->PushNumber((Lumen::Number) 1437217655L);
     b = barg(PPToLua(L), -1);
     if (b != (UBits) 1437217655L || BAD_SAR) {  /* Perform a simple self-test. */
         const char *msg = "compiled with incompatible luaconf.h";
@@ -177,6 +177,48 @@ LPP_API int Lua::Open<Lua::Bit>(Lua::State *L) {
     L->Register(LUA_BITLIBNAME, bit_funcs);
 #else
     L->NewLib(bit_funcs);
+#endif
+    return 1;
+}
+
+static const luaL_Reg bitLib[] = {
+    {"ToBit",   bit_tobit},
+    {"Not",     bit_bnot},
+    {"And",     bit_band},
+    {"Or",      bit_bor},
+    {"XOr",     bit_bxor},
+    {"LShift",  bit_lshift},
+    {"RShift",  bit_rshift},
+    {"ARShift", bit_arshift},
+    {"RoL",     bit_rol},
+    {"RoR",     bit_ror},
+    {"Swap",    bit_bswap},
+    {"ToHex",   bit_tohex},
+    {nullptr,   nullptr}
+};
+
+LUALIB_API int luaopen_Lumen_Bit(lua_State *L) {
+    UBits b;
+    lua_pushnumber(L, (lua_Number) 1437217655L);
+    b = barg(L, -1);
+    if (b != (UBits) 1437217655L || BAD_SAR) {  /* Perform a simple self-test. */
+        const char *msg = "compiled with incompatible luaconf.h";
+#ifdef LUA_NUMBER_DOUBLE
+#ifdef _WIN32
+        if (b == (UBits) 1610612736L)
+            msg = "use D3DCREATE_FPU_PRESERVE with DirectX";
+#endif
+        if (b == (UBits) 1127743488L)
+            msg = "not compiled with SWAPPED_DOUBLE";
+#endif
+        if (BAD_SAR)
+            msg = "arithmetic right-shift broken";
+        luaL_error(L, "bit library self-test failed (%s)", msg);
+    }
+#if LUA_VERSION_NUM < 502
+    luaL_register(L, "Lumen.Bit", bitLib);
+#else
+    luaL_newlib(L, bitLib);
 #endif
     return 1;
 }

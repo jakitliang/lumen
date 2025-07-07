@@ -68,7 +68,7 @@ namespace Lumen {
 
     struct Proto;
 
-    struct Object : TypeInfo {
+    struct Object : IObject {
         Variant value;
 
         const char *GetUpValueInfo(int n, Lumen::Object **val);

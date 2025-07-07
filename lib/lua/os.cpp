@@ -22,7 +22,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "lua.hpp"
+#include "lumen.h"
 
 /*
  * lua_tmpnam is the function that the OS library uses to create a
@@ -253,8 +253,27 @@ static const luaL_Reg syslib[] = {
 /* }====================================================== */
 
 template<>
-LPP_API int Lua::Open<Lua::OS>(Lua::State *L) {
+LPP_API int Lumen::Open<Lumen::IOS>(Lumen::IState *L) {
     L->Register(LUA_OSLIBNAME, syslib);
+    return 1;
+}
+
+LUALIB_API int luaopen_Lumen_OS(lua_State *L) {
+    static const luaL_Reg sysLib[] = {
+        {"Clock",     os_clock},
+        {"Date",      os_date},
+        {"DiffTime",  os_difftime},
+        {"Execute",   os_execute},
+        {"Exit",      os_exit},
+        {"GetEnv",    os_getenv},
+        {"Remove",    os_remove},
+        {"Rename",    os_rename},
+        {"SetLocale", os_setlocale},
+        {"Time",      os_time},
+        {"TmpName",   os_tmpname},
+        {nullptr,     nullptr}
+    };
+    luaL_register(L, "Lumen.OS", sysLib);
     return 1;
 }
 

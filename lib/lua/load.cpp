@@ -19,8 +19,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "lua.hpp"
-
+#include "lumen.h"
 
 /* prefix for open functions in C libraries */
 #define LUA_POF        "luaopen_"
@@ -412,7 +411,7 @@ static const lua_CFunction loaders[] =
     {loader_preload, loader_Lua, loader_C, loader_Croot, nullptr};
 
 template<>
-LPP_API int Lua::Open<Lua::Package>(Lua::State *L) {
+LPP_API int Lumen::Open<Lumen::IPackage>(Lumen::IState *L) {
     int i;
     /* create new type _LOADLIB */
     L->NewMetatable("_LOADLIB");
@@ -422,10 +421,10 @@ LPP_API int Lua::Open<Lua::Package>(Lua::State *L) {
     L->Register(LUA_LOADLIBNAME, pk_funcs);
 #if defined(LUA_COMPAT_LOADLIB)
     L->GetField(-1, "loadlib");
-    L->SetField(Lua::GlobalIndex, "loadlib");
+    L->SetField(Lumen::GlobalIndex, "loadlib");
 #endif
     L->PushValue(-1);
-    L->Replace(Lua::EnvIndex);
+    L->Replace(Lumen::EnvIndex);
     /* create `loaders' table */
     L->CreateTable(sizeof(loaders) / sizeof(loaders[0]) - 1, 0);
     /* fill it with pre-defined loaders */
@@ -441,12 +440,12 @@ LPP_API int Lua::Open<Lua::Package>(Lua::State *L) {
                    LUA_EXECDIR "\n" LUA_IGMARK);
     L->SetField(-2, "config");
     /* set field `loaded` */
-    L->FindTable(Lua::RegistryIndex, "_LOADED", 2);
+    L->FindTable(Lumen::RegistryIndex, "_LOADED", 2);
     L->SetField(-2, "loaded");
     /* set field `preload` */
     L->NewTable();
     L->SetField(-2, "preload");
-    L->PushValue(Lua::GlobalIndex);
+    L->PushValue(Lumen::GlobalIndex);
     L->Register(nullptr, ll_funcs);  /* open lib into global table */
     L->Pop();
     return 1;  /* return 'package' table */

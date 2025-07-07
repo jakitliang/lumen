@@ -10,17 +10,16 @@
 #define LUA_LIB
 
 #include <string_view>
-#include <algorithm>
 #include <cstring>
 
-#include "lua.hpp"
+#include "lumen.h"
 
 #define buffLen(B)    ((B)->p - (B)->buffer)
 #define buffFree(B)    ((size_t)(LUAL_BUFFERSIZE - buffLen(B)))
 
 #define LIMIT    (LUA_MIN_STACK / 2)
 
-static int emptyBuffer(Lua::Buffer *B) {
+static int emptyBuffer(Lumen::Buffer *B) {
     size_t l = buffLen(B);
     if (l == 0) return 0;  /* put nothing on stack */
     else {
@@ -31,9 +30,9 @@ static int emptyBuffer(Lua::Buffer *B) {
     }
 }
 
-static void adjustStack(Lua::Buffer *B) {
+static void adjustStack(Lumen::Buffer *B) {
     if (B->level > 1) {
-        Lua::State *L = B->L;
+        Lumen::IState *L = B->L;
         int toGet = 1;  /* number of levels to concat */
         size_t toPLen = L->StringLength(-1);
         do {
@@ -48,22 +47,22 @@ static void adjustStack(Lua::Buffer *B) {
     }
 }
 
-char *Lua::Buffer::Prepare() {
+char *Lumen::Buffer::Prepare() {
     if (emptyBuffer(this))
         adjustStack(this);
     return buffer;
 }
 
-void Lua::Buffer::AddString(const char *s) {
+void Lumen::Buffer::AddString(const char *s) {
     AddString(s, std::string_view(s).length());
 }
 
-void Lua::Buffer::AddString(const char *s, size_t l) {
+void Lumen::Buffer::AddString(const char *s, size_t l) {
     while (l--)
         AddChar(*s++);
 }
 
-void Lua::Buffer::AddValue() {
+void Lumen::Buffer::AddValue() {
     size_t vl;
     const char *s = L->ToString(-1, &vl);
     if (vl <= buffFree(this)) {  /* fit into buffer? */
@@ -78,7 +77,7 @@ void Lua::Buffer::AddValue() {
     }
 }
 
-void Lua::Buffer::PushResult() {
+void Lumen::Buffer::PushResult() {
     emptyBuffer(this);
     L->Concat(level);
     level = 1;

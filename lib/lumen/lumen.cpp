@@ -1,39 +1,35 @@
 /*!
- * @brief Lumen C++ FrontEnd API for Lua
+ * @brief Lumen common
  * @author Jakit
- * @date 2025/6/7
+ * @date 2025/7/8
  * @copyright
  * Copyright (c) 2025 Jakit. All rights reserved.
  * Licensed under the BSD License.
  */
 
-#include <cassert>
-#include <cstdarg>
-#include <cstring>
-
-#define LUA_LIB
+#define LUA_CORE
 
 #include "lumen/object.h"
 #include "lumen/state.h"
 #include "lumen/api.h"
 #include "lumen/common.inl"
 
-#include "lua.hpp"
+#include "lumen.h"
 
-#define LuaToLumen(L) reinterpret_cast<Lumen::State *>(L)
-#define LumenToLua(L) reinterpret_cast<Lua::State *>(L)
+// NOLINTNEXTLINE
+#define ToLumen(L) static_cast<Lumen::State *>(L)
 
-void Lua::Close(Lua::State *&state) {
-    auto L = LuaToLumen(state);
+void Lumen::Close(Lumen::IState *&state) {
+    auto L = ToLumen(state);
     if (L != nullptr) {
         Lumen::State::Close(L);
     }
     state = nullptr;
 }
 
-void Lua::XMove(Lua::State *fromL, Lua::State *toL, int n) {
-    auto from = LuaToLumen(fromL);
-    auto to = LuaToLumen(toL);
+void Lumen::XMove(Lumen::IState *fromL, Lumen::IState *toL, int n) {
+    auto from = ToLumen(fromL);
+    auto to = ToLumen(toL);
     int i;
     if (from == to) return;
     LumenLock(to);
@@ -47,8 +43,8 @@ void Lua::XMove(Lua::State *fromL, Lua::State *toL, int n) {
     LumenUnlock(to);
 }
 
-void Lua::SetLevel(Lua::State *fromL, Lua::State *toL) {
-    auto from = LuaToLumen(fromL);
-    auto to = LuaToLumen(toL);
+void Lumen::SetLevel(Lumen::IState *fromL, Lumen::IState *toL) {
+    auto from = ToLumen(fromL);
+    auto to = ToLumen(toL);
     to->NCCalls = from->NCCalls;
 }

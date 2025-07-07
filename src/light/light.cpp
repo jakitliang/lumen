@@ -15,7 +15,7 @@
 
 #define lumen_c
 
-#include "lua.hpp"
+#include "lumen.h"
 
 #define lua_assert(c) ((void) 0)
 
@@ -63,12 +63,12 @@ LUA_C_END
 #define lua_freeline(L, b)    do { (void)L; (void)b; } while (0)
 #endif
 
-static Lua::State *globalL = nullptr;
+static Lumen::IState *globalL = nullptr;
 
 static const char *programName = LUA_PROGRAM_NAME;
 
 
-static void luaStop(Lua::State *L, Lua::DebugInfo *) {
+static void luaStop(Lumen::IState *L, Lumen::DebugInfo *) {
 //    (void) ar;  /* unused arg. */
     L->SetHook(nullptr, 0, 0);
     L->Error("interrupted!");
@@ -78,7 +78,7 @@ static void luaStop(Lua::State *L, Lua::DebugInfo *) {
 static void luaAction(int i) {
     signal(i, SIG_DFL); /* if another SIGINT happens before luaStop,
                               terminate process (default action) */
-    globalL->SetHook(luaStop, Lua::HookMaskCall | Lua::HookMaskRet | Lua::HookMaskCount, 1);
+    globalL->SetHook(luaStop, Lumen::HookMaskCall | Lumen::HookMaskRet | Lumen::HookMaskCount, 1);
 }
 
 
@@ -104,7 +104,7 @@ static void luaMessage(const char *pName, const char *msg) {
 }
 
 
-static int report(Lua::State *L, int status) {
+static int report(Lumen::IState *L, int status) {
     if (status && !L->IsNil(-1)) {
         const char *msg = L->ToString(-1);
         if (msg == nullptr) msg = "(error object is not a string)";
@@ -115,10 +115,10 @@ static int report(Lua::State *L, int status) {
 }
 
 
-static int traceback(Lua::State *L) {
+static int traceback(Lumen::IState *L) {
     if (!L->IsString(1))  /* 'message' not a string? */
         return 1;  /* keep it intact */
-    L->GetField(Lua::GlobalIndex, "debug");
+    L->GetField(Lumen::GlobalIndex, "debug");
     if (!L->IsTable(-1)) {
         L->Pop(1);
         return 1;
@@ -135,17 +135,17 @@ static int traceback(Lua::State *L) {
 }
 
 
-static int doCall(Lua::State *L, int nArg, int clear) {
+static int doCall(Lumen::IState *L, int nArg, int clear) {
     int status;
     int base = L->GetTop() - nArg;  /* function index */
     L->PushDelegate(traceback);  /* push traceback function */
     L->Insert(base);  /* put it under chunk and args */
     signal(SIGINT, luaAction);
-    status = L->TryCall(nArg, (clear ? 0 : Lua::RetMul), base);
+    status = L->TryCall(nArg, (clear ? 0 : Lumen::RetMul), base);
     signal(SIGINT, SIG_DFL);
     L->Remove(base);  /* remove traceback function */
     /* force a complete garbage collection in case of errors */
-    if (status != 0) L->GC(Lua::GCCollect, 0);
+    if (status != 0) L->GC(Lumen::GCCollect, 0);
     return status;
 }
 
@@ -155,7 +155,7 @@ static void printVersion() {
 }
 
 
-static int getArgs(Lua::State *L, char **argv, int n) {
+static int getArgs(Lumen::IState *L, char **argv, int n) {
     int nArg;
     int i;
     int argc = 0;
@@ -173,28 +173,28 @@ static int getArgs(Lua::State *L, char **argv, int n) {
 }
 
 
-static int doFile(Lua::State *L, const char *name) {
+static int doFile(Lumen::IState *L, const char *name) {
     int status = L->LoadFile(name) || doCall(L, 0, 1);
     return report(L, status);
 }
 
 
-static int doString(Lua::State *L, const char *s, const char *name) {
+static int doString(Lumen::IState *L, const char *s, const char *name) {
     int status = L->LoadBuffer(s, strlen(s), name) || doCall(L, 0, 1);
     return report(L, status);
 }
 
 
-static int doLibrary(Lua::State *L, const char *name) {
+static int doLibrary(Lumen::IState *L, const char *name) {
     L->GetGlobal("require");
     L->PushString(name);
     return report(L, doCall(L, 1, 1));
 }
 
 
-static const char *getPrompt(Lua::State *L, int firstLine) {
+static const char *getPrompt(Lumen::IState *L, int firstLine) {
     const char *p;
-    L->GetField(Lua::GlobalIndex, firstLine ? "_PROMPT" : "_PROMPT2");
+    L->GetField(Lumen::GlobalIndex, firstLine ? "_PROMPT" : "_PROMPT2");
     p = L->ToString(-1);
     if (p == nullptr) p = (firstLine ? LUA_PROMPT : LUA_PROMPT2);
     L->Pop(1);  /* remove global */
@@ -202,8 +202,8 @@ static const char *getPrompt(Lua::State *L, int firstLine) {
 }
 
 
-static int inComplete(Lua::State *L, int status) {
-    if (status == Lua::RetErrSyntax) {
+static int inComplete(Lumen::IState *L, int status) {
+    if (status == Lumen::RetErrSyntax) {
         size_t msgLength;
         const char *msg = L->ToString(-1, &msgLength);
         const char *tp = msg + msgLength - (sizeof(LUA_QL("<eof>")) - 1);
@@ -216,7 +216,7 @@ static int inComplete(Lua::State *L, int status) {
 }
 
 
-static int pushLine(Lua::State *L, int firstLine) {
+static int pushLine(Lumen::IState *L, int firstLine) {
     char buffer[LUA_MAX_INPUT];
     char *b = buffer;
     size_t l;
@@ -235,7 +235,7 @@ static int pushLine(Lua::State *L, int firstLine) {
 }
 
 
-static int loadLine(Lua::State *L) {
+static int loadLine(Lumen::IState *L) {
     int status;
     L->SetTop(0);
     if (!pushLine(L, 1))
@@ -255,7 +255,7 @@ static int loadLine(Lua::State *L) {
 }
 
 
-static void dotty(Lua::State *L) {
+static void dotty(Lumen::IState *L) {
     int status;
     const char *oldProgramName = programName;
     programName = nullptr;
@@ -277,7 +277,7 @@ static void dotty(Lua::State *L) {
 }
 
 
-static int handleScript(Lua::State *L, char **argv, int n) {
+static int handleScript(Lumen::IState *L, char **argv, int n) {
     int status;
     const char *fileName;
     int nArg = getArgs(L, argv, n);  /* collect arguments */
@@ -333,7 +333,7 @@ static int collectArgs(char **argv, int *pi, int *pv, int *pe) {
 }
 
 
-static int runArgs(Lua::State *L, char **argv, int n) {
+static int runArgs(Lumen::IState *L, char **argv, int n) {
     int i;
     for (i = 1; i < n; i++) {
         if (argv[i] == nullptr) continue;
@@ -363,7 +363,7 @@ static int runArgs(Lua::State *L, char **argv, int n) {
 }
 
 
-static int handleLuaInit(Lua::State *L) {
+static int handleLuaInit(Lumen::IState *L) {
     const char *init = getenv(LUA_INIT);
     if (init == nullptr) return 0;  /* status OK */
     else if (init[0] == '@')
@@ -380,16 +380,16 @@ struct MainArgs {
 };
 
 
-static int pMain(Lua::State *L) {
+static int pMain(Lumen::IState *L) {
     auto s = reinterpret_cast<MainArgs *>(L->ToUserdata(1));
     char **argv = s->argv;
     int script;
     int has_i = 0, has_v = 0, has_e = 0;
     globalL = L;
     if (argv[0] && argv[0][0]) programName = argv[0];
-    L->GC(Lua::GCStop, 0);  /* stop collector during initialization */
+    L->GC(Lumen::GCStop, 0);  /* stop collector during initialization */
     L->OpenLibs();  /* open libraries */
-    L->GC(Lua::GCRestart, 0);
+    L->GC(Lumen::GCRestart, 0);
     s->status = handleLuaInit(L);
     if (s->status != 0) return 0;
     script = collectArgs(argv, &has_i, &has_v, &has_e);
@@ -418,7 +418,7 @@ static int pMain(Lua::State *L) {
 
 int main(int argc, char **argv) {
     int status;
-    Lua::State *L = Lua::Open();  /* create state */
+    Lumen::IState *L = Lumen::Open();  /* create state */
     if (L == nullptr) {
         luaMessage(argv[0], "cannot create state: not enough memory");
         return EXIT_FAILURE;
@@ -426,7 +426,7 @@ int main(int argc, char **argv) {
     MainArgs s{argc, argv, 0};
     status = L->TryCall(&pMain, &s);
     report(L, status);
-    Lua::Close(L);
+    Lumen::Close(L);
     return (status || s.status) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 

@@ -20,7 +20,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "lua.hpp"
+#include "lumen.h"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -374,19 +374,7 @@ static const luaL_Reg funcs[] = {
 };
 
 template<>
-LPP_API int Lua::Open<Lua::UTF8>(Lua::State *L) {
-    static const Lua::Registry utf8Lib[] = {
-        {"offset",      byteoffset},
-        {"codepoint",   codepoint},
-        {"char",        utfchar},
-        {"len",         utflen},
-        {"codes",       iter_codes},
-        {"sub",         utf8_sub},
-        {"toLocal",     UTF8ToLocale},
-        /* placeholders */
-        {"charpattern", nullptr},
-        {nullptr,       nullptr}
-    };
+LPP_API int Lumen::Open<Lumen::IUTF8>(Lumen::IState *L) {
 #if LUA_VERSION_NUM < 502
     L->Register(LUA_UTF8LIBNAME, funcs);
 #else
@@ -394,6 +382,29 @@ LPP_API int Lua::Open<Lua::UTF8>(Lua::State *L) {
 #endif
     L->PushString(UTF8PATT, sizeof(UTF8PATT) / sizeof(char) - 1);
     L->SetField(-2, "charpattern");
+    return 1;
+}
+
+LUALIB_API int luaopen_Lumen_UTF8(lua_State *L) {
+    static const luaL_Reg utfLib[] = {
+        {"Offset",      byteoffset},
+        {"CodePoint",   codepoint},
+        {"Char",        utfchar},
+        {"Length",      utflen},
+        {"Codes",       iter_codes},
+        {"Sub",         utf8_sub},
+        {"ToLocal",     UTF8ToLocale},
+        /* placeholders */
+        {"CharPattern", nullptr},
+        {nullptr,       nullptr}
+    };
+#if LUA_VERSION_NUM < 502
+    luaL_register(L, "Lumen.UTF8", utfLib);
+#else
+    luaL_newlib(L, utfLib);
+#endif
+    lua_pushlstring(L, UTF8PATT, sizeof(UTF8PATT) / sizeof(char) - 1);
+    lua_setfield(L, -2, "CharPattern");
     return 1;
 }
 

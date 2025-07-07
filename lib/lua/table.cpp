@@ -17,7 +17,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "lua.hpp"
+#include "lumen.h"
 
 #define aux_getn(L, n)    (luaL_checktype(L, n, LUA_TTABLE), luaL_getn(L, n))
 
@@ -321,8 +321,26 @@ static const luaL_Reg tab_funcs[] = {
 };
 
 template<>
-LPP_API int Lua::Open<Lua::Table>(Lua::State *L) {
+LPP_API int Lumen::Open<Lumen::ITable>(Lumen::IState *L) {
     L->Register(LUA_TABLIBNAME, tab_funcs);
+    return 1;
+}
+
+LUALIB_API int luaopen_Lumen_Table(lua_State *L) {
+    static const luaL_Reg tableLib[] = {
+        {"Concat",    tconcat},
+        {"ForEach",   foreach},
+        {"ForEachAt", foreachi},
+        {"GetN",      getn},
+        {"MaxN",      maxn},
+        {"Insert",    tinsert},
+        {"Remove",    tremove},
+        {"SetN",      setn},
+        {"Sort",      sort},
+        {"Move",      tmove},
+        {nullptr,     nullptr}
+    };
+    luaL_register(L, "Lumen.Table", tableLib);
     return 1;
 }
 

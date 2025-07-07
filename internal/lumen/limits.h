@@ -19,126 +19,13 @@
 #include <cassert>
 #endif
 
-#include "luaconf.h"
+#include "lumen.h"
 
 namespace Lumen {
-    using Byte = unsigned char;
-    using Int32 = LUA_INT32;
-    using UInt32 = LUA_UINT32;
-
-    using Number = LUA_NUMBER;
-    using Integer = LUA_INTEGER;
-    using UInteger = LUA_UINTEGER;
-
-    using MemorySize = LUA_UMEM;
-    using MemoryDelta = LUA_MEM;
-
-    using UACNumber = LUA_UAC_NUMBER; // Result of a `usual argument conversion' over lua_Number
-
-    /*
-    ** pseudo-indices
-    */
-    typedef LUA_ENUM(int, Index) {
-        RegistryIndex = -10000,
-        EnvIndex = -10001,
-        GlobalIndex = -10002
-    };
-
-    typedef LUA_ENUM(int, Ret) {
-        RetMul = -1,
-        RetOK = 0,
-        RetYield = 1,
-        RetErrRun = 2,
-        RetErrSyntax = 3,
-        RetErrMem = 4,
-        RetErr = 5,
-        RetErrFile = RetErr + 1
-    };
-
-    /**
-     * basic types
-     */
-    typedef LUA_ENUM(int, Type) {
-        TypeNil = 0,
-        TypeBool = 1,
-        TypeLightUserdata = 2,
-        TypeNumber = 3,
-        TypeString = 4,
-        TypeTable = 5,
-        TypeFunction = 6,
-        TypeUserdata = 7,
-        TypeThread = 8,
+    enum {
         TypeProto = 9,
         TypeUpValue = 10,
         TypeDeadKey = 11
-    };
-
-    typedef LUA_ENUM(int, GCAction) {
-        GCStop = 0,
-        GCRestart = 1,
-        GCCollect = 2,
-        GCCount = 3,
-        GCCountB = 4,
-        GCStep = 5,
-        GCSetPause = 6,
-        GCSetStepMul = 7
-    };
-
-    /*
-    ** Hook Event codes
-    */
-    typedef LUA_ENUM(int, HookEvent) {
-        HookCall = 0,
-        HookRet = 1,
-        HookLine = 2,
-        HookCount = 3,
-        HookTailRet = 4
-    };
-
-    /*
-    ** Hook event masks
-    */
-    typedef LUA_ENUM(int, HookMask) {
-        HookMaskCall = (1 << HookCall),
-        HookMaskRet = (1 << HookRet),
-        HookMaskLine = (1 << HookLine),
-        HookMaskCount = (1 << HookCount)
-    };
-
-    /*
-    ** Comparison and arithmetic functions
-    */
-
-    typedef LUA_ENUM(int, ArithOp) {
-        ArithOpAdd = 0,    /* ORDER TM */
-        ArithOpSub = 1,
-        ArithOpMul = 2,
-        ArithOpDiv = 3,
-        ArithOpMod = 4,
-        ArithOpPow = 5,
-        ArithOpUnm = 6
-    };
-
-    typedef LUA_ENUM(int, CompareOp) {
-        CompareOpEQ = 0,
-        CompareOpLT = 1,
-        CompareOpLE = 2
-    };
-
-    struct State;
-
-    struct TypeInfo {
-        Lumen::Type Type;
-
-        inline bool IsNil() const { return Type == Lumen::TypeNil; } // NOLINT
-        inline bool IsNumber() const { return Type == Lumen::TypeNumber; } // NOLINT
-        inline bool IsString() const { return Type == Lumen::TypeString; } // NOLINT
-        inline bool IsTable() const { return Type == Lumen::TypeTable; } // NOLINT
-        inline bool IsFunction() const { return Type == Lumen::TypeFunction; } // NOLINT
-        inline bool IsBoolean() const { return Type == Lumen::TypeBool; } // NOLINT
-        inline bool IsUData() const { return Type == Lumen::TypeUserdata; } // NOLINT
-        inline bool IsThread() const { return Type == Lumen::TypeThread; } // NOLINT
-        inline bool IsLUData() const { return Type == Lumen::TypeLightUserdata; } // NOLINT
     };
 
     /*
@@ -146,35 +33,13 @@ namespace Lumen {
     */
     struct GCObject;
 
+    struct State;
+
     /**
      * Type for virtual-machine instructions
      * must be an unsigned with (at least) 4 bytes (see details in opcodes.h)
      */
     using Instruction = UInt32;
-
-    typedef int (*Delegate)(Lumen::State *L);
-
-    typedef const char *(*Reader)(Lumen::State *L, void *ud, Lumen::UInteger *sz);
-
-    typedef int (*Writer)(Lumen::State *L, const void *p, Lumen::UInteger sz, void *ud);
-
-    typedef void *(*Allocator)(void *ud, void *ptr, Lumen::UInteger oldSize, Lumen::UInteger newSize);
-
-    struct DebugInfo {
-        int Event;
-        const char *Name;    /* (n) */
-        const char *NameSpace;    /* (n) `global', `local', `field', `method' */
-        const char *Space;    /* (S) `Lua', `C', `main', `tail' */
-        const char *Source;    /* (S) */
-        int CurrentLine;    /* (l) */
-        int NUpValues;        /* (u) number of upvalues */
-        int LineDefined;    /* (S) */
-        int LastLineDefined;    /* (S) */
-        char SourceHint[LUA_IDSIZE]; /* (S) */
-        int CurrentCI;  /* active function */
-    };
-
-    typedef void (*Hook)(Lumen::State *L, Lumen::DebugInfo *ar);
 
     inline constexpr Lumen::UInteger MaxSize = std::numeric_limits<Lumen::UInteger>::max() - 2;
 
@@ -242,7 +107,7 @@ namespace Lumen {
 #define cast_byte(i)    cast(Lumen::Byte, (i))
 #define cast_num(i)     cast(Lumen::Number, (i))
 #define cast_int(i)     cast(int, (i))
-#define cast_char(i)	cast(char, (i))
+#define cast_char(i)    cast(char, (i))
 
 
 #ifndef lua_lock
