@@ -204,12 +204,12 @@ LUA_API void lua_pushinteger(lua_State *L, lua_Integer n) {
     L->PushInteger(n);
 }
 
-LUA_API void lua_pushlstring(lua_State *L, const char *s, size_t len) {
-    L->PushString(s, len);
+LUA_API const char *lua_pushlstring(lua_State *L, const char *s, size_t len) {
+    return L->PushString(s, len);
 }
 
-LUA_API void lua_pushstring(lua_State *L, const char *s) {
-    L->PushString(s);
+LUA_API const char *lua_pushstring(lua_State *L, const char *s) {
+    return L->PushString(s);
 }
 
 LUA_API const char *lua_pushvfstring(lua_State *L, const char *fmt,
@@ -245,24 +245,24 @@ LUA_API int lua_pushthread(lua_State *L) {
 ** get functions (Lua -> stack)
 */
 
-LUA_API void lua_gettable(lua_State *L, int idx) {
-    L->GetTable(idx);
+LUA_API int lua_gettable(lua_State *L, int idx) {
+    return L->GetTable(idx);
 }
 
 LUA_API int lua_getfield(lua_State *L, int idx, const char *k) {
     return L->GetField(idx, k);
 }
 
-LUA_API void lua_rawget(lua_State *L, int idx) {
-    L->RawGet(idx);
+LUA_API int lua_rawget(lua_State *L, int idx) {
+    return L->RawGet(idx);
 }
 
-LUA_API void lua_rawgeti(lua_State *L, int idx, int n) {
-    L->RawGetAt(idx, n);
+LUA_API int lua_rawgeti(lua_State *L, int idx, int n) {
+    return L->RawGetAt(idx, n);
 }
 
-LUA_API void lua_rawgetp(lua_State *L, int idx, const void *p) {
-    L->RawGetPtr(idx, p);
+LUA_API int lua_rawgetp(lua_State *L, int idx, const void *p) {
+    return L->RawGetPtr(idx, p);
 }
 
 LUA_API void lua_createtable(lua_State *L, int nArray, int nRec) {

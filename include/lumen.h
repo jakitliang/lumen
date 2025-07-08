@@ -1,5 +1,5 @@
 /*!
- * @brief Lumen - A modernized and refined Lua
+ * @brief Lumen - A modernized reinvention of Lua
  * @author Jakit (https://github.com/jakitliang/lumen)
  * @date 2025/7/7
  * @copyright
@@ -310,9 +310,9 @@ namespace Lumen {
 
         LPP_API void PushInteger(Integer n);
 
-        LPP_API void PushString(const char *s, UInteger length);
+        LPP_API const char *PushString(const char *s, UInteger length);
 
-        LPP_API void PushString(const char *s);
+        LPP_API const char *PushString(const char *s);
 
         LPP_API const char *PushVFString(const char *fmt, va_list argP);
 

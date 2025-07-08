@@ -1,13 +1,12 @@
 /*!
  * @brief Lumen State APIs
- * @author Jakit
+ * @author Jakit (https://github.com/jakitliang/lumen)
  * @date 2025/7/8
  * @copyright
  * Copyright (c) 2025 Jakit. All rights reserved.
- * Licensed under the BSD License.
+ * Licensed under the BSD 2-Clause License.
  */
 
-//#include <cassert>
 #include <cstdarg>
 #include <cstring>
 #include <string>
@@ -484,21 +483,23 @@ void Lumen::IState::PushInteger(Lumen::Integer n) {
     LumenUnlock(L);
 }
 
-void Lumen::IState::PushString(const char *s, Lumen::UInteger length) {
+const char *Lumen::IState::PushString(const char *s, Lumen::UInteger length) {
     auto L = ToState(this);
     LumenLock(L);
     L->CheckGC();
-    LumenSetStringValue2S(L, L->Top,
-                          Lumen::String::New(L, s, length));
+    auto str = Lumen::String::New(L, s, length);
+    LumenSetStringValue2S(L, L->Top, str);
     LumenApiIncrTop(L);
     LumenUnlock(L);
+    return str->CString();
 }
 
-void Lumen::IState::PushString(const char *s) {
-    if (s == nullptr)
+const char *Lumen::IState::PushString(const char *s) {
+    if (s == nullptr) {
         PushNil();
-    else
-        PushString(s, Lumen::String::LengthOf(s));
+        return s;
+    }
+    return PushString(s, Lumen::String::LengthOf(s));
 }
 
 const char *Lumen::IState::PushVFString(const char *fmt, va_list argP) {

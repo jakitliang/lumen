@@ -1,10 +1,11 @@
 /*!
- * @brief Lumen - A modernized and refined Lua
+ * @brief Lumen - A modernized reinvention of Lua
  * @author Lua.org, PUC-Rio, Jakit (https://github.com/jakitliang/lumen)
  * @date 2025/5/13
  * @copyright
- * Copyright (c) 2025 Lua.org, PUC-Rio, Jakit. All rights reserved.
+ * Copyright (c) 1994-2025 Lua.org, PUC-Rio, Jakit. All rights reserved.
  * Licensed under the BSD 2-Clause License.
+ * Portions of the ABI are derived from Lua, see Copyright Notice at the end of this file.
  */
 
 
@@ -211,9 +212,9 @@ LUA_API void lua_pushnumber(lua_State *L, lua_Number n);
 
 LUA_API void lua_pushinteger(lua_State *L, lua_Integer n);
 
-LUA_API void lua_pushlstring(lua_State *L, const char *s, size_t l);
+LUA_API const char *lua_pushlstring(lua_State *L, const char *s, size_t l);
 
-LUA_API void lua_pushstring(lua_State *L, const char *s);
+LUA_API const char *lua_pushstring(lua_State *L, const char *s);
 
 LUA_API const char *lua_pushvfstring(lua_State *L, const char *fmt,
                                      va_list argP);
@@ -232,15 +233,15 @@ LUA_API int lua_pushthread(lua_State *L);
 /*
 ** get functions (Lua -> stack)
 */
-LUA_API void lua_gettable(lua_State *L, int idx);
+LUA_API int lua_gettable(lua_State *L, int idx);
 
 LUA_API int lua_getfield(lua_State *L, int idx, const char *k);
 
-LUA_API void lua_rawget(lua_State *L, int idx);
+LUA_API int lua_rawget(lua_State *L, int idx);
 
-LUA_API void lua_rawgeti(lua_State *L, int idx, int n);
+LUA_API int lua_rawgeti(lua_State *L, int idx, int n);
 
-LUA_API void lua_rawgetp(lua_State *L, int idx, const void *p);
+LUA_API int lua_rawgetp(lua_State *L, int idx, const void *p);
 
 LUA_API void lua_createtable(lua_State *L, int nArray, int nRec);
 
