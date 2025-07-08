@@ -549,40 +549,6 @@ LPP_API int Lumen::Open<Lumen::IIO>(Lumen::IState *L) {
     return 1;
 }
 
-LUALIB_API int luaopen_Lumen_IO(lua_State *L) {
-    static const luaL_Reg ioLib[] = {
-        {"Close",   io_close},
-        {"Flush",   io_flush},
-        {"Input",   io_input},
-        {"Lines",   io_lines},
-        {"Open",    io_open},
-        {"Output",  io_output},
-        {"POpen",   io_popen},
-        {"Read",    io_read},
-        {"TmpFile", io_tmpfile},
-        {"Type",    io_type},
-        {"Write",   io_write},
-        {nullptr,   nullptr}
-    };
-    createmeta(L);
-    /* create (private) environment (with fields IO_INPUT, IO_OUTPUT, __close) */
-    newfenv(L, io_fclose);
-    lua_replace(L, LUA_ENVIRONINDEX);
-    /* open library */
-    luaL_register(L, "Lumen.IO", ioLib);
-    /* create (and set) default files */
-    newfenv(L, io_noclose);  /* close function for default files */
-    createstdfile(L, stdin, IO_INPUT, "stdin");
-    createstdfile(L, stdout, IO_OUTPUT, "stdout");
-    createstdfile(L, stderr, 0, "stderr");
-    lua_pop(L, 1);  /* pop environment for default files */
-    lua_getfield(L, -1, "POpen");
-    newfenv(L, io_pclose);  /* create environment for 'popen' */
-    lua_setfenv(L, -2);  /* set fenv for 'popen' */
-    lua_pop(L, 1);  /* pop 'popen' */
-    return 1;
-}
-
 LUALIB_API int luaopen_io(lua_State *L) {
     createmeta(L);
     /* create (private) environment (with fields IO_INPUT, IO_OUTPUT, __close) */

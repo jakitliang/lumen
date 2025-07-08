@@ -32,7 +32,7 @@ namespace Lumen {
     using MemorySize = LUA_UMEM;
     using MemoryDelta = LUA_MEM;
 
-    using UACNumber = LUA_UAC_NUMBER; // Result of a `usual argument conversion' over lua_Number
+    using UACNumber = LUA_UAC_NUMBER; // Result of a `usual argument conversion` over lua_Number
 
     typedef LUA_ENUM(int, Index) {
         RegistryIndex = -10000,
@@ -529,7 +529,7 @@ namespace Lumen {
             return static_cast<int>(ObjectLength(idx));
         }
 
-        inline void SetN(int idx, UInteger size) {} // NOLINT
+        inline void SetN(int, UInteger) {} // NOLINT
 
         LPP_API void OpenLib(const char *name, const Interface *i, int nUpValue);
 
@@ -719,7 +719,7 @@ namespace Lumen {
     template<typename T>
     LPP_API int Open(IState *L);
 
-    IState *Open();
+    LPP_API IState *Open();
 
     LPP_API void Close(IState *&L);
 
@@ -727,10 +727,6 @@ namespace Lumen {
 
     /* hack */
     LPP_API void SetLevel(IState *from, IState *to);
-}
-
-inline Lumen::IState *Lumen::Open() {
-    return Lumen::IState::New();
 }
 
 #endif //LUMEN_H

@@ -19,6 +19,10 @@
 // NOLINTNEXTLINE
 #define ToLumen(L) static_cast<Lumen::State *>(L)
 
+Lumen::IState *Lumen::Open() {
+    return Lumen::IState::New();
+}
+
 void Lumen::Close(Lumen::IState *&state) {
     auto L = ToLumen(state);
     if (L != nullptr) {

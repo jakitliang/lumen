@@ -197,32 +197,6 @@ static const luaL_Reg bitLib[] = {
     {nullptr,   nullptr}
 };
 
-LUALIB_API int luaopen_Lumen_Bit(lua_State *L) {
-    UBits b;
-    lua_pushnumber(L, (lua_Number) 1437217655L);
-    b = barg(L, -1);
-    if (b != (UBits) 1437217655L || BAD_SAR) {  /* Perform a simple self-test. */
-        const char *msg = "compiled with incompatible luaconf.h";
-#ifdef LUA_NUMBER_DOUBLE
-#ifdef _WIN32
-        if (b == (UBits) 1610612736L)
-            msg = "use D3DCREATE_FPU_PRESERVE with DirectX";
-#endif
-        if (b == (UBits) 1127743488L)
-            msg = "not compiled with SWAPPED_DOUBLE";
-#endif
-        if (BAD_SAR)
-            msg = "arithmetic right-shift broken";
-        luaL_error(L, "bit library self-test failed (%s)", msg);
-    }
-#if LUA_VERSION_NUM < 502
-    luaL_register(L, "Lumen.Bit", bitLib);
-#else
-    luaL_newlib(L, bitLib);
-#endif
-    return 1;
-}
-
 LUALIB_API int luaopen_bit(lua_State *L) {
     UBits b;
     lua_pushnumber(L, (lua_Number) 1437217655L);

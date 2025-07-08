@@ -326,24 +326,6 @@ LPP_API int Lumen::Open<Lumen::ITable>(Lumen::IState *L) {
     return 1;
 }
 
-LUALIB_API int luaopen_Lumen_Table(lua_State *L) {
-    static const luaL_Reg tableLib[] = {
-        {"Concat",    tconcat},
-        {"ForEach",   foreach},
-        {"ForEachAt", foreachi},
-        {"GetN",      getn},
-        {"MaxN",      maxn},
-        {"Insert",    tinsert},
-        {"Remove",    tremove},
-        {"SetN",      setn},
-        {"Sort",      sort},
-        {"Move",      tmove},
-        {nullptr,     nullptr}
-    };
-    luaL_register(L, "Lumen.Table", tableLib);
-    return 1;
-}
-
 LUALIB_API int luaopen_table(lua_State *L) {
     luaL_register(L, LUA_TABLIBNAME, tab_funcs);
     return 1;

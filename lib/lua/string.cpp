@@ -7,7 +7,6 @@
  * Licensed under the BSD 2-Clause License.
  */
 
-
 #include <cctype>
 #include <cstddef>
 #include <cstdio>
@@ -1373,40 +1372,6 @@ LPP_API int Lumen::Open<Lumen::IString>(Lumen::IState *L) {
 #if defined(LUA_COMPAT_GFIND)
     L->GetField(-1, "gmatch");
     L->SetField(-2, "gfind");
-#endif
-    createMetatable(L);
-    return 1;
-}
-
-/*
-** Open string library
-*/
-LUALIB_API int luaopen_Lumen_String(Lumen::IState *L) {
-    static const Lumen::Interface strLib[] = {
-        {"Byte",     Lumen::IString::Byte},
-        {"Char",     Lumen::IString::Char},
-        {"Dump",     Lumen::IString::Dump},
-        {"Find",     Lumen::IString::Find},
-        {"Format",   Lumen::IString::Format},
-        {"GFind",    Lumen::IString::GFindNodeF},
-        {"GMatch",   Lumen::IString::GMatch},
-        {"GSub",     Lumen::IString::GSub},
-        {"Len",      Lumen::IString::Length},
-        {"Lower",    Lumen::IString::Lower},
-        {"Match",    Lumen::IString::Match},
-        {"Rep",      Lumen::IString::Rep},
-        {"Reverse",  Lumen::IString::Reverse},
-        {"Sub",      Lumen::IString::Sub},
-        {"Upper",    Lumen::IString::Upper},
-        {"Pack",     Lumen::IString::Pack},
-        {"PackSize", Lumen::IString::PackSize},
-        {"Unpack",   Lumen::IString::Unpack},
-        {nullptr,    nullptr}
-    };
-    L->Register("Lumen.String", strLib);
-#if defined(LUA_COMPAT_GFIND)
-    L->GetField(-1, "GMatch");
-    L->SetField(-2, "GFind");
 #endif
     createMetatable(L);
     return 1;

@@ -678,22 +678,6 @@ LUALIB_API int luaopen_coroutine(struct lua_State *l) {
     return 1;
 }
 
-static const Lumen::Interface coLib[] = {
-    {"Create",  luaB_cocreate},
-    {"Resume",  luaB_coresume},
-    {"Running", luaB_corunning},
-    {"Status",  luaB_costatus},
-    {"Wrap",    luaB_cowrap},
-    {"Yield",   luaB_yield},
-    {nullptr,   nullptr}
-};
-
-LUALIB_API int luaopen_Lumen_Coroutine(struct lua_State *l) {
-    auto L = reinterpret_cast<Lumen::IState *>(l);
-    L->Register("Lumen.Coroutine", co_funcs);
-    return 1;
-}
-
 template<>
 LPP_API int Lumen::Open<Lumen::IBase>(Lumen::IState *L) {
     base_open(L);
