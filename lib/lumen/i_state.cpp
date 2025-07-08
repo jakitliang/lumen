@@ -536,7 +536,7 @@ void Lumen::IState::PushDelegate(Lumen::Delegate invoke, int n) {
     while (n--)
         LumenSetObject2N(L, &cl->AsC.UpValues[n], L->Top + n);
     L->Top->SetClosure(L, cl);
-    LumenAssert(LumenGCIsWhite(LumenObject2GCObject(cl)));
+    LumenAssert(LumenObject2GCObject(cl)->IsWhite());
     LumenApiIncrTop(L);
     LumenUnlock(L);
 }
@@ -1144,7 +1144,7 @@ bool Lumen::IState::GetInfo(const char *what, Lumen::DebugInfo *ar) {
         L->Top--;  /* pop function */
     } else if (reinterpret_cast<Lumen::DebugInfo *>(ar)->CurrentCI != 0) {  /* no tail call? */
         ci = L->BaseCI + reinterpret_cast<Lumen::DebugInfo *>(ar)->CurrentCI;
-        LumenAssert(LumenTypeIsFunction(ci->Func));
+        LumenAssert(ci->Func->IsFunction());
         f = ci->Func->GetClosure();
     }
     status = Lumen::Debug::GetInfo(L, what, reinterpret_cast<Lumen::DebugInfo *>(ar), f, ci);

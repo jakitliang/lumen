@@ -21,6 +21,7 @@
 #include "lumen/opcodes.h"
 #include "lumen/parser.h"
 #include "lumen/state.h"
+#include "lumen/debug.h"
 
 
 #define hasMulRet(k)        ((k) == Lumen::ExpDesc::KindCall || (k) == Lumen::ExpDesc::KindVararg)
