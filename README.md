@@ -35,7 +35,7 @@ Designed for developers who love Lua, Lumen offers a state-of-the-art reimplemen
 
 ## Architecture
 
-### Kernel
+### Runtime
 
 > Lumen is the core provides VM and runtime libraries.
 
