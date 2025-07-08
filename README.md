@@ -6,7 +6,7 @@
 
 ## Intro
 
-**Lumen** is a modernized reinvention for generic **Lua**, based on and fully compatible with Lua 5.1.
+**Lumen** is a modernized reinvention of **Lua**.
 
 Designed for developers who love Lua, Lumen offers a state-of-the-art reimplementation for today's OS environments.
 
@@ -15,7 +15,7 @@ Designed for developers who love Lua, Lumen offers a state-of-the-art reimplemen
 - **Full Compatibility**: Fully compatible with Lua 5.1 and C / C++ libraries
 - **Performance Optimizations**: Some low-level optimizations done for the efficiency of the runtime
 - **Easy to use**: Keeps the simplicity and readability
-- **Extensibility**: Offers richer APIs, making it easier for developers to extend and customize
+- **Extensibility**: Offers richer APIs over 5.2 and 5.3, making it easier for developers to extend and customize
 - **Lightweight**: Keeps the implementation of core tiny and efficient
 - **Modernization**: A new designed architecture that suit for today's OSs and compilers.
 
@@ -41,7 +41,7 @@ Designed for developers who love Lua, Lumen offers a state-of-the-art reimplemen
 
 The [/lib/lumen](/lib/lumen) directory contains the **core implementation** of the `Lumen`.
 
-And [/lib/lua](/lib/lua) provides the **standard libraries** and **extensions**,
+And [/lib/lua](/lib/lua) provides the **libraries** and **extensions**,
 such as `string`, `table`, `math` and etc.
 
 ### Interpreter
@@ -62,9 +62,10 @@ The [/src/lightc](/src/lightc) is the implementation for the Compiler entry of `
 
 ## Extensions
 
-- Some of Lua 5.2, 5.3 APIs and Aux APIs are included
+- Most of Lua 5.2, 5.3 APIs and Aux APIs are inside
 - Bitwise library is included by default
-- The new and modernized APIs are base on C++17. See [lua.hpp](./include/lua.hpp).
+- UTF8 library is inside
+- The new and modernized APIs are base on C++17. See [lumen.h](./include/lumen.h).
 
 ## License
 
