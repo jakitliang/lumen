@@ -42,7 +42,7 @@ add_library(
 )
 target_include_directories(
     lumen-shared INTERFACE
-    $<BUILD_INTERFACE:${LUA_BASE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${LUMEN_BASE_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 target_compile_definitions(lumen-shared INTERFACE ${LUA_COMPILE_DEF})
@@ -62,7 +62,7 @@ add_library(
 )
 target_include_directories(
     lumen-static INTERFACE
-    $<BUILD_INTERFACE:${LUA_BASE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${LUMEN_BASE_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 target_compile_definitions(lumen-static INTERFACE ${LUA_COMPILE_DEF})
