@@ -35,7 +35,11 @@ if (LUA_BUILD_TYPE MATCHES "SHARED")
         set_target_properties(lumen-core PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
     endif ()
 endif ()
-target_compile_definitions(lumen-core PRIVATE ${LUA_COMPILE_DEF})
-target_compile_options(lumen-core PRIVATE ${LUA_COMPILE_OPT})
-target_link_libraries(lumen-core PRIVATE ${LUA_LINK_LIBS})
-
+target_include_directories(
+    lumen-core INTERFACE
+    $<BUILD_INTERFACE:${LUMEN_BASE_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_compile_definitions(lumen-core PUBLIC ${LUA_COMPILE_DEF})
+target_compile_options(lumen-core PUBLIC ${LUA_COMPILE_OPT})
+target_link_libraries(lumen-core PUBLIC ${LUA_LINK_LIBS})
