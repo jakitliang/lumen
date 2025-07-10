@@ -49,7 +49,7 @@ target_compile_definitions(lumen-shared INTERFACE ${LUA_COMPILE_DEF})
 target_compile_options(lumen-shared INTERFACE ${LUA_COMPILE_OPT})
 target_link_libraries(lumen-shared INTERFACE ${LUA_LINK_LIBS})
 set_target_properties(
-    lumen-shared PROPERTIES OUTPUT_NAME "Lumen"
+    lumen-shared PROPERTIES OUTPUT_NAME ${LUA_SHARED_LIB_NAME}
 )
 
 # ---------------------------------------------------

@@ -581,7 +581,11 @@ namespace Lumen {
 
         LPP_API void *TestUserdata(int ud, const char *tName);
 
+        LPP_API void *TestUserdataInstance(int ud, const char *tName);
+
         LPP_API void *CheckUserdata(int ud, const char *tName);
+
+        LPP_API void *CheckUserdataInstance(int ud, const char *tName);
 
         LPP_API void Where(int lvl);
 

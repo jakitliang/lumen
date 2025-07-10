@@ -1456,8 +1456,29 @@ void *Lumen::IState::TestUserdata(int ud, const char *tName) {
     return nullptr;
 }
 
+void *Lumen::IState::TestUserdataInstance(int ud, const char *tName) {
+    auto p = ToUserdata(ud);
+    if (p != nullptr) {  /* value is a userdata? */
+        if (GetMetatable(ud)) {  /* does it have a metatable? */
+            GetMetatable(tName);  /* get correct metatable */
+            if (!InstanceOf(-1, -2)) {  /* not the same mt? */
+                p = nullptr;
+            }
+            Pop(2);  /* remove both metatables */
+            return p;
+        }
+    }
+    return nullptr;
+}
+
 void *Lumen::IState::CheckUserdata(int ud, const char *tName) {
     auto p = TestUserdata(ud, tName);
+    if (p == nullptr) TypeError(ud, tName);  /* else error */
+    return p;  /* to avoid warnings */
+}
+
+void *Lumen::IState::CheckUserdataInstance(int ud, const char *tName) {
+    auto p = TestUserdataInstance(ud, tName);
     if (p == nullptr) TypeError(ud, tName);  /* else error */
     return p;  /* to avoid warnings */
 }

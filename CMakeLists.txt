@@ -5,17 +5,28 @@ project(lumen
 
 set(CMAKE_CXX_STANDARD 17)
 
+# ----- User Definition -----
+
 option(LUA_BUILD_STATIC "Build shared library of Lua" OFF)
 option(LUA_SKIP_INSTALL "Build shared library of Lua" OFF)
 option(LUA_USE_API_CHECK "Build with develop mode" OFF)
 option(LUA_USE_CORE_DEBUG "Build with develop mode" OFF)
+option(LUA_USE_INTERPRETER "Build with interpreter" ON)
+option(LUA_USE_COMPILER "Build with compiler" ON)
+option(LUA_USE_TEST "Build with test" OFF)
+
+if (NOT DEFINED LUA_SHARED_LIB_NAME)
+    set(LUA_SHARED_LIB_NAME "Lumen")
+endif ()
+
+# ----- Lumen -----
 
 set(LUMEN_BASE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(LUMEN_BASE_BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(LUA_PRODUCT_NUMBER 1)
 set(LUA_PRODUCT_VERSION 2)
-set(LUA_PRODUCT_PATCH 3)
+set(LUA_PRODUCT_PATCH 5)
 set(LUA_PRODUCT_BUILD 1)
 set(LUA_PRODUCT_ICON "${CMAKE_CURRENT_SOURCE_DIR}/etc/lumen.ico")
 set(LUA_PRODUCT_RESOURCE "")
@@ -58,13 +69,23 @@ if (LUA_USE_API_CHECK)
     list(APPEND LUA_COMPILE_DEF LUA_USE_APICHECK)
 endif ()
 
+# ----- Lumen include -----
+
 include_directories(
     include
     internal
 )
 
+# ----- Lumen libs -----
+
 add_subdirectory(lib)
+
+# ----- Lumen executables -----
 
 add_subdirectory(src)
 
-add_subdirectory(test)
+# ----- Lumen test -----
+
+if (LUA_USE_TEST)
+    add_subdirectory(test)
+endif ()
