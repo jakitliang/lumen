@@ -40,7 +40,7 @@ target_link_libraries(lumen-lua PUBLIC ${LUA_LINK_LIBS})
 # ---------------------------------------------------
 
 add_library(
-    lumen-shared SHARED
+    lumen-shared SHARED EXCLUDE_FROM_ALL
     ${LUA_PRODUCT_RESOURCE}
     $<TARGET_OBJECTS:lumen-core>
     $<TARGET_OBJECTS:lumen-lua>
