@@ -551,6 +551,13 @@ namespace Lumen {
             OpenLib(name, i, 0);
         }
 
+        inline void RegisterAt(int idx, const char *name) {
+            GetField(Lumen::RegistryIndex, "_LOADED");
+            PushValue(idx);
+            SetField(-2, name);
+            Pop();
+        }
+
         LPP_API bool GetMetaField(int obj, const char *e);
 
         LPP_API bool CallMeta(int obj, const char *e);

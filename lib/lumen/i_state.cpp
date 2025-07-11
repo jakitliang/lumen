@@ -1667,12 +1667,12 @@ const char *Lumen::IState::GSub(const char *s, const char *p, const char *r) {
 
 const char *Lumen::IState::FindTable(int idx, const char *name, int hintSize) {
     const char *e;
-    PushValue(idx);
+    PushValue(idx); // _Reg
     do {
         e = strchr(name, '.');
         if (e == nullptr) e = name + strlen(name);
         PushString(name, e - name);
-        RawGet(-2);
+        RawGet(-2); // _Reg[name]
         if (IsNil(-1)) {  /* no such field? */
             Pop(1);  /* remove this nil */
             CreateTable(0, (*e == '.' ? 1 : hintSize)); /* new table for field */
