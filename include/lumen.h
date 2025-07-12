@@ -632,6 +632,8 @@ namespace Lumen {
             return ret;
         }
 
+        LPP_API void PrintStack();
+
         // MARK: Auxiliary miscellaneous functions
 
         inline void ArgCheck(bool cond, int numArg, const char *extraMsg) {

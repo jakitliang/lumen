@@ -1719,3 +1719,55 @@ void Lumen::IState::Require(const char *modName, Lumen::Delegate loader, bool ex
         SetGlobal(modName);  /* _G[modname] = module */
     }
 }
+
+void Lumen::IState::PrintStack() {
+    int top = GetTop();
+    printf("Lumen stack [%d]:\n", top);
+
+    for (int i = 1; i <= top; ++i) {
+        auto t = TypeId(i);
+        switch (t) {
+            case Lumen::TypeString:
+                printf("[%d][str]: %s\n", i, ToString(i));
+                break;
+
+            case Lumen::TypeBool:
+                printf("[%d][bol]: %s\n", i, ToBoolean(i) ? "true" : "false");
+                break;
+
+            case Lumen::TypeNumber:
+                printf("[%d][num]: %lf\n", i, ToNumber(i));
+                break;
+
+            case Lumen::TypeTable:
+                printf("[%d][tbl]: %p\n", i, ToPointer(i));
+                break;
+
+            case Lumen::TypeFunction:
+                printf("[%d][fun]: %p\n", i, ToPointer(i));
+                break;
+
+            case Lumen::TypeUserdata:
+                printf("[%d][udt]: %p\n", i, ToPointer(i));
+                break;
+
+            case Lumen::TypeLightUserdata:
+                printf("[%d][lud]: %p\n", i, ToPointer(i));
+                break;
+
+            case Lumen::TypeThread:
+                printf("[%d][thr]: %p\n", i, ToPointer(i));
+                break;
+
+            case Lumen::TypeNil:
+                printf("[%d][nil]: nil\n", i);
+                break;
+
+            default:
+                printf("[%d][???]: ???\n", i);
+                break;
+        }
+    }
+
+    fflush(stdout);
+}
