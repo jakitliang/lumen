@@ -32,12 +32,17 @@ target_compile_definitions(lumen-lua PUBLIC ${LUA_COMPILE_DEF})
 target_compile_options(lumen-lua PUBLIC ${LUA_COMPILE_OPT})
 target_link_libraries(lumen-lua PUBLIC ${LUA_LINK_LIBS})
 
+# ---------------------------------------------------
+
 add_library(lumen-include INTERFACE)
 target_include_directories(
     lumen-include INTERFACE
     $<BUILD_INTERFACE:${LUMEN_BASE_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+target_compile_definitions(lumen-include INTERFACE ${LUA_COMPILE_DEF})
+target_compile_options(lumen-include INTERFACE ${LUA_COMPILE_OPT})
+target_link_libraries(lumen-include INTERFACE ${LUA_LINK_LIBS})
 
 # ---------------------------------------------------
 
