@@ -624,6 +624,14 @@ namespace Lumen {
             Require(modName, reinterpret_cast<Lumen::Delegate>(loader), exported);
         }
 
+        inline bool IsRequired(const char *modName) {
+            GetField(Lumen::RegistryIndex, "_LOADED");
+            GetField(-1, modName);
+            auto ret = ToBoolean(-1);
+            Pop(2);
+            return ret;
+        }
+
         // MARK: Auxiliary miscellaneous functions
 
         inline void ArgCheck(bool cond, int numArg, const char *extraMsg) {
