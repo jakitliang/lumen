@@ -34,19 +34,6 @@ target_link_libraries(lumen-lua PRIVATE ${LUA_LINK_LIBS})
 
 # ---------------------------------------------------
 
-add_library(lumen-headers INTERFACE)
-target_include_directories(
-    lumen-headers INTERFACE
-    $<BUILD_INTERFACE:${LUMEN_BASE_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${LUMEN_BASE_SOURCE_DIR}/internal>
-    $<INSTALL_INTERFACE:include>
-)
-target_compile_definitions(lumen-headers INTERFACE ${LUA_COMPILE_DEF})
-target_compile_options(lumen-headers INTERFACE ${LUA_COMPILE_OPT})
-target_link_libraries(lumen-headers INTERFACE ${LUA_LINK_LIBS})
-
-# ---------------------------------------------------
-
 add_library(
     lumen-shared SHARED EXCLUDE_FROM_ALL
     ${LUA_PRODUCT_RESOURCE}
