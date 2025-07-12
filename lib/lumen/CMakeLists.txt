@@ -38,11 +38,3 @@ endif ()
 target_compile_definitions(lumen-core PRIVATE ${LUA_COMPILE_DEF})
 target_compile_options(lumen-core PRIVATE ${LUA_COMPILE_OPT})
 target_link_libraries(lumen-core PRIVATE ${LUA_LINK_LIBS})
-
-add_library(lumen-internal INTERFACE)
-target_include_directories(
-    lumen-internal INTERFACE
-    $<BUILD_INTERFACE:${LUMEN_BASE_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${LUMEN_BASE_SOURCE_DIR}/internal>
-    $<INSTALL_INTERFACE:include>
-)
