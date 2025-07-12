@@ -28,9 +28,9 @@ if (LUA_BUILD_TYPE MATCHES "SHARED")
         set_target_properties(lumen-lua PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
     endif ()
 endif ()
-target_compile_definitions(lumen-lua PUBLIC ${LUA_COMPILE_DEF})
-target_compile_options(lumen-lua PUBLIC ${LUA_COMPILE_OPT})
-target_link_libraries(lumen-lua PUBLIC ${LUA_LINK_LIBS})
+target_compile_definitions(lumen-lua PRIVATE ${LUA_COMPILE_DEF})
+target_compile_options(lumen-lua PRIVATE ${LUA_COMPILE_OPT})
+target_link_libraries(lumen-lua PRIVATE ${LUA_LINK_LIBS})
 
 # ---------------------------------------------------
 
