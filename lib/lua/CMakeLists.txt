@@ -32,7 +32,27 @@ target_compile_definitions(lumen-lua PRIVATE ${LUA_COMPILE_DEF})
 target_compile_options(lumen-lua PRIVATE ${LUA_COMPILE_OPT})
 target_link_libraries(lumen-lua PRIVATE ${LUA_LINK_LIBS})
 
-# ---------------------------------------------------
+# ----- Lumen Header -----
+
+add_library(
+    lumen-header INTERFACE
+)
+target_include_directories(
+    lumen-header INTERFACE
+    $<BUILD_INTERFACE:${LUMEN_BASE_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+# ----- Lumen Links -----
+
+add_library(
+    lumen-links INTERFACE
+)
+target_compile_definitions(lumen-links INTERFACE ${LUA_COMPILE_DEF})
+target_compile_options(lumen-links INTERFACE ${LUA_COMPILE_OPT})
+target_link_libraries(lumen-links INTERFACE ${LUA_LINK_LIBS})
+
+# ----- Lumen Shared Library -----
 
 add_library(
     lumen-shared SHARED EXCLUDE_FROM_ALL
@@ -52,7 +72,7 @@ set_target_properties(
     lumen-shared PROPERTIES OUTPUT_NAME ${LUA_SHARED_LIB_NAME}
 )
 
-# ---------------------------------------------------
+# ----- Lumen Static Library -----
 
 add_library(
     lumen-static STATIC
@@ -69,7 +89,7 @@ target_compile_definitions(lumen-static INTERFACE ${LUA_COMPILE_DEF})
 target_compile_options(lumen-static INTERFACE ${LUA_COMPILE_OPT})
 target_link_libraries(lumen-static INTERFACE ${LUA_LINK_LIBS})
 
-# ---------------------------------------------------
+# ----- Lumen Install -----
 
 if (LUA_BUILD_TYPE MATCHES "SHARED")
     add_library(Lumen ALIAS lumen-shared)
