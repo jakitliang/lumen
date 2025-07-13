@@ -126,6 +126,10 @@ namespace Lumen {
         CompareOpLE = 2
     };
 
+    constexpr const char *RegKeyLoaded = "_LOADED";
+    constexpr const char *RegKeyPreload = "_PRELOAD";
+    constexpr const char *RegKeyGlobals = "_G";
+
     typedef struct lua_State CState;
 
     struct IState;
@@ -552,7 +556,7 @@ namespace Lumen {
         }
 
         inline void RegisterAt(int idx, const char *name) {
-            GetField(Lumen::RegistryIndex, "_LOADED");
+            GetField(Lumen::RegistryIndex, Lumen::RegKeyLoaded);
             PushValue(idx);
             SetField(-2, name);
             Pop();
@@ -590,9 +594,27 @@ namespace Lumen {
 
         LPP_API void *TestUserdataInstance(int ud, const char *tName);
 
+        template<typename T, bool R = true>
+        inline T *TestInstance(int ud, const char *tName) {
+            if constexpr (R) {
+                return static_cast<T *>(TestUserdataInstance(ud, tName));
+            } else {
+                return static_cast<T *>(TestUserdata(ud, tName));
+            }
+        }
+
         LPP_API void *CheckUserdata(int ud, const char *tName);
 
         LPP_API void *CheckUserdataInstance(int ud, const char *tName);
+
+        template<typename T, bool R = true>
+        inline T *CheckInstance(int ud, const char *tName) {
+            if constexpr (R) {
+                return static_cast<T *>(CheckUserdataInstance(ud, tName));
+            } else {
+                return static_cast<T *>(CheckUserdata(ud, tName));
+            }
+        }
 
         LPP_API void Where(int lvl);
 
@@ -625,7 +647,7 @@ namespace Lumen {
         }
 
         inline bool IsRequired(const char *modName) {
-            GetField(Lumen::RegistryIndex, "_LOADED");
+            GetField(Lumen::RegistryIndex, Lumen::RegKeyLoaded);
             GetField(-1, modName);
             auto ret = ToBoolean(-1);
             Pop(2);

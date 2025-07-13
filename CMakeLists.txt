@@ -14,10 +14,7 @@ option(LUA_USE_CORE_DEBUG "Build with develop mode" OFF)
 option(LUA_USE_INTERPRETER "Build with interpreter" ON)
 option(LUA_USE_COMPILER "Build with compiler" ON)
 option(LUA_USE_TEST "Build with test" OFF)
-
-if (NOT DEFINED LUA_SHARED_LIB_NAME)
-    set(LUA_SHARED_LIB_NAME "Lumen")
-endif ()
+option(LUA_USE_COMPAT "Build with Lua 5.1 compat" OFF)
 
 # ----- Lumen -----
 
@@ -67,6 +64,12 @@ endif ()
 
 if (LUA_USE_API_CHECK)
     list(APPEND LUA_COMPILE_DEF LUA_USE_APICHECK)
+endif ()
+
+if (LUA_USE_COMPAT)
+    set(LUA_SHARED_LIB_NAME "lua51")
+else ()
+    set(LUA_SHARED_LIB_NAME "Lumen")
 endif ()
 
 # ----- Lumen include -----

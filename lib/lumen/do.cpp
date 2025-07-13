@@ -95,7 +95,7 @@ void Lumen::Do::Throw(Lumen::State *L, int errcode) {
         if (LumenGlobalState(L)->Panic) {
             resetStack(L, errcode);
             LumenUnlock(L);
-            LumenGlobalState(L)->Panic(L);
+            LumenGlobalState(L)->Panic(reinterpret_cast<Lumen::IState *>(L));
         }
         exit(EXIT_FAILURE);
     }
@@ -189,7 +189,7 @@ void Lumen::Do::CallHook(Lumen::State *L, int event, int line) {
         LumenAssert(L->CallInfo->Top <= L->StackLast);
         L->AllowHook = 0;  /* cannot call hooks inside a hook */
         LumenUnlock(L);
-        (*hook)(L, &ar);
+        (*hook)(reinterpret_cast<Lumen::IState *>(L), &ar);
         LumenLock(L);
         LumenAssert(!L->AllowHook);
         L->AllowHook = 1;
@@ -309,7 +309,7 @@ int Lumen::Do::PreCall(Lumen::State *L, Lumen::Value func, int nResults) {
         if (L->HookMask & Lumen::HookMaskCall)
             Lumen::Do::CallHook(L, Lumen::HookCall, -1);
         LumenUnlock(L);
-        n = (*L->GetCurrentFunction()->AsC.Func)(L);  /* do the actual call */
+        n = (*L->GetCurrentFunction()->AsC.Func)(reinterpret_cast<Lumen::IState *>(L));  /* do the actual call */
         LumenLock(L);
         if (n < 0)  /* yielding? */
             return Lumen::Do::PCRetYield;

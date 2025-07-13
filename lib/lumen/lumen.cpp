@@ -17,7 +17,7 @@
 #include "lumen.h"
 
 // NOLINTNEXTLINE
-#define ToLumen(L) static_cast<Lumen::State *>(L)
+#define ToLumen(L) reinterpret_cast<Lumen::State *>(L)
 
 Lumen::IState *Lumen::Open() {
     return Lumen::IState::New();

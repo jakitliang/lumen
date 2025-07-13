@@ -111,7 +111,8 @@ static int doargs(int argc, char *argv[]) {
 #define toProto(L, i) ((L->Top+(i))->GetClosure()->AsLua.Func)
 
 // NOLINTNEXTLINE
-#define ToLumen(L) static_cast<Lumen::State *>(L)
+#define ToLumen(L) reinterpret_cast<Lumen::State *>(L)
+#define ToLumenIState(L) reinterpret_cast<Lumen::IState *>(L)
 
 static const Lumen::Proto *combine(Lumen::State *L, int n) {
     if (n == 1)

@@ -23,7 +23,7 @@ int Lumen::ZIO::Fill(Lumen::ZIO *z) {
     const char *buff;
     if (z->eoz) return EOZ;
     LumenUnlock(L);
-    buff = z->reader(L, z->data, &size);
+    buff = z->reader(reinterpret_cast<Lumen::IState *>(L), z->data, &size);
     LumenLock(L);
     if (buff == nullptr || size == 0) {
         z->eoz = true; /* avoid calling reader function next time */

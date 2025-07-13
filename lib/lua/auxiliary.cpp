@@ -249,7 +249,7 @@ void luaI_openlib(lua_State *L, const char *libname,
     if (libname) {
         int size = libsize(l);
         /* check whether lib already exists */
-        luaL_findtable(L, LUA_REGISTRYINDEX, "_LOADED", 1);
+        luaL_findtable(L, LUA_REGISTRYINDEX, Lumen::RegKeyLoaded, 1);
         lua_getfield(L, -1, libname);  /* get _LOADED[libname] */
         if (!lua_istable(L, -1)) {  /* not found? */
             lua_pop(L, 1);  /* remove previous result */
@@ -817,7 +817,7 @@ int luaL_getsubtable(lua_State *L, int idx, const char *name) {
 
 void luaL_requiref(lua_State *L, const char *modname,
                    lua_CFunction openF, int glb) {
-    luaL_getsubtable(L, LUA_REGISTRYINDEX, "_LOADED");
+    luaL_getsubtable(L, LUA_REGISTRYINDEX, Lumen::RegKeyLoaded);
     lua_getfield(L, -1, modname);  /* LOADED[modname] */
     if (!lua_toboolean(L, -1)) {  /* package not already loaded? */
         lua_pop(L, 1);  /* remove field */
@@ -835,7 +835,7 @@ void luaL_requiref(lua_State *L, const char *modname,
 }
 
 void luaL_pushmodule(lua_State *L, const char *modname, int hintSize) {
-    luaL_findtable(L, LUA_REGISTRYINDEX, "_LOADED", 16);
+    luaL_findtable(L, LUA_REGISTRYINDEX, Lumen::RegKeyLoaded, 16);
     lua_getfield(L, -1, modname);
     if (!lua_istable(L, -1)) {
         lua_pop(L, 1);

@@ -30,7 +30,7 @@ struct DumpState {
 static void DumpBlock(const void *b, Lumen::UInteger size, DumpState *D) {
     if (D->status == 0) {
         LumenUnlock(D->L);
-        D->status = (*D->writer)(D->L, b, size, D->data);
+        D->status = (*D->writer)(reinterpret_cast<Lumen::IState *>(D->L), b, size, D->data);
         LumenLock(D->L);
     }
 }

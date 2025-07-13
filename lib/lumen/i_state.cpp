@@ -26,13 +26,38 @@
 #include "lumen/api.h"
 
 // NOLINTNEXTLINE
-#define ToState(L) static_cast<Lumen::State *>(L)
+#define ToState(L) reinterpret_cast<Lumen::State *>(L)
+#define ToIState(L) reinterpret_cast<Lumen::IState *>(L)
+
+static inline bool InstanceOf(Lumen::State *L, const Lumen::Object *oChild, const Lumen::Object *oSuper) {
+    if (oChild == Lumen::NilObject || oSuper == Lumen::NilObject) return false;
+    int loop;
+    for (loop = 0; loop < LumenMaxTagLoop; loop++) {
+        if (oChild->IsTable()) {  /* `t` is a table? */
+            Lumen::Table *h = oChild->GetTable();
+            if (Lumen::RawEqualObject(oChild, oSuper)) {
+                return true;
+            }
+            if ((oChild = LumenTMGetFast(L, h->Metatable, Lumen::TM::NameIndex)) == nullptr) { /* no TM? */
+                return false;
+            }
+            /* else will try the tag method */
+        } else if ((oChild = Lumen::TM::GetByObject(L, oChild, Lumen::TM::NameIndex))->IsNil()) {
+            Lumen::Debug::TypeError(L, oChild, "index");
+        }
+        if (oChild->IsFunction()) {
+            return false;
+        }
+    }
+    Lumen::Debug::RunError(L, "loop in gettable");
+    return false;
+}
 
 // MARK: state manipulation
 
 Lumen::IState *Lumen::IState::New(Lumen::Allocator allocator, void *userdata) {
     auto L = Lumen::State::New(allocator, userdata);
-    return L == nullptr ? nullptr : L;
+    return L == nullptr ? nullptr : ToIState(L);
 }
 
 Lumen::IState *Lumen::IState::NewThread() {
@@ -45,7 +70,7 @@ Lumen::IState *Lumen::IState::NewThread() {
     LumenApiIncrTop(L);
     LumenUnlock(L);
     luai_userstatethread(L, L1);
-    return L1 == nullptr ? nullptr : L1;
+    return L1 == nullptr ? nullptr : ToIState(L1);
 }
 
 Lumen::Delegate Lumen::IState::AtPanic(Lumen::Delegate pInvoke) {
@@ -436,7 +461,7 @@ void *Lumen::IState::ToUserdata(int idx) {
 Lumen::IState *Lumen::IState::ToThread(int idx) {
     auto L = ToState(this);
     Lumen::Value o = L->ToObject(idx);
-    return (!o->IsThread()) ? nullptr : o->GetThread();
+    return (!o->IsThread()) ? nullptr : ToIState(o->GetThread());
 }
 
 const void *Lumen::IState::ToPointer(int idx) {
@@ -569,7 +594,7 @@ int Lumen::IState::PushThread() {
 
 void Lumen::IState::PushObject(const Lumen::IObject *o) {
     auto L = ToState(this);
-    LumenSetObject2S(L, L->Top, static_cast<const Lumen::Object *>(o));
+    LumenSetObject2S(L, L->Top, static_cast<const Lumen::Object *>(o)); // NOLINT
     LumenApiIncrTop(ToState(this));
 }
 
@@ -1167,7 +1192,7 @@ const char *Lumen::IState::GetLocal(const Lumen::DebugInfo *ar, int n) {
     const char *name = L->FindLocal(ci, n);
     LumenLock(L);
     if (name)
-        L->PushObject(ci->Base + (n - 1));
+        PushObject(ci->Base + (n - 1));
     LumenUnlock(L);
     return name;
 }
@@ -1289,7 +1314,7 @@ void Lumen::IState::OpenLib(const char *name, const Lumen::Interface *inf, int n
     if (name) {
         int size = infSize(inf);
         /* check whether lib already exists */
-        FindTable(Lumen::RegistryIndex, "_LOADED", 1);
+        FindTable(Lumen::RegistryIndex, Lumen::RegKeyLoaded, 1);
         GetField(-1, name);  /* get _LOADED[name] */
         if (!IsTable(-1)) {  /* not found? */
             Pop(1);  /* remove previous result */
@@ -1445,7 +1470,7 @@ void *Lumen::IState::TestUserdata(int ud, const char *tName) {
     auto p = ToUserdata(ud);
     if (p != nullptr) {  /* value is a userdata? */
         if (GetMetatable(ud)) {  /* does it have a metatable? */
-            GetMetatable(tName);  /* get correct metatable */
+            GetField(RegistryIndex, tName);  /* get correct metatable */
             if (!RawEqual(-1, -2)) {  /* not the same mt? */
                 p = nullptr;
             }
@@ -1457,17 +1482,40 @@ void *Lumen::IState::TestUserdata(int ud, const char *tName) {
 }
 
 void *Lumen::IState::TestUserdataInstance(int ud, const char *tName) {
-    auto p = ToUserdata(ud);
-    if (p != nullptr) {  /* value is a userdata? */
-        if (GetMetatable(ud)) {  /* does it have a metatable? */
-            GetMetatable(tName);  /* get correct metatable */
-            if (!InstanceOf(-1, -2)) {  /* not the same mt? */
-                p = nullptr;
-            }
-            Pop(2);  /* remove both metatables */
-            return p;
-        }
+    void *p;
+    auto L = ToState(this);
+    LumenLock(L);
+    const Object *o = L->ToObject(ud);
+    Object child; // NOLINT
+    switch (o->Type) {
+        case Lumen::TypeUserdata:
+            p = (o->GetUData() + 1);
+            child.SetTable(L, o->GetUData()->Metatable);
+            break;
+        case Lumen::TypeLightUserdata:
+            p = o->GetLUData();
+            child.SetTable(L, LumenGlobalState(L)->Metatable[o->Type]);
+            break;
+        default:
+            p = nullptr;
+            child.SetNil();
+            break;
     }
+    if (p != nullptr) {  /* value is a userdata? */
+        Lumen::Value t;
+        Lumen::Object key; // NOLINT
+        Lumen::Object val; // NOLINT
+        t = L->ToObject(Lumen::RegistryIndex);
+        LumenApiCheckValidIndex(L, t);
+        key.SetString(L, Lumen::String::New(L, tName));
+        Lumen::VM::GetTable(L, t, &key, &val);
+        if (!::InstanceOf(L, &child, &val)) {
+            p = nullptr;
+        }
+        LumenUnlock(L);
+        return p;
+    }
+    LumenUnlock(L);
     return nullptr;
 }
 
@@ -1703,7 +1751,7 @@ bool Lumen::IState::FindOrCreateTable(int idx, const char *name) {
 }
 
 void Lumen::IState::Require(const char *modName, Lumen::Delegate loader, bool exported) {
-    FindOrCreateTable(Lumen::RegistryIndex, "_LOADED");
+    FindOrCreateTable(Lumen::RegistryIndex, Lumen::RegKeyLoaded);
     GetField(-1, modName);  /* LOADED[modname] */
     if (!ToBoolean(-1)) {  /* package not already loaded? */
         Pop(1);  /* remove field */

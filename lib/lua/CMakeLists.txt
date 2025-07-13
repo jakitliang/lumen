@@ -1,9 +1,8 @@
 add_library(
     lumen-lua OBJECT
+    auxiliary.cpp
     base.cpp
     bit.cpp
-    c_api.cpp
-    c_aux.cpp
     debug.cpp
     init.cpp
     io.cpp
@@ -93,8 +92,14 @@ target_link_libraries(lumen-static INTERFACE ${LUA_LINK_LIBS})
 
 if (LUA_BUILD_TYPE MATCHES "SHARED")
     add_library(Lumen ALIAS lumen-shared)
+    if (LUA_USE_COMPAT)
+        add_library(lua51 ALIAS lumen-shared)
+    endif ()
 else ()
     add_library(Lumen ALIAS lumen-static)
+    if (LUA_USE_COMPAT)
+        add_library(lua51 ALIAS lumen-static)
+    endif ()
 endif ()
 
 if (NOT LUA_SKIP_INSTALL)
@@ -117,8 +122,8 @@ if (NOT LUA_SKIP_INSTALL)
     )
     install(
         EXPORT lumen-shared
-        FILE lumen-sharedConfig.cmake
-        DESTINATION lib/cmake/Lumen
+        FILE ${LUA_SHARED_LIB_NAME}Config.cmake
+        DESTINATION lib/cmake/${LUA_SHARED_LIB_NAME}
     )
     install(
         FILES

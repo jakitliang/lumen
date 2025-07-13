@@ -82,7 +82,7 @@ namespace Lumen {
     /*
     ** `per thread' state
     */
-    struct State : Lumen::BasicObject, Lumen::IState {
+    struct State : Lumen::BasicObject {
         Lumen::Byte Status;
         Lumen::Value Top;  /* first free slot in the stack */
         Lumen::Value Base;  /* base of current function */
