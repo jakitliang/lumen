@@ -621,10 +621,19 @@ LUA_API int lua_pushthread(lua_State *l) {
 LUA_API int lua_gettable(lua_State *l, int idx) {
     auto L = ToState(l);
     Lumen::Value t;
+    const Lumen::Object *key;
+    const Lumen::Object *slot;
     LumenLock(L);
     t = L->ToObject(idx);
+    key = L->Top - 1;
     LumenApiCheckValidIndex(L, t);
-    Lumen::VM::GetTable(L, t, L->Top - 1, L->Top - 1);
+    if (key->IsNumber()
+        ? LumenVMFastGetTable(L, t, key->GetNumber(), slot, Lumen::Table::GetNum)
+        : LumenVMFastGetTable(L, t, key, slot, Lumen::Table::Get)) {
+        LumenSetObject2S(L, (L->Top - 1), slot);
+    } else {
+        Lumen::VM::FinishGetTable(L, t, L->Top - 1, L->Top - 1, slot);
+    }
     LumenUnlock(L);
     return (L->Top - 1)->Type;
 }
@@ -634,11 +643,16 @@ LUA_API int lua_getfield(lua_State *l, int idx, const char *k) {
     auto L = ToState(l);
     Lumen::Value t;
     Lumen::Object key; // NOLINT
+    const Lumen::Object *slot;
     LumenLock(L);
     t = L->ToObject(idx);
     LumenApiCheckValidIndex(L, t);
     key.SetString(L, Lumen::String::New(L, k));
-    Lumen::VM::GetTable(L, t, &key, L->Top);
+    if (LumenVMFastGetTable(L, t, (&key), slot, Lumen::Table::Get)) {
+        LumenSetObject2S(L, L->Top, slot);
+    } else {
+        Lumen::VM::FinishGetTable(L, t, &key, L->Top, slot);
+    }
     LumenApiIncrTop(L);
     LumenUnlock(L);
     return (L->Top - 1)->Type;
@@ -756,11 +770,20 @@ LUA_API void lua_getfenv(lua_State *l, int idx) {
 LUA_API void lua_settable(lua_State *l, int idx) {
     auto L = ToState(l);
     Lumen::Value t;
+    const Lumen::Object *key;
+    const Lumen::Object *slot;
     LumenLock(L);
     LumenApiCheckElementCount(L, 2);
     t = L->ToObject(idx);
+    key = L->Top - 2;
     LumenApiCheckValidIndex(L, t);
-    Lumen::VM::SetTable(L, t, L->Top - 2, L->Top - 1);
+    if (key->IsNumber()
+        ? LumenVMFastGetTable(L, t, key->GetNumber(), slot, Lumen::Table::GetNum)
+        : LumenVMFastGetTable(L, t, key, slot, Lumen::Table::Get)) {
+        LumenVMFastSetTable(L, t->GetTable(), slot, L->Top - 1);
+    } else {
+        Lumen::VM::FinishSetTable(L, t, L->Top - 2, L->Top - 1, const_cast<Lumen::Object *>(slot));
+    }
     L->Top -= 2;  /* pop index and value */
     LumenUnlock(L);
 }
@@ -770,12 +793,17 @@ LUA_API void lua_setfield(lua_State *l, int idx, const char *k) {
     auto L = ToState(l);
     Lumen::Value t;
     Lumen::Object key; // NOLINT
+    const Lumen::Object *slot;
     LumenLock(L);
     LumenApiCheckElementCount(L, 1);
     t = L->ToObject(idx);
     LumenApiCheckValidIndex(L, t);
     key.SetString(L, Lumen::String::New(L, k));
-    Lumen::VM::SetTable(L, t, &key, L->Top - 1);
+    if (LumenVMFastGetTable(L, t, (&key), slot, Lumen::Table::Get)) {
+        LumenVMFastSetTable(L, t->GetTable(), slot, L->Top - 1);
+    } else {
+        Lumen::VM::FinishSetTable(L, t, &key, L->Top - 1, const_cast<Lumen::Object *>(slot));
+    }
     L->Top--;  /* pop value */
     LumenUnlock(L);
 }

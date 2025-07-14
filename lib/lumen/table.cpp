@@ -471,7 +471,7 @@ const Lumen::Object *Lumen::Table::Get(Lumen::Table *t, const Lumen::Object *key
         }
         default: {
             Lumen::Node *n = mainPosition(t, key);
-            do {  /* check whether `key' is somewhere in the chain */
+            do {  /* check whether `key` is somewhere in the chain */
                 if (Lumen::RawEqualObject(LumenTableKey2KeyValue(n), key))
                     return LumenTableGetValue(n);  /* that's it */
                 else n = LumenTableGetNext(n);
@@ -495,6 +495,13 @@ Lumen::Object *Lumen::Table::Set(Lumen::State *L, Lumen::Table *t, const Lumen::
     }
 }
 
+Lumen::Object *Lumen::Table::RawSet(Lumen::State *L, Lumen::Table *t, const Lumen::Object *key) {
+    t->Flags = 0;
+    if (key->IsNil()) Lumen::Debug::RunError(L, "table index is nil");
+    else if (key->IsNumber() && LumenNumIsNAN(key->GetNumber()))
+        Lumen::Debug::RunError(L, "table index is NaN");
+    return newKey(L, t, key);
+}
 
 Lumen::Object *Lumen::Table::SetNum(Lumen::State *L, Lumen::Table *t, int key) {
     const Lumen::Object *p = Lumen::Table::GetNum(t, key);

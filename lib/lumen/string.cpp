@@ -11,6 +11,7 @@
 #include <cstring>
 #include <cstdint>
 #include <string_view>
+#include <unordered_map>
 
 #define LUA_CORE
 
@@ -25,11 +26,14 @@
 
 namespace Lumen::Hash {
     struct State {
+        struct KeyPair {
+            const uint8_t *Key;
+            Lumen::UInteger Length;
+        };
+
         ~State();
 
-        uint32_t Hash(const uint8_t *key, Lumen::UInteger len, uint32_t seed) const;
-
-        static State &Get();
+//        uint32_t Hash(const uint8_t *key, Lumen::UInteger len, uint32_t seed) const;
 
         static uint32_t DoHash(const uint8_t *key, Lumen::UInteger len, uint32_t seed);
 
@@ -41,21 +45,16 @@ Lumen::Hash::State::~State() {
     XXH32_freeState(state);
 }
 
-inline uint32_t Lumen::Hash::State::Hash(const uint8_t *key, Lumen::UInteger len, uint32_t seed) const {
-    XXH32_reset(state, seed);
-
-    XXH32_update(state, key, len);
-
-    return XXH32_digest(state);
-}
-
-inline Lumen::Hash::State &Lumen::Hash::State::Get() {
-    thread_local Lumen::Hash::State state{XXH32_createState()};
-    return state;
-}
+//inline uint32_t Lumen::Hash::State::Hash(const uint8_t *key, Lumen::UInteger len, uint32_t seed) const {
+//    XXH32_reset(state, seed);
+//
+//    XXH32_update(state, key, len);
+//
+//    return XXH32_digest(state);
+//}
 
 inline uint32_t Lumen::Hash::State::DoHash(const uint8_t *key, Lumen::UInteger len, uint32_t seed) {
-    return Get().Hash(key, len, seed);
+    return (uint32_t) XXH3_64bits_withSeed(key, len, seed);
 }
 
 void Lumen::String::Intern(Lumen::State *L) {

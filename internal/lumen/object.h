@@ -194,6 +194,8 @@ namespace Lumen {
 
         static Lumen::Object *Set(Lumen::State *L, Lumen::Table *t, const Lumen::Object *key);
 
+        static Lumen::Object *RawSet(Lumen::State *L, Lumen::Table *t, const Lumen::Object *key);
+
         static Lumen::Table *New(Lumen::State *L, int nArray, int nHash);
 
         static void ResizeArray(Lumen::State *L, Lumen::Table *t, int nArraySize);

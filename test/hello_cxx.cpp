@@ -10,9 +10,18 @@
 #include "lumen.h"
 #include <iostream>
 
+struct Test {
+    int a;
+};
+
 int main() {
     auto L = Lumen::Open();
     L->OpenLibs();
+    L->PushDelegate([](Lumen::IState *l) {
+        std::cout << "HelloCXX" << std::endl;
+        return 0;
+    });
+    L->Call(0, 0);
     L->PushLiteral("my_value");
     L->SetGlobal("my_key");
     L->DoString(R"(
@@ -39,6 +48,24 @@ Super.__index = Super
     L->SetMetatable(-2);
 
     std::cout << L->InstanceOf(-1, -2) << std::endl;
+
+    L->NewMetatable("Test");
+    auto test = reinterpret_cast<Test *>(L->NewUserdata(sizeof(Test)));
+    L->PushValue(-2);
+    L->SetMetatable(-2);
+    {
+        char tmp;
+        std::cout << "ready? ";
+        std::cin >> tmp;
+        Lumen::UInteger iter = 100000000;
+        while (iter--) {
+            auto t = L->CheckUserdata(-1, "Test");
+            if (t == nullptr) L->Error("Test Failed");
+        }
+        std::cout << std::endl << "exit? ";
+        std::cin >> tmp;
+        std::cout << std::endl << "done" << std::endl;
+    }
 
     Lumen::Close(L);
 

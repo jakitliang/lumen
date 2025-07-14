@@ -31,8 +31,16 @@ namespace Lumen::VM {
     void GetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object *key,
                   Lumen::Value val);
 
+    void FinishGetTable(Lumen::State *L, const Lumen::Object *t,
+                        Lumen::Object *key, Lumen::Value val,
+                        const Lumen::Object *cachedSlot);
+
     void SetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object *key,
                   Lumen::Value val);
+
+    void FinishSetTable(Lumen::State *L, const Lumen::Object *t,
+                        Lumen::Object *key, Lumen::Value val,
+                        Lumen::Object *cachedSlot);
 
     void Execute(Lumen::State *L, int nExecCalls);
 
@@ -83,5 +91,18 @@ inline int Lumen::VM::ToString(Lumen::State *L, Lumen::Value obj) {
         return 1;
     }
 }
+
+#define LumenVMFastGetTable(L, t, k, slot, f) \
+    (!t->IsTable()                            \
+    ? (slot = nullptr, 0)  /* not a table; 'slot' is NULL and result is 0 */ \
+    : (slot = f(t->GetTable(), k),  /* else, do raw access */                \
+    !slot->IsNil()))  /* result not empty? */
+
+#define LumenVMFastSetTable(L, t, slot, v) \
+LumenDo(                                   \
+    LumenSetObject2T(L, cast(Lumen::Object *, slot), v); \
+    t->Flags = 0;                          \
+    L->BarrierTable(t, v);    \
+)
 
 #endif

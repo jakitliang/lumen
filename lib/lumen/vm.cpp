@@ -94,11 +94,42 @@ void Lumen::VM::GetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object 
             callTMRes(L, val, tm, t, key);
             return;
         }
-        t = tm;  /* else repeat with `tm' */
+        t = tm;  /* else repeat with `tm` */
     }
     Lumen::Debug::RunError(L, "loop in gettable");
 }
 
+void Lumen::VM::FinishGetTable(Lumen::State *L,
+                               const Lumen::Object *t, Lumen::Object *key, Lumen::Value val,
+                               const Lumen::Object *cachedSlot) {
+    int loop;
+    for (loop = 0; loop < LUA_VM_MAX_TAG_LOOP; loop++) {
+        const Lumen::Object *tm;
+        if (t->IsTable()) {  /* `t` is a table? */
+            Lumen::Table *h = t->GetTable();
+            const Lumen::Object *res;
+            if (cachedSlot == nullptr) {
+                res = Lumen::Table::Get(h, key); /* do a primitive get */
+            } else {
+                res = cachedSlot;
+                cachedSlot = nullptr;
+            }
+            if (!res->IsNil() ||  /* result is no nil? */
+                (tm = LumenTMGetFast(L, h->Metatable, Lumen::TM::NameIndex)) == nullptr) { /* or no TM? */
+                LumenSetObject2S(L, val, res);
+                return;
+            }
+            /* else will try the tag method */
+        } else if ((tm = Lumen::TM::GetByObject(L, t, Lumen::TM::NameIndex))->IsNil())
+            Lumen::Debug::TypeError(L, t, "index");
+        if (tm->IsFunction()) {
+            callTMRes(L, val, tm, t, key);
+            return;
+        }
+        t = tm;  /* else repeat with `tm` */
+    }
+    Lumen::Debug::RunError(L, "loop in gettable");
+}
 
 void Lumen::VM::SetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object *key, Lumen::Value val) {
     int loop;
@@ -129,6 +160,42 @@ void Lumen::VM::SetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object 
     Lumen::Debug::RunError(L, "loop in settable");
 }
 
+void Lumen::VM::FinishSetTable(Lumen::State *L,
+                               const Lumen::Object *t, Lumen::Object *key, Lumen::Value val,
+                               Lumen::Object *cachedSlot) {
+    int loop;
+    Lumen::Object temp; // NOLINT
+    for (loop = 0; loop < LUA_VM_MAX_TAG_LOOP; loop++) {
+        const Lumen::Object *tm;
+        if (t->IsTable()) {  /* `t` is a table? */
+            Lumen::Table *h = t->GetTable();
+            Lumen::Object *oldVal;
+            if (cachedSlot == nullptr) {
+                oldVal = Lumen::Table::Set(L, h, key); /* do a primitive set */
+            } else {
+                oldVal = Lumen::Table::RawSet(L, h, key);
+                cachedSlot = nullptr;
+            }
+            if (!oldVal->IsNil() ||  /* result is no nil? */
+                (tm = LumenTMGetFast(L, h->Metatable, Lumen::TM::NameNewIndex)) == nullptr) { /* or no TM? */
+                LumenSetObject2T(L, oldVal, val);
+                h->Flags = 0;
+                L->BarrierTable(h, val);
+                return;
+            }
+            /* else will try the tag method */
+        } else if ((tm = Lumen::TM::GetByObject(L, t, Lumen::TM::NameNewIndex))->IsNil())
+            Lumen::Debug::TypeError(L, t, "index");
+        if (tm->IsFunction()) {
+            callTM(L, tm, t, key, val);
+            return;
+        }
+        /* else repeat with `tm` */
+        (&temp)->SetObject(L, tm);  /* avoid pointing inside table (may rehash) */
+        t = &temp;
+    }
+    Lumen::Debug::RunError(L, "loop in settable");
+}
 
 static inline int call_binTM(Lumen::State *L, const Lumen::Object *p1, const Lumen::Object *p2,
                              Lumen::Value res, Lumen::TM::Name event) {
@@ -468,21 +535,41 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
             }
             case Lumen::OpCodeGetGlobal: {
                 Lumen::Object g; // NOLINT
-                Lumen::Object *rb = KBx(i);
+                auto rb = KBx(i);
+                const Lumen::Object *slot;
                 g.SetTable(L, cl->Env);
                 LumenAssert(rb->IsString());
-                Protect(Lumen::VM::GetTable(L, &g, rb, ra));
+                if (LumenVMFastGetTable(L, (&g), rb, slot, Lumen::Table::Get)) {
+                    LumenSetObject2S(L, ra, slot);
+                } else {
+                    Protect(Lumen::VM::FinishGetTable(L, &g, rb, ra, slot));
+                }
                 continue;
             }
             case Lumen::OpCodeGetTable: {
-                Protect(Lumen::VM::GetTable(L, RB(i), RKC(i), ra));
+                const Lumen::Object *slot;
+                auto rb = RB(i);
+                auto rc = RKC(i);
+                if (rc->IsNumber()
+                    ? LumenVMFastGetTable(L, rb, rc->GetNumber(), slot, Lumen::Table::GetNum)
+                    : LumenVMFastGetTable(L, rb, rc, slot, Lumen::Table::Get)) {
+                    LumenSetObject2S(L, ra, slot);
+                } else {
+                    Protect(Lumen::VM::FinishGetTable(L, rb, rc, ra, slot));
+                }
                 continue;
             }
             case Lumen::OpCodeSetGlobal: {
                 Lumen::Object g; // NOLINT
+                const Lumen::Object *slot;
+                auto rb = KBx(i); // key
                 g.SetTable(L, cl->Env);
-                LumenAssert(KBx(i)->IsString());
-                Protect(Lumen::VM::SetTable(L, &g, KBx(i), ra));
+                LumenAssert(rb->IsString());
+                if (LumenVMFastGetTable(L, (&g), rb, slot, Lumen::Table::Get)) {
+                    LumenVMFastSetTable(L, g.GetTable(), slot, ra);
+                } else {
+                    Protect(Lumen::VM::FinishSetTable(L, &g, rb, ra, const_cast<Lumen::Object *>(slot)));
+                }
                 continue;
             }
             case Lumen::OpCodeSetUpVal: {
@@ -492,7 +579,16 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeSetTable: {
-                Protect(Lumen::VM::SetTable(L, ra, RKB(i), RKC(i)));
+                const Lumen::Object *slot;
+                auto rb = RKB(i);
+                auto rc = RKC(i);
+                if (rb->IsNumber()
+                    ? LumenVMFastGetTable(L, ra, rb->GetNumber(), slot, Lumen::Table::GetNum)
+                    : LumenVMFastGetTable(L, ra, rb, slot, Lumen::Table::Get)) {
+                    LumenVMFastSetTable(L, ra->GetTable(), slot, rc);
+                } else {
+                    Protect(Lumen::VM::FinishSetTable(L, ra, rb, rc, const_cast<Lumen::Object *>(slot)));
+                }
                 continue;
             }
             case Lumen::OpCodeNewTable: {
@@ -503,9 +599,15 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeSelf: {
+                const Lumen::Object *slot;
                 Lumen::Value rb = RB(i);
+                auto rc = RKC(i);
                 LumenSetObjectS2S(L, ra + 1, rb);
-                Protect(Lumen::VM::GetTable(L, rb, RKC(i), ra));
+                if (LumenVMFastGetTable(L, rb, rc, slot, Lumen::Table::Get)) {
+                    LumenSetObject2S(L, ra, slot);
+                } else {
+                    Protect(Lumen::VM::FinishGetTable(L, rb, rc, ra, slot));
+                }
                 continue;
             }
             case Lumen::OpCodeAdd: {

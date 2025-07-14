@@ -603,10 +603,19 @@ void Lumen::IState::PushObject(const Lumen::IObject *o) {
 Lumen::Type Lumen::IState::GetTable(int idx) {
     auto L = ToState(this);
     Lumen::Value t;
+    const Lumen::Object *key;
+    const Lumen::Object *slot;
     LumenLock(L);
     t = L->ToObject(idx);
+    key = L->Top - 1;
     LumenApiCheckValidIndex(L, t);
-    Lumen::VM::GetTable(L, t, L->Top - 1, L->Top - 1);
+    if (key->IsNumber()
+        ? LumenVMFastGetTable(L, t, key->GetNumber(), slot, Lumen::Table::GetNum)
+        : LumenVMFastGetTable(L, t, key, slot, Lumen::Table::Get)) {
+        LumenSetObject2S(L, (L->Top - 1), slot);
+    } else {
+        Lumen::VM::FinishGetTable(L, t, L->Top - 1, L->Top - 1, slot);
+    }
     LumenUnlock(L);
     return (L->Top - 1)->Type;
 }
@@ -615,11 +624,16 @@ Lumen::Type Lumen::IState::GetField(int idx, const char *k) {
     auto L = ToState(this);
     Lumen::Value t;
     Lumen::Object key; // NOLINT
+    const Lumen::Object *slot;
     LumenLock(L);
     t = L->ToObject(idx);
     LumenApiCheckValidIndex(L, t);
     key.SetString(L, Lumen::String::New(L, k));
-    Lumen::VM::GetTable(L, t, &key, L->Top);
+    if (LumenVMFastGetTable(L, t, (&key), slot, Lumen::Table::Get)) {
+        LumenSetObject2S(L, L->Top, slot);
+    } else {
+        Lumen::VM::FinishGetTable(L, t, &key, L->Top, slot);
+    }
     LumenApiIncrTop(L);
     LumenUnlock(L);
     return (L->Top - 1)->Type;
@@ -741,11 +755,20 @@ void Lumen::IState::GetFEnv(int idx) {
 void Lumen::IState::SetTable(int idx) {
     auto L = ToState(this);
     Lumen::Value t;
+    const Lumen::Object *key;
+    const Lumen::Object *slot;
     LumenLock(L);
     LumenApiCheckElementCount(L, 2);
     t = L->ToObject(idx);
+    key = L->Top - 2;
     LumenApiCheckValidIndex(L, t);
-    Lumen::VM::SetTable(L, t, L->Top - 2, L->Top - 1);
+    if (key->IsNumber()
+        ? LumenVMFastGetTable(L, t, key->GetNumber(), slot, Lumen::Table::GetNum)
+        : LumenVMFastGetTable(L, t, key, slot, Lumen::Table::Get)) {
+        LumenVMFastSetTable(L, t->GetTable(), slot, L->Top - 1);
+    } else {
+        Lumen::VM::FinishSetTable(L, t, L->Top - 2, L->Top - 1, const_cast<Lumen::Object *>(slot));
+    }
     L->Top -= 2;  /* pop index and value */
     LumenUnlock(L);
 }
@@ -754,12 +777,17 @@ void Lumen::IState::SetField(int idx, const char *k) {
     auto L = ToState(this);
     Lumen::Value t;
     Lumen::Object key; // NOLINT
+    const Lumen::Object *slot;
     LumenLock(L);
     LumenApiCheckElementCount(L, 1);
     t = L->ToObject(idx);
     LumenApiCheckValidIndex(L, t);
     key.SetString(L, Lumen::String::New(L, k));
-    Lumen::VM::SetTable(L, t, &key, L->Top - 1);
+    if (LumenVMFastGetTable(L, t, (&key), slot, Lumen::Table::Get)) {
+        LumenVMFastSetTable(L, t->GetTable(), slot, L->Top - 1);
+    } else {
+        Lumen::VM::FinishSetTable(L, t, &key, L->Top - 1, const_cast<Lumen::Object *>(slot));
+    }
     L->Top--;  /* pop value */
     LumenUnlock(L);
 }
@@ -1502,13 +1530,18 @@ void *Lumen::IState::TestUserdataInstance(int ud, const char *tName) {
             break;
     }
     if (p != nullptr) {  /* value is a userdata? */
+        const Lumen::Object *slot;
         Lumen::Value t;
         Lumen::Object key; // NOLINT
         Lumen::Object val; // NOLINT
         t = L->ToObject(Lumen::RegistryIndex);
         LumenApiCheckValidIndex(L, t);
         key.SetString(L, Lumen::String::New(L, tName));
-        Lumen::VM::GetTable(L, t, &key, &val);
+        if (LumenVMFastGetTable(L, t, &key, slot, Lumen::Table::Get)) {
+            LumenSetObject2S(L, t, slot);
+        } else {
+            Lumen::VM::FinishGetTable(L, t, &key, &val, slot);
+        }
         if (!::InstanceOf(L, &child, &val)) {
             p = nullptr;
         }
