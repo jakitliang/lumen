@@ -50,8 +50,8 @@ Super.__index = Super
     std::cout << L->InstanceOf(-1, -2) << std::endl;
 
     L->NewMetatable("Test");
-//    L->PushValue(-1);
-//    L->SetField(-2, "__index");
+    L->PushValue(-1);
+    L->SetField(-2, "__index");
     L->PushDelegate([](Lumen::IState *l) {
         auto t = (Test *) l->ToUserdata(1);
         l->PushNumber(t->a);
