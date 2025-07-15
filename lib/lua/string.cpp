@@ -17,10 +17,10 @@
 
 #define LUA_LIB
 
+#include "lumen.h"
 #include "lumen/memory.h"
 #include "lumen/string.h"
-
-#include "lumen.h"
+#include "lumen/common.inl"
 
 
 /* macro to `unsigned` a character */

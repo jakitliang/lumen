@@ -12,6 +12,7 @@
 
 #include "lumen.h"
 #include "lumen/object.h"
+#include "lumen/common.inl"
 
 #define ToObject(o) reinterpret_cast<Lumen::Object *>(o)
 #define ToObjectConst(o) reinterpret_cast<const Lumen::Object *>(o)
