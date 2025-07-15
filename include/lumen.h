@@ -199,29 +199,9 @@ namespace Lumen {
         inline bool IsLUData() const { return Type == Lumen::TypeLightUserdata; } // NOLINT
     };
 
-    using IObject = TypeInfo;
+    // MARK: Lumen Native Interface
 
-    struct IBase;
-
-    struct ICoroutine;
-
-    struct IPackage;
-
-    struct ITable;
-
-    struct IIO;
-
-    struct IOS;
-
-    struct IString;
-
-    struct IMath;
-
-    struct IUTF8;
-
-    struct IBit;
-
-    struct IDebug;
+    struct IObject;
 
     struct IState {
         // MARK: state manipulation
@@ -758,6 +738,108 @@ namespace Lumen {
             p += size;
         }
     };
+
+    struct IObject {
+        LPP_API bool IsNil() const; // NOLINT
+
+        LPP_API bool IsNumber() const; // NOLINT
+
+        LPP_API bool IsBoolean() const; // NOLINT
+
+        LPP_API bool IsString() const; // NOLINT
+
+        LPP_API bool IsTable() const;// NOLINT
+
+        LPP_API bool IsDelegate() const; // NOLINT
+
+        LPP_API bool IsUData() const; // NOLINT
+
+        LPP_API bool IsLUData() const; // NOLINT
+
+        LPP_API Number ToNumber() const; // NOLINT
+
+        LPP_API bool ToBoolean() const; // NOLINT
+
+        LPP_API struct IString *ToString();
+
+        LPP_API struct ITable *ToTable();
+
+        LPP_API Delegate ToDelegate();
+
+        LPP_API struct IUserdata *ToUserdata();
+
+        LPP_API void *ToLightUserdata();
+    };
+
+    struct IBase;
+
+    struct ICoroutine;
+
+    struct IPackage;
+
+    struct IIO;
+
+    struct IOS;
+
+    struct IString {
+        struct Context;
+
+        LPP_API char *CString();
+
+        LPP_API UInteger Length();
+
+        LPP_API static IString *Get(IState *L, int idx);
+
+        LPP_API static IString *New(IState *L, const char *cStr);
+
+        LPP_API static IString *New(IState *L, const char *cStr, UInteger length);
+    };
+
+    struct ITable {
+        LPP_API IObject *operator[](int n);
+
+        LPP_API IObject *operator[](const IObject *object);
+
+        LPP_API IObject *operator[](IString *str);
+
+        LPP_API void Insert(IState *L, int n, const IObject *val);
+
+        LPP_API void Insert(IState *L, IString *key, const IObject *val);
+
+        LPP_API void Insert(IState *L, const IObject *key, const IObject *val);
+
+        LPP_API void Insert(IState *L, IString *key, Delegate val);
+
+        inline void Insert(IState *L, const char *key, const IObject *val) {
+            Insert(L, Lumen::IString::New(L, key), val);
+        }
+
+        inline void Insert(IState *L, const char *key, UInteger length, const IObject *val) {
+            Insert(L, Lumen::IString::New(L, key, length), val);
+        }
+
+        inline void Insert(IState *L, const char *key, Delegate val) {
+            Insert(L, Lumen::IString::New(L, key), val);
+        }
+
+        inline void Insert(IState *L, const char *key, UInteger length, Delegate val) {
+            Insert(L, Lumen::IString::New(L, key, length), val);
+        }
+
+        LPP_API ITable *GetMetatable();
+
+        LPP_API static ITable *Get(IState *L, int idx);
+
+        LPP_API static ITable *New(IState *L);
+    };
+
+    struct IMath;
+
+    struct IUTF8;
+
+    struct IBit;
+
+    struct IDebug;
 
     template<typename T>
     LPP_API int Open(IState *L);

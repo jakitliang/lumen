@@ -9,6 +9,7 @@ add_library(
     load.cpp
     load_platform.c
     math.cpp
+    object.cpp
     os.cpp
     string.cpp
     table.cpp

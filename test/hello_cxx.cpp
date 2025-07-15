@@ -69,6 +69,14 @@ print("Test.GetA", Test:GetA())
         std::cout << L->ToString(-1) << std::endl;
         L->Pop();
     }
+
+    {
+        L->PushString("Hello world");
+        auto str = Lumen::IString::Get(L, -1);
+        std::cout << str->CString() << std::endl;
+        L->Pop();
+    }
+
 //    {
 //        char tmp;
 //        std::cout << "ready? ";

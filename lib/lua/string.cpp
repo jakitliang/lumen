@@ -18,16 +18,20 @@
 #define LUA_LIB
 
 #include "lumen/memory.h"
+#include "lumen/string.h"
 
 #include "lumen.h"
 
 
 /* macro to `unsigned` a character */
 #define uchar(c) static_cast<unsigned char>(c)
-#define LuaToLumen(L) reinterpret_cast<Lumen::IState *>(L)
-#define LumenToLua(L) reinterpret_cast<Lumen::IState *>(L)
 
-struct Lumen::IString {
+#define ToLumenState(L) reinterpret_cast<Lumen::State *>(L)
+#define ToLumenIState(L) reinterpret_cast<Lumen::IState *>(L)
+#define ToLumenIString(s) reinterpret_cast<Lumen::IString *>(s)
+#define ToLumenString(s) reinterpret_cast<Lumen::String *>(s)
+
+struct Lumen::IString::Context {
     static int Byte(Lumen::IState *L);
 
     static int Char(Lumen::IState *L);
@@ -65,7 +69,7 @@ struct Lumen::IString {
     static int Unpack(Lumen::IState *L);
 };
 
-int Lumen::IString::Length(Lumen::IState *L) {
+int Lumen::IString::Context::Length(Lumen::IState *L) {
     Lumen::UInteger length;
     L->CheckString(1, &length);
     L->PushInteger((Lumen::Integer) length);
@@ -80,7 +84,7 @@ static ptrdiff_t relStringPos(ptrdiff_t pos, size_t len) {
 }
 
 
-int Lumen::IString::Sub(Lumen::IState *L) {
+int Lumen::IString::Context::Sub(Lumen::IState *L) {
     size_t l;
     const char *s = L->CheckString(1, &l);
     ptrdiff_t start = relStringPos(L->CheckInteger(2), l);
@@ -95,7 +99,7 @@ int Lumen::IString::Sub(Lumen::IState *L) {
 }
 
 
-int Lumen::IString::Reverse(Lumen::IState *L) {
+int Lumen::IString::Context::Reverse(Lumen::IState *L) {
     size_t l;
     Lumen::Buffer b; // NOLINT
     const char *s = L->CheckString(1, &l);
@@ -106,7 +110,7 @@ int Lumen::IString::Reverse(Lumen::IState *L) {
 }
 
 
-int Lumen::IString::Lower(Lumen::IState *L) {
+int Lumen::IString::Context::Lower(Lumen::IState *L) {
     size_t l;
     size_t i;
     Lumen::Buffer b; // NOLINT
@@ -118,7 +122,7 @@ int Lumen::IString::Lower(Lumen::IState *L) {
     return 1;
 }
 
-int Lumen::IString::Upper(Lumen::IState *L) {
+int Lumen::IString::Context::Upper(Lumen::IState *L) {
     size_t l;
     size_t i;
     Lumen::Buffer b; // NOLINT
@@ -130,7 +134,7 @@ int Lumen::IString::Upper(Lumen::IState *L) {
     return 1;
 }
 
-int Lumen::IString::Rep(Lumen::IState *L) {
+int Lumen::IString::Context::Rep(Lumen::IState *L) {
     size_t l;
     Lumen::Buffer b; // NOLINT
     const char *s = L->CheckString(1, &l);
@@ -142,7 +146,7 @@ int Lumen::IString::Rep(Lumen::IState *L) {
     return 1;
 }
 
-int Lumen::IString::Byte(Lumen::IState *L) {
+int Lumen::IString::Context::Byte(Lumen::IState *L) {
     size_t l;
     const char *s = L->CheckString(1, &l);
     ptrdiff_t posI = relStringPos(L->OptInteger(2, 1), l);
@@ -161,7 +165,7 @@ int Lumen::IString::Byte(Lumen::IState *L) {
 }
 
 
-int Lumen::IString::Char(Lumen::IState *L) {
+int Lumen::IString::Context::Char(Lumen::IState *L) {
     int n = L->GetTop();  /* number of arguments */
     int i;
     Lumen::Buffer b; // NOLINT
@@ -417,7 +421,7 @@ static void copyWithEndian(volatile char *dest, volatile const char *src,
     }
 }
 
-int Lumen::IString::Pack(Lumen::IState *L) {
+int Lumen::IString::Context::Pack(Lumen::IState *L) {
     std::vector<char> b;
     Header h{L, NativeEndian.little, 1};
     const char *fmt = L->CheckString(1);  /* format string */
@@ -505,7 +509,7 @@ int Lumen::IString::Pack(Lumen::IState *L) {
     return 1;
 }
 
-int Lumen::IString::PackSize(Lumen::IState *L) {
+int Lumen::IString::Context::PackSize(Lumen::IState *L) {
     Header h{L, NativeEndian.little, 1};
     const char *fmt = L->CheckString(1);  /* format string */
     size_t totalSize = 0;  /* accumulate total size of result */
@@ -568,7 +572,7 @@ static Lumen::Integer posRel(Lumen::Integer pos, size_t len) {
     else return (Lumen::Integer) len + pos + 1;
 }
 
-int Lumen::IString::Unpack(Lumen::IState *L) {
+int Lumen::IString::Context::Unpack(Lumen::IState *L) {
     Header h{L, NativeEndian.little, 1};
     const char *fmt = L->CheckString(1);
     size_t ld;
@@ -638,7 +642,7 @@ static int dumpWriter(Lumen::IState *, const void *b, size_t size, void *B) {
     return 0;
 }
 
-int Lumen::IString::Dump(Lumen::IState *L) {
+int Lumen::IString::Context::Dump(Lumen::IState *L) {
     Lumen::Buffer b; // NOLINT
     L->CheckType(1, Lumen::TypeFunction);
     L->SetTop(1);
@@ -1036,11 +1040,11 @@ static int strFindAux(Lumen::IState *L, int find) {
 }
 
 
-int Lumen::IString::Find(Lumen::IState *L) {
+int Lumen::IString::Context::Find(Lumen::IState *L) {
     return strFindAux(L, 1);
 }
 
-int Lumen::IString::Match(Lumen::IState *L) {
+int Lumen::IString::Context::Match(Lumen::IState *L) {
     return strFindAux(L, 0);
 }
 
@@ -1070,7 +1074,7 @@ static int GMatchAux(Lumen::IState *L) {
 }
 
 
-int Lumen::IString::GMatch(Lumen::IState *L) {
+int Lumen::IString::Context::GMatch(Lumen::IState *L) {
     L->CheckString(1);
     L->CheckString(2);
     L->SetTop(2);
@@ -1080,7 +1084,7 @@ int Lumen::IString::GMatch(Lumen::IState *L) {
 }
 
 
-int Lumen::IString::GFindNodeF(Lumen::IState *L) {
+int Lumen::IString::Context::GFindNodeF(Lumen::IState *L) {
     return L->Error(LUA_QL("string.gfind") " was renamed to "
                     LUA_QL("string.gmatch"));
 }
@@ -1139,7 +1143,7 @@ static void addValue(MatchState *ms, Lumen::Buffer *b, const char *s,
 }
 
 
-int Lumen::IString::GSub(Lumen::IState *L) {
+int Lumen::IString::Context::GSub(Lumen::IState *L) {
     size_t srcl;
     const char *src = L->CheckString(1, &srcl);
     const char *p = L->CheckString(2);
@@ -1253,7 +1257,7 @@ static void addIntLength(char *form) {
 }
 
 
-int Lumen::IString::Format(Lumen::IState *L) {
+int Lumen::IString::Context::Format(Lumen::IState *L) {
     int top = L->GetTop();
     int arg = 1;
     size_t sfl;
@@ -1331,24 +1335,24 @@ int Lumen::IString::Format(Lumen::IState *L) {
 
 
 static const Lumen::Interface strLib[] = {
-    {"byte",     Lumen::IString::Byte},
-    {"char",     Lumen::IString::Char},
-    {"dump",     Lumen::IString::Dump},
-    {"find",     Lumen::IString::Find},
-    {"format",   Lumen::IString::Format},
-    {"gfind",    Lumen::IString::GFindNodeF},
-    {"gmatch",   Lumen::IString::GMatch},
-    {"gsub",     Lumen::IString::GSub},
-    {"len",      Lumen::IString::Length},
-    {"lower",    Lumen::IString::Lower},
-    {"match",    Lumen::IString::Match},
-    {"rep",      Lumen::IString::Rep},
-    {"reverse",  Lumen::IString::Reverse},
-    {"sub",      Lumen::IString::Sub},
-    {"upper",    Lumen::IString::Upper},
-    {"pack",     Lumen::IString::Pack},
-    {"packsize", Lumen::IString::PackSize},
-    {"unpack",   Lumen::IString::Unpack},
+    {"byte",     Lumen::IString::Context::Byte},
+    {"char",     Lumen::IString::Context::Char},
+    {"dump",     Lumen::IString::Context::Dump},
+    {"find",     Lumen::IString::Context::Find},
+    {"format",   Lumen::IString::Context::Format},
+    {"gfind",    Lumen::IString::Context::GFindNodeF},
+    {"gmatch",   Lumen::IString::Context::GMatch},
+    {"gsub",     Lumen::IString::Context::GSub},
+    {"len",      Lumen::IString::Context::Length},
+    {"lower",    Lumen::IString::Context::Lower},
+    {"match",    Lumen::IString::Context::Match},
+    {"rep",      Lumen::IString::Context::Rep},
+    {"reverse",  Lumen::IString::Context::Reverse},
+    {"sub",      Lumen::IString::Context::Sub},
+    {"upper",    Lumen::IString::Context::Upper},
+    {"pack",     Lumen::IString::Context::Pack},
+    {"packsize", Lumen::IString::Context::PackSize},
+    {"unpack",   Lumen::IString::Context::Unpack},
     {nullptr,    nullptr}
 };
 
@@ -1362,6 +1366,31 @@ static void createMetatable(Lumen::IState *L) {
     L->PushValue(-2);  /* string library... */
     L->SetField(-2, "__index");  /* ...is the __index metamethod */
     L->Pop(1);  /* pop metatable */
+}
+
+char *Lumen::IString::CString() {
+    return ToLumenString(this)->CString();
+}
+
+Lumen::UInteger Lumen::IString::Length() {
+    return ToLumenString(this)->Length;
+}
+
+Lumen::IString *Lumen::IString::Get(Lumen::IState *L, int idx) {
+    auto cStr = L->ToString(idx);
+    if (cStr == nullptr) return nullptr;
+    auto str = const_cast<Lumen::String *>(reinterpret_cast<const Lumen::String *>(cStr)) - 1;
+    return ToLumenIString(str);
+}
+
+Lumen::IString *Lumen::IString::New(Lumen::IState *L, const char *cStr) {
+    L->PushString(cStr);
+    return Get(L, -1);
+}
+
+Lumen::IString *Lumen::IString::New(Lumen::IState *L, const char *cStr, Lumen::UInteger length) {
+    L->PushString(cStr, length);
+    return Get(L, -1);
 }
 
 #define LUA_STRLIBNAME "string"

@@ -1215,8 +1215,9 @@ LUA_API const char *lua_getlocal(lua_State *l, const lua_Debug *ar, int n) {
     Lumen::CallInfo *ci = L->BaseCI + reinterpret_cast<const Lumen::DebugInfo *>(ar)->CurrentCI;
     const char *name = L->FindLocal(ci, n);
     LumenLock(L);
-    if (name)
-        reinterpret_cast<Lumen::IState *>(L)->PushObject(ci->Base + (n - 1));
+    if (name) {
+        reinterpret_cast<Lumen::IState *>(L)->PushObject(reinterpret_cast<Lumen::IObject *>(ci->Base + (n - 1)));
+    }
     LumenUnlock(L);
     return name;
 }

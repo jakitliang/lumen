@@ -18,6 +18,8 @@
 #include "lualib.h"
 
 #include "lumen.h"
+#include "lumen/table.h"
+#include "lumen/state.h"
 
 #define aux_getn(L, n)    (luaL_checktype(L, n, LUA_TTABLE), luaL_getn(L, n))
 
@@ -305,6 +307,73 @@ static int sort(lua_State *L) {
 
 /* }====================================================== */
 
+Lumen::IObject *Lumen::ITable::operator[](int n) {
+    auto t = reinterpret_cast<Lumen::Table *>(this);
+    auto o = const_cast<Lumen::Object *>(Lumen::Table::GetNum(t, n));
+    return reinterpret_cast<Lumen::IObject *>(o);
+}
+
+Lumen::IObject *Lumen::ITable::operator[](const Lumen::IObject *object) {
+    auto t = reinterpret_cast<Lumen::Table *>(this);
+    auto o = const_cast<Lumen::Object *>(Lumen::Table::Get(t, reinterpret_cast<const Lumen::Object *>(object)));
+    return reinterpret_cast<Lumen::IObject *>(o);
+}
+
+Lumen::IObject *Lumen::ITable::operator[](Lumen::IString *str) {
+    auto t = reinterpret_cast<Lumen::Table *>(this);
+    auto o = const_cast<Lumen::Object *>(Lumen::Table::GetString(t, reinterpret_cast<Lumen::String *>(str)));
+    return reinterpret_cast<Lumen::IObject *>(o);
+}
+
+void Lumen::ITable::Insert(Lumen::IState *l, int n, const Lumen::IObject *val) {
+    auto t = reinterpret_cast<Lumen::Table *>(this);
+    auto L = reinterpret_cast<Lumen::State *>(l);
+    auto value = Lumen::Table::SetNum(L, t, n);
+    LumenSetObject2T(L, value, reinterpret_cast<const Lumen::Object *>(val));
+    L->BarrierTable(t, reinterpret_cast<const Lumen::Object *>(val));
+}
+
+void Lumen::ITable::Insert(Lumen::IState *l, Lumen::IString *key, const Lumen::IObject *val) {
+    auto t = reinterpret_cast<Lumen::Table *>(this);
+    auto L = reinterpret_cast<Lumen::State *>(l);
+    auto value = Lumen::Table::SetString(L, t, reinterpret_cast<Lumen::String *>(key));
+    LumenSetObject2T(L, value, reinterpret_cast<const Lumen::Object *>(val));
+    L->BarrierTable(t, reinterpret_cast<const Lumen::Object *>(val));
+}
+
+void Lumen::ITable::Insert(Lumen::IState *l, const Lumen::IObject *key, const Lumen::IObject *val) {
+    auto t = reinterpret_cast<Lumen::Table *>(this);
+    auto L = reinterpret_cast<Lumen::State *>(l);
+    auto value = Lumen::Table::Set(L, t, reinterpret_cast<const Lumen::Object *>(key));
+    LumenSetObject2T(L, value, reinterpret_cast<const Lumen::Object *>(val));
+    L->BarrierTable(t, reinterpret_cast<const Lumen::Object *>(val));
+}
+
+void Lumen::ITable::Insert(Lumen::IState *l, Lumen::IString *key, Lumen::Delegate delegate) {
+    Lumen::Object val; // NOLINT
+    auto t = reinterpret_cast<Lumen::Table *>(this);
+    auto L = reinterpret_cast<Lumen::State *>(l);
+    auto cl = Lumen::CClosure::New(L, 0, L->GetCurrentEnv());
+    cl->AsC.Func = delegate;
+    val.SetClosure(L, cl);
+    auto value = Lumen::Table::SetString(L, t, reinterpret_cast<Lumen::String *>(key));
+    LumenSetObject2T(L, value, &val);
+    L->BarrierTable(t, &val);
+}
+
+Lumen::ITable *Lumen::ITable::GetMetatable() {
+    auto t = reinterpret_cast<Lumen::Table *>(this);
+    return reinterpret_cast<Lumen::ITable *>(t->Metatable);
+}
+
+Lumen::ITable *Lumen::ITable::Get(Lumen::IState *L, int idx) {
+    return const_cast<Lumen::ITable *>(reinterpret_cast<const Lumen::ITable *>(L->ToPointer(idx)));
+}
+
+Lumen::ITable *Lumen::ITable::New(Lumen::IState *L) {
+    L->NewTable();
+    return Get(L, -1);
+}
 
 static const luaL_Reg tab_funcs[] = {
     {"concat",   tconcat},

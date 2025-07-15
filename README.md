@@ -19,6 +19,20 @@ Designed for developers who love Lua, Lumen offers a state-of-the-art reimplemen
 - **Lightweight**: Keeps the implementation of core tiny and efficient
 - **Modernization**: A new designed architecture that suit for today's OSs and compilers.
 
+## Lumen Native Interface
+
+> `LNI` is a handle-based native interface for Lumen, inspired by JNI of JVM.
+
+Lumen Native Interface, aka `LNI` allows developers to interact with Lumen's VM in a safe, modern, and efficient way using C++17, providing handle-based access to Lua objects, tables, strings, and user data.
+
+It is designed for:
+
+- Embedding Lumen into C++ projects with clear and safe APIs
+- Extending Lumen VM with native libraries efficiently
+- Building high-performance systems while maintaining VM memory safety
+
+See [lumen.h](./include/lumen.h) for the API interfaces.
+
 ## Projects
 
 | Name          | Lua Version      | Usage case            |
@@ -65,7 +79,6 @@ The [/src/lightc](/src/lightc) is the implementation for the Compiler entry of `
 - Most of Lua 5.2, 5.3 APIs and Aux APIs are inside
 - Bitwise library is included by default
 - UTF8 library is inside
-- The new and modernized APIs are base on C++17. See [lumen.h](./include/lumen.h).
 
 ## License
 

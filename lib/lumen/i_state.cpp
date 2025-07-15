@@ -594,7 +594,7 @@ int Lumen::IState::PushThread() {
 
 void Lumen::IState::PushObject(const Lumen::IObject *o) {
     auto L = ToState(this);
-    LumenSetObject2S(L, L->Top, static_cast<const Lumen::Object *>(o)); // NOLINT
+    LumenSetObject2S(L, L->Top, reinterpret_cast<const Lumen::Object *>(o)); // NOLINT
     LumenApiIncrTop(ToState(this));
 }
 
@@ -1220,7 +1220,7 @@ const char *Lumen::IState::GetLocal(const Lumen::DebugInfo *ar, int n) {
     const char *name = L->FindLocal(ci, n);
     LumenLock(L);
     if (name)
-        PushObject(ci->Base + (n - 1));
+        PushObject(reinterpret_cast<Lumen::IObject *>(ci->Base + (n - 1)));
     LumenUnlock(L);
     return name;
 }
@@ -1537,8 +1537,8 @@ void *Lumen::IState::TestUserdataInstance(int ud, const char *tName) {
         t = L->ToObject(Lumen::RegistryIndex);
         LumenApiCheckValidIndex(L, t);
         key.SetString(L, Lumen::String::New(L, tName));
-        if (LumenVMFastGetTable(L, t, &key, slot, Lumen::Table::Get)) {
-            LumenSetObject2S(L, t, slot);
+        if (LumenVMFastGetTable(L, t, key.GetString(), slot, Lumen::Table::GetString)) {
+            LumenSetObject2S(L, &val, slot);
         } else {
             Lumen::VM::FinishGetTable(L, t, &key, &val, slot);
         }
