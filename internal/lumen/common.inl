@@ -336,5 +336,19 @@ inline void Lumen::State::BarrierGCObjectTable(Lumen::Table *t, void *o) {
         Lumen::GC::BarrierBack(this, t);
 }
 
+inline const Lumen::Object *Lumen::TM::GetByObject(Lumen::State *L, const Lumen::Object *o, Lumen::TM::Name event) {
+    Lumen::Table *mt;
+    switch (o->Type) {
+        case Lumen::TypeTable:
+            mt = o->GetTable()->Metatable;
+            break;
+        case Lumen::TypeUserdata:
+            mt = o->GetUData()->Metatable;
+            break;
+        default:
+            mt = LumenGlobalState(L)->Metatable[(o)->Type];
+    }
+    return (mt ? Lumen::Table::GetString(mt, LumenGlobalState(L)->MetatableName[event]) : Lumen::NilObject);
+}
 
 #endif //LUMEN_OBJECT_INL

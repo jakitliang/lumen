@@ -155,6 +155,11 @@ namespace Lumen {
 
         static Lumen::String *New(Lumen::State *L, const char *str);
 
+        template<Lumen::UInteger S>
+        static inline Lumen::String *New(Lumen::State *L, const char (&s)[S]) {
+            return New(L, s, S - 1);
+        }
+
         static Lumen::String *NewRaw(Lumen::State *L, const char *str, Lumen::UInteger l);
 
         static Lumen::UInteger LengthOf(const char *cStr);
@@ -194,7 +199,8 @@ namespace Lumen {
 
         static Lumen::Object *Set(Lumen::State *L, Lumen::Table *t, const Lumen::Object *key);
 
-        static Lumen::Object *RawSet(Lumen::State *L, Lumen::Table *t, const Lumen::Object *key);
+        static Lumen::Object *Set(Lumen::State *L, Lumen::Table *t,
+                                  const Lumen::Object *key, const Lumen::Object *value);
 
         static Lumen::Table *New(Lumen::State *L, int nArray, int nHash);
 

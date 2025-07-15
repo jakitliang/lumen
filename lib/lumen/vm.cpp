@@ -162,7 +162,7 @@ void Lumen::VM::SetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object 
 
 void Lumen::VM::FinishSetTable(Lumen::State *L,
                                const Lumen::Object *t, Lumen::Object *key, Lumen::Value val,
-                               Lumen::Object *cachedSlot) {
+                               const Lumen::Object *cachedSlot) {
     int loop;
     Lumen::Object temp; // NOLINT
     for (loop = 0; loop < LUA_VM_MAX_TAG_LOOP; loop++) {
@@ -173,7 +173,7 @@ void Lumen::VM::FinishSetTable(Lumen::State *L,
             if (cachedSlot == nullptr) {
                 oldVal = Lumen::Table::Set(L, h, key); /* do a primitive set */
             } else {
-                oldVal = Lumen::Table::RawSet(L, h, key);
+                oldVal = Lumen::Table::Set(L, h, key, cachedSlot);
                 cachedSlot = nullptr;
             }
             if (!oldVal->IsNil() ||  /* result is no nil? */
@@ -551,7 +551,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 auto rb = RB(i);
                 auto rc = RKC(i);
                 if (rc->IsNumber()
-                    ? LumenVMFastGetTable(L, rb, rc->GetNumber(), slot, Lumen::Table::GetNum)
+                    ? LumenVMFastGetTable(L, rb, (int) rc->GetNumber(), slot, Lumen::Table::GetNum)
                     : LumenVMFastGetTable(L, rb, rc, slot, Lumen::Table::Get)) {
                     LumenSetObject2S(L, ra, slot);
                 } else {
@@ -568,7 +568,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 if (LumenVMFastGetTable(L, (&g), rb, slot, Lumen::Table::Get)) {
                     LumenVMFastSetTable(L, g.GetTable(), slot, ra);
                 } else {
-                    Protect(Lumen::VM::FinishSetTable(L, &g, rb, ra, const_cast<Lumen::Object *>(slot)));
+                    Protect(Lumen::VM::FinishSetTable(L, &g, rb, ra, slot));
                 }
                 continue;
             }
@@ -583,11 +583,11 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 auto rb = RKB(i);
                 auto rc = RKC(i);
                 if (rb->IsNumber()
-                    ? LumenVMFastGetTable(L, ra, rb->GetNumber(), slot, Lumen::Table::GetNum)
+                    ? LumenVMFastGetTable(L, ra, (int) rb->GetNumber(), slot, Lumen::Table::GetNum)
                     : LumenVMFastGetTable(L, ra, rb, slot, Lumen::Table::Get)) {
                     LumenVMFastSetTable(L, ra->GetTable(), slot, rc);
                 } else {
-                    Protect(Lumen::VM::FinishSetTable(L, ra, rb, rc, const_cast<Lumen::Object *>(slot)));
+                    Protect(Lumen::VM::FinishSetTable(L, ra, rb, rc, slot));
                 }
                 continue;
             }

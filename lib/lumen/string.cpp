@@ -25,42 +25,32 @@
 #include "xxhash/xxhash.h"
 
 namespace Lumen::Hash {
-    struct State {
-        struct KeyPair {
-            const uint8_t *Key;
-            Lumen::UInteger Length;
-        };
-
-        ~State();
-
-//        uint32_t Hash(const uint8_t *key, Lumen::UInteger len, uint32_t seed) const;
-
-        static uint32_t DoHash(const uint8_t *key, Lumen::UInteger len, uint32_t seed);
-
-        XXH32_state_t *state;
-    };
+    static uint32_t UInt32(const uint8_t *key, Lumen::UInteger len, uint32_t seed);
 }
 
-Lumen::Hash::State::~State() {
-    XXH32_freeState(state);
+#ifdef LUA_USE_HP_HASH
+
+inline uint32_t Lumen::Hash::UInt32(const uint8_t *key, Lumen::UInteger len, uint32_t seed) {
+    return XXH64(key, len, seed);
 }
 
-//inline uint32_t Lumen::Hash::State::Hash(const uint8_t *key, Lumen::UInteger len, uint32_t seed) const {
-//    XXH32_reset(state, seed);
-//
-//    XXH32_update(state, key, len);
-//
-//    return XXH32_digest(state);
-//}
+#else
 
-inline uint32_t Lumen::Hash::State::DoHash(const uint8_t *key, Lumen::UInteger len, uint32_t seed) {
-    return (uint32_t) XXH3_64bits_withSeed(key, len, seed);
+inline uint32_t Lumen::Hash::UInt32(const uint8_t *key, Lumen::UInteger len, uint32_t seed) {
+    uint32_t h = cast(uint32_t, len);
+    size_t step = (len >> 5) + 1;
+    size_t l1;
+    for (l1 = len; l1 >= step; l1 -= step)  /* compute hash */
+        h = h ^ ((h << 5) + (h >> 2) + cast(Lumen::Byte, key[l1 - 1]));
+    return h;
 }
+
+#endif
 
 void Lumen::String::Intern(Lumen::State *L) {
     if (Hash != 0) return;
 
-    unsigned int h = Lumen::Hash::State::DoHash((uint8_t *) CString(), Length, (uint32_t) Length);
+    unsigned int h = Lumen::Hash::UInt32((uint8_t *) CString(), Length, (uint32_t) Length);
     Hash = h;
 
     Lumen::StringTable *tb = &LumenGlobalState(L)->StringMap;
@@ -129,7 +119,7 @@ static Lumen::String *newStringWithLength(Lumen::State *L, const char *str, Lume
 
 Lumen::String *Lumen::String::New(Lumen::State *L, const char *str, Lumen::UInteger l) {
     Lumen::GCObject *o;
-    unsigned int h = Lumen::Hash::State::DoHash((uint8_t *) str, l, (uint32_t) l);
+    unsigned int h = Lumen::Hash::UInt32((uint8_t *) str, l, (uint32_t) l);
     for (o = LumenGlobalState(L)->StringMap.HashTable[LumenLogMod(h, LumenGlobalState(L)->StringMap.Capacity)];
          o != nullptr;
          o = o->AsObject.GCNext) {
@@ -146,7 +136,7 @@ Lumen::String *Lumen::String::New(Lumen::State *L, const char *str, Lumen::UInte
 Lumen::String *Lumen::String::New(Lumen::State *L, const char *str) {
     Lumen::GCObject *o;
     Lumen::UInteger l = LengthOf(str);
-    unsigned int h = Lumen::Hash::State::DoHash((uint8_t *) str, l, (uint32_t) l);
+    unsigned int h = Lumen::Hash::UInt32((uint8_t *) str, l, (uint32_t) l);
     for (o = LumenGlobalState(L)->StringMap.HashTable[LumenLogMod(h, LumenGlobalState(L)->StringMap.Capacity)];
          o != nullptr;
          o = o->AsObject.GCNext) {

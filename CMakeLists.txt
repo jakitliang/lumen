@@ -15,6 +15,7 @@ option(LUA_USE_INTERPRETER "Build with interpreter" ON)
 option(LUA_USE_COMPILER "Build with compiler" ON)
 option(LUA_USE_TEST "Build with test" OFF)
 option(LUA_USE_COMPAT "Build with Lua 5.1 compat" OFF)
+option(LUA_USE_HP_HASH "Build with High performance Hash" OFF)
 
 # ----- Lumen -----
 
@@ -60,6 +61,10 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
     list(APPEND LUA_COMPILE_DEF _CRT_SECURE_NO_DEPRECATE)
     list(APPEND LUA_COMPILE_OPT "")
     list(APPEND LUA_LINK_LIBS "")
+endif ()
+
+if (LUA_USE_HP_HASH)
+    list(APPEND LUA_COMPILE_DEF LUA_USE_HP_HASH)
 endif ()
 
 if (LUA_USE_API_CHECK)

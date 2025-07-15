@@ -495,12 +495,17 @@ Lumen::Object *Lumen::Table::Set(Lumen::State *L, Lumen::Table *t, const Lumen::
     }
 }
 
-Lumen::Object *Lumen::Table::RawSet(Lumen::State *L, Lumen::Table *t, const Lumen::Object *key) {
+Lumen::Object *Lumen::Table::Set(Lumen::State *L, Lumen::Table *t,
+                                 const Lumen::Object *key, const Lumen::Object *p) {
     t->Flags = 0;
-    if (key->IsNil()) Lumen::Debug::RunError(L, "table index is nil");
-    else if (key->IsNumber() && LumenNumIsNAN(key->GetNumber()))
-        Lumen::Debug::RunError(L, "table index is NaN");
-    return newKey(L, t, key);
+    if (p != Lumen::NilObject)
+        return cast(Lumen::Object *, p);
+    else {
+        if (key->IsNil()) Lumen::Debug::RunError(L, "table index is nil");
+        else if (key->IsNumber() && LumenNumIsNAN(key->GetNumber()))
+            Lumen::Debug::RunError(L, "table index is NaN");
+        return newKey(L, t, key);
+    }
 }
 
 Lumen::Object *Lumen::Table::SetNum(Lumen::State *L, Lumen::Table *t, int key) {

@@ -50,22 +50,38 @@ Super.__index = Super
     std::cout << L->InstanceOf(-1, -2) << std::endl;
 
     L->NewMetatable("Test");
+//    L->PushValue(-1);
+//    L->SetField(-2, "__index");
+    L->PushDelegate([](Lumen::IState *l) {
+        auto t = (Test *) l->ToUserdata(1);
+        l->PushNumber(t->a);
+        return 1;
+    });
+    L->SetField(-2, "GetA");
     auto test = reinterpret_cast<Test *>(L->NewUserdata(sizeof(Test)));
     L->PushValue(-2);
     L->SetMetatable(-2);
-    {
-        char tmp;
-        std::cout << "ready? ";
-        std::cin >> tmp;
-        Lumen::UInteger iter = 100000000;
-        while (iter--) {
-            auto t = L->CheckUserdata(-1, "Test");
-            if (t == nullptr) L->Error("Test Failed");
-        }
-        std::cout << std::endl << "exit? ";
-        std::cin >> tmp;
-        std::cout << std::endl << "done" << std::endl;
+    L->PushValue(-1);
+    L->SetGlobal("Test");
+    if (L->DoString<0>(R"(
+print("Test.GetA", Test:GetA())
+)") != Lumen::RetOK) {
+        std::cout << L->ToString(-1) << std::endl;
+        L->Pop();
     }
+//    {
+//        char tmp;
+//        std::cout << "ready? ";
+//        std::cin >> tmp;
+//        Lumen::UInteger iter = 100000000;
+//        while (iter--) {
+//            auto t = L->CheckUserdata(-1, "Test");
+//            if (t == nullptr) L->Error("Test Failed");
+//        }
+//        std::cout << std::endl << "exit? ";
+//        std::cin >> tmp;
+//        std::cout << std::endl << "done" << std::endl;
+//    }
 
     Lumen::Close(L);
 

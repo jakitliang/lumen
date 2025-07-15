@@ -40,7 +40,7 @@ namespace Lumen::VM {
 
     void FinishSetTable(Lumen::State *L, const Lumen::Object *t,
                         Lumen::Object *key, Lumen::Value val,
-                        Lumen::Object *cachedSlot);
+                        const Lumen::Object *cachedSlot);
 
     void Execute(Lumen::State *L, int nExecCalls);
 

@@ -11,7 +11,6 @@
 #ifndef LUMEN_TM_H
 #define LUMEN_TM_H
 
-
 #include "lumen/object.h"
 
 namespace Lumen::TM {

@@ -1,6 +1,13 @@
 -- two implementations of a sort function
 -- this is an example only. Lua has now a built-in function "sort"
 
+do
+  local t = {}
+  for i = 1, 1024 do
+  t[i] = i
+  end
+end
+
 -- extracted from Programming Pearls, page 110
 function qsort(x,l,u,f)
  if l<u then

@@ -767,7 +767,7 @@ void Lumen::IState::SetTable(int idx) {
         : LumenVMFastGetTable(L, t, key, slot, Lumen::Table::Get)) {
         LumenVMFastSetTable(L, t->GetTable(), slot, L->Top - 1);
     } else {
-        Lumen::VM::FinishSetTable(L, t, L->Top - 2, L->Top - 1, const_cast<Lumen::Object *>(slot));
+        Lumen::VM::FinishSetTable(L, t, L->Top - 2, L->Top - 1, slot);
     }
     L->Top -= 2;  /* pop index and value */
     LumenUnlock(L);
@@ -786,7 +786,7 @@ void Lumen::IState::SetField(int idx, const char *k) {
     if (LumenVMFastGetTable(L, t, (&key), slot, Lumen::Table::Get)) {
         LumenVMFastSetTable(L, t->GetTable(), slot, L->Top - 1);
     } else {
-        Lumen::VM::FinishSetTable(L, t, &key, L->Top - 1, const_cast<Lumen::Object *>(slot));
+        Lumen::VM::FinishSetTable(L, t, &key, L->Top - 1, slot);
     }
     L->Top--;  /* pop value */
     LumenUnlock(L);
