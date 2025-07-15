@@ -539,7 +539,9 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 const Lumen::Object *slot;
                 g.SetTable(L, cl->Env);
                 LumenAssert(rb->IsString());
-                if (LumenVMFastGetTable(L, (&g), rb, slot, Lumen::Table::Get)) {
+                if (rb->IsString()
+                    ? LumenVMFastGetTable(L, (&g), rb->GetString(), slot, Lumen::Table::GetString)
+                    : LumenVMFastGetTable(L, (&g), rb, slot, Lumen::Table::Get)) {
                     LumenSetObject2S(L, ra, slot);
                 } else {
                     Protect(Lumen::VM::FinishGetTable(L, &g, rb, ra, slot));
@@ -565,7 +567,9 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 auto rb = KBx(i); // key
                 g.SetTable(L, cl->Env);
                 LumenAssert(rb->IsString());
-                if (LumenVMFastGetTable(L, (&g), rb, slot, Lumen::Table::Get)) {
+                if (rb->IsString()
+                    ? LumenVMFastGetTable(L, (&g), rb->GetString(), slot, Lumen::Table::GetString)
+                    : LumenVMFastGetTable(L, (&g), rb, slot, Lumen::Table::Get)) {
                     LumenVMFastSetTable(L, g.GetTable(), slot, ra);
                 } else {
                     Protect(Lumen::VM::FinishSetTable(L, &g, rb, ra, slot));
