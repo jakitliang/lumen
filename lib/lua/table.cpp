@@ -20,6 +20,7 @@
 #include "lumen.h"
 #include "lumen/table.h"
 #include "lumen/state.h"
+#include "lumen/common.inl"
 
 #define aux_getn(L, n)    (luaL_checktype(L, n, LUA_TTABLE), luaL_getn(L, n))
 
