@@ -33,6 +33,18 @@ It is designed for:
 
 See [lumen.h](./include/lumen.h) for the API interfaces.
 
+### Comparison to others
+
+| Feature                  | Lua API                   | Lumen LNI              | JNI                        | Python C API                    | Ruby C API       |
+| ------------------------ | ------------------------- | ---------------------- | -------------------------- | ------------------------------- | ---------------- |
+| **Interface Type**       | Stack-based               | Handle-based           | Handle-based               | Handle-based                    | Handle-based     |
+| **Object Access**        | No direct object exposure | Direct handle exposure | Exposes `jobject`          | Exposes `PyObject*`             | Exposes `VALUE`  |
+| **Cross-function Usage** | ❌ Inconvenient            | ✅ Supported            | ✅ Supported                | ✅ Supported                     | ✅ Supported      |
+| **Lifecycle Management** | Managed by VM             | Managed by VM          | VM + explicit ref strength | Reference counting              | Managed by VM GC |
+| **GC Integration**       | Automatic                 | Automatic              | Automatic                  | Automatic (ref counting)        | Automatic        |
+| **Complexity**           | Simple                    | Simple                 | Medium (verbose)           | Medium (requires INCREF/DECREF) | Simple           |
+
+
 ## Projects
 
 | Name          | Lua Version      | Usage case            |
