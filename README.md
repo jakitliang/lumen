@@ -35,8 +35,8 @@ See [lumen.h](./include/lumen.h) for the API interfaces.
 
 ### Comparison to others
 
-| Feature                  | Lua API                   | Lumen LNI              | JNI                        | Python C API                    | Ruby C API       |
-| ------------------------ | ------------------------- | ---------------------- | -------------------------- | ------------------------------- | ---------------- |
+| Feature                  | Lua API                   | Lumen LNI              | Java JNI                   | Python C API                    | Ruby C API       |
+| ------------------------ | ------------------------- | ---------------------- |----------------------------| ------------------------------- | ---------------- |
 | **Interface Type**       | Stack-based               | Handle-based           | Handle-based               | Handle-based                    | Handle-based     |
 | **Object Access**        | No direct object exposure | Direct handle exposure | Exposes `jobject`          | Exposes `PyObject*`             | Exposes `VALUE`  |
 | **Cross-function Usage** | ❌ Inconvenient            | ✅ Supported            | ✅ Supported                | ✅ Supported                     | ✅ Supported      |
