@@ -1368,7 +1368,7 @@ static void createMetatable(Lumen::IState *L) {
     L->Pop(1);  /* pop metatable */
 }
 
-char *Lumen::IString::CString() {
+const char *Lumen::IString::CString() {
     return ToLumenString(this)->CString();
 }
 

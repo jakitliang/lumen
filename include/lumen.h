@@ -784,7 +784,7 @@ namespace Lumen {
     struct IString {
         struct Context;
 
-        LPP_API char *CString();
+        LPP_API const char *CString();
 
         LPP_API UInteger Length();
 
