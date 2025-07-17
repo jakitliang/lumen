@@ -1495,17 +1495,59 @@ bool Lumen::IState::NewMetatable(const char *tName) {
 }
 
 void *Lumen::IState::TestUserdata(int ud, const char *tName) {
-    auto p = ToUserdata(ud);
-    if (p != nullptr) {  /* value is a userdata? */
-        if (GetMetatable(ud)) {  /* does it have a metatable? */
-            GetField(RegistryIndex, tName);  /* get correct metatable */
-            if (!RawEqual(-1, -2)) {  /* not the same mt? */
-                p = nullptr;
+    void *p;
+    auto L = ToState(this);
+    LumenLock(L);
+    const Object *o = L->ToObject(ud); // NOLINT
+    Lumen::Table *mt;
+    // ToUserdata
+    switch (o->Type) {
+        case Lumen::TypeUserdata:
+            p = (o->GetUData() + 1);
+            break;
+        case Lumen::TypeLightUserdata:
+            p = o->GetLUData();
+            break;
+        default:
+            p = nullptr;
+            break;
+    }
+    if (p != nullptr) { /* value is a userdata? */
+        // GetMetatable
+        switch (o->Type) {
+            case Lumen::TypeTable:
+                mt = o->GetTable()->Metatable;
+                break;
+            case Lumen::TypeUserdata:
+                mt = o->GetUData()->Metatable;
+                break;
+            default:
+                mt = LumenGlobalState(L)->Metatable[o->Type];
+                break;
+        }
+        if (mt != nullptr) { /* does it have a metatable? */
+            const Lumen::Object *slot;
+            Lumen::Value t;
+            Lumen::Object key; // NOLINT
+            Lumen::Object val; // NOLINT
+            Lumen::Object child; // NOLINT
+            child.SetTable(L, mt);
+            t = L->ToObject(Lumen::RegistryIndex);
+            LumenApiCheckValidIndex(L, t);
+            key.SetString(L, Lumen::String::New(L, tName));
+            if (LumenVMFastGetTable(L, t, key.GetString(), slot, Lumen::Table::GetString)) {
+                LumenSetObject2S(L, &val, slot);
+            } else {
+                Lumen::VM::FinishGetTable(L, t, &key, &val, slot);
             }
-            Pop(2);  /* remove both metatables */
-            return p;
+            /* get correct metatable && does it have the correct mt? */
+            if (!val.IsNil() && Lumen::RawEqualObject(&child, &val)) {
+                LumenUnlock(L);
+                return p;
+            }
         }
     }
+    LumenUnlock(L);
     return nullptr;
 }
 
@@ -1513,40 +1555,55 @@ void *Lumen::IState::TestUserdataInstance(int ud, const char *tName) {
     void *p;
     auto L = ToState(this);
     LumenLock(L);
-    const Object *o = L->ToObject(ud);
-    Object child; // NOLINT
+    const Object *o = L->ToObject(ud); // NOLINT
+    Lumen::Table *mt;
+    // ToUserdata
     switch (o->Type) {
         case Lumen::TypeUserdata:
             p = (o->GetUData() + 1);
-            child.SetTable(L, o->GetUData()->Metatable);
             break;
         case Lumen::TypeLightUserdata:
             p = o->GetLUData();
-            child.SetTable(L, LumenGlobalState(L)->Metatable[o->Type]);
             break;
         default:
             p = nullptr;
-            child.SetNil();
             break;
     }
-    if (p != nullptr) {  /* value is a userdata? */
-        const Lumen::Object *slot;
-        Lumen::Value t;
-        Lumen::Object key; // NOLINT
-        Lumen::Object val; // NOLINT
-        t = L->ToObject(Lumen::RegistryIndex);
-        LumenApiCheckValidIndex(L, t);
-        key.SetString(L, Lumen::String::New(L, tName));
-        if (LumenVMFastGetTable(L, t, key.GetString(), slot, Lumen::Table::GetString)) {
-            LumenSetObject2S(L, &val, slot);
-        } else {
-            Lumen::VM::FinishGetTable(L, t, &key, &val, slot);
+    if (p != nullptr) { /* value is a userdata? */
+        // GetMetatable
+        switch (o->Type) {
+            case Lumen::TypeTable:
+                mt = o->GetTable()->Metatable;
+                break;
+            case Lumen::TypeUserdata:
+                mt = o->GetUData()->Metatable;
+                break;
+            default:
+                mt = LumenGlobalState(L)->Metatable[o->Type];
+                break;
         }
-        if (!::InstanceOf(L, &child, &val)) {
-            p = nullptr;
+        if (mt != nullptr) { /* does it have a metatable? */
+            const Lumen::Object *slot;
+            Lumen::Value t;
+            Lumen::Object key; // NOLINT
+            Lumen::Object val; // NOLINT
+            Lumen::Object child; // NOLINT
+            child.SetTable(L, mt);
+            t = L->ToObject(Lumen::RegistryIndex);
+            LumenApiCheckValidIndex(L, t);
+            key.SetString(L, Lumen::String::New(L, tName));
+            if (LumenVMFastGetTable(L, t, key.GetString(), slot, Lumen::Table::GetString)) {
+                LumenSetObject2S(L, &val, slot);
+            } else {
+                Lumen::VM::FinishGetTable(L, t, &key, &val, slot);
+            }
+            if (!val.IsNil()) { /* get correct metatable */
+                if (::InstanceOf(L, &child, &val)) { /* does it have the correct mt? */
+                    LumenUnlock(L);
+                    return p;
+                }
+            }
         }
-        LumenUnlock(L);
-        return p;
     }
     LumenUnlock(L);
     return nullptr;

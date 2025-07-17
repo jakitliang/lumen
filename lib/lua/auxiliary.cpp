@@ -23,8 +23,9 @@
 #define LUA_LIB
 
 #include "lua.h"
-
 #include "lauxlib.h"
+
+#include "lumen.h"
 #include "lumen/memory.h"
 
 
@@ -121,22 +122,15 @@ int luaL_newmetatable(lua_State *L, const char *tName) {
     return 1;
 }
 
-
-void *luaL_checkudata(lua_State *L, int ud, const char *tName) {
-    void *p = lua_touserdata(L, ud);
-    if (p != nullptr) {  /* value is a userdata? */
-        if (lua_getmetatable(L, ud)) {  /* does it have a metatable? */
-            lua_getfield(L, LUA_REGISTRYINDEX, tName);  /* get correct metatable */
-            if (lua_rawequal(L, -1, -2)) {  /* does it have the correct mt? */
-                lua_pop(L, 2);  /* remove both metatables */
-                return p;
-            }
-        }
-    }
-    luaL_typerror(L, ud, tName);  /* else error */
-    return nullptr;  /* to avoid warnings */
+void *luaL_testudata(lua_State *L, int ud, const char *tName) {
+    return reinterpret_cast<Lumen::IState *>(L)->TestUserdata(ud, tName);
 }
 
+void *luaL_checkudata(lua_State *L, int ud, const char *tName) {
+    auto p = luaL_testudata(L, ud, tName);
+    if (p == nullptr) luaL_typerror(L, ud, tName);  /* else error */
+    return p;  /* to avoid warnings */
+}
 
 void luaL_checkstack(lua_State *L, int space, const char *msg) {
     /* keep some extra space to run error routines, if needed */
@@ -845,22 +839,6 @@ void luaL_pushmodule(lua_State *L, const char *modname, int hintSize) {
         lua_setfield(L, -3, modname);  /* _LOADED[modname] = new table. */
     }
     lua_remove(L, -2);  /* Remove _LOADED table. */
-}
-
-void *luaL_testudata(lua_State *L, int i, const char *tName) {
-    void *p = lua_touserdata(L, i);
-    luaL_checkstack(L, 2, "not enough stack slots");
-    if (p == nullptr || !lua_getmetatable(L, i))
-        return nullptr;
-    else {
-        int res = 0;
-        luaL_getmetatable(L, tName);
-        res = lua_rawequal(L, -1, -2);
-        lua_pop(L, 2);
-        if (!res)
-            p = nullptr;
-    }
-    return p;
 }
 
 void luaL_setmetatable(lua_State *L, const char *tName) {

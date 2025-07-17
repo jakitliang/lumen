@@ -1376,11 +1376,11 @@ Lumen::UInteger Lumen::IString::Length() {
     return ToLumenString(this)->Length;
 }
 
-Lumen::IString *Lumen::IString::Get(Lumen::IState *L, int idx) {
-    auto cStr = L->ToString(idx);
-    if (cStr == nullptr) return nullptr;
-    auto str = const_cast<Lumen::String *>(reinterpret_cast<const Lumen::String *>(cStr)) - 1;
-    return ToLumenIString(str);
+Lumen::IString *Lumen::IString::Get(Lumen::IState *l, int idx) {
+    auto L = reinterpret_cast<Lumen::State *>(l);
+    auto o = L->ToObject(idx);
+    if (!o->IsString()) return nullptr;
+    return ToLumenIString(o->GetString());
 }
 
 Lumen::IString *Lumen::IString::New(Lumen::IState *L, const char *cStr) {

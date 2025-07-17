@@ -367,8 +367,11 @@ Lumen::ITable *Lumen::ITable::GetMetatable() {
     return reinterpret_cast<Lumen::ITable *>(t->Metatable);
 }
 
-Lumen::ITable *Lumen::ITable::Get(Lumen::IState *L, int idx) {
-    return const_cast<Lumen::ITable *>(reinterpret_cast<const Lumen::ITable *>(L->ToPointer(idx)));
+Lumen::ITable *Lumen::ITable::Get(Lumen::IState *l, int idx) {
+    auto L = reinterpret_cast<Lumen::State *>(l);
+    Lumen::Value o = L->ToObject(idx);
+    if (o->Type != Lumen::TypeTable) return nullptr;
+    return reinterpret_cast<Lumen::ITable *>(o->GetTable());
 }
 
 Lumen::ITable *Lumen::ITable::New(Lumen::IState *L) {

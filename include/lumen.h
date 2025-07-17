@@ -769,6 +769,8 @@ namespace Lumen {
         LPP_API struct IUserdata *ToUserdata();
 
         LPP_API void *ToLightUserdata();
+
+        LPP_API static IObject *Get(IState *L, int idx);
     };
 
     struct IBase;

@@ -490,10 +490,11 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
     base = L->Base;
     k = cl->Func->K;
     /* main loop of interpreter */
+    constexpr Lumen::Byte hookMaskLineAndCount = Lumen::HookMaskLine | Lumen::HookMaskCount;
     for (;;) {
         const Lumen::Instruction i = *pc++;
         Lumen::Value ra;
-        if ((L->HookMask & (Lumen::HookMaskLine | Lumen::HookMaskCount)) &&
+        if ((L->HookMask & hookMaskLineAndCount) &&
             (--L->HookCount == 0 || L->HookMask & Lumen::HookMaskLine)) {
             traceExec(L, pc);
             if (L->Status == Lumen::RetYield) {  /* did hook yield? */
