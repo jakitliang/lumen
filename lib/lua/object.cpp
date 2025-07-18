@@ -61,6 +61,13 @@ bool Lumen::IObject::ToBoolean() const {
     return self->IsBoolean() && self->GetBool();
 }
 
+const Lumen::Number *Lumen::IObject::ToNumberRef() const {
+    auto self = ToLumenConstObject(this);
+    return self->IsNumber()
+           ? &self->GetNumber()
+           : nullptr;
+}
+
 Lumen::IString *Lumen::IObject::ToString() {
     auto self = ToLumenObject(this);
     return self->IsString() ? reinterpret_cast<Lumen::IString *>(self->GetString()) : nullptr;

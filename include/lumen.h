@@ -760,6 +760,8 @@ namespace Lumen {
 
         LPP_API bool ToBoolean() const; // NOLINT
 
+        LPP_API const Number *ToNumberRef() const; // NOLINT
+
         LPP_API struct IString *ToString();
 
         LPP_API struct ITable *ToTable();

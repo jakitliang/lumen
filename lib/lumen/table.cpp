@@ -451,7 +451,6 @@ const Lumen::Object *Lumen::Table::GetString(Lumen::Table *t, Lumen::String *key
     return Lumen::NilObject;
 }
 
-
 /*
 ** main search function
 */

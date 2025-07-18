@@ -42,7 +42,11 @@ inline void *Lumen::Object::GetLUData() const {
     return LumenCheckExp(IsLUData(), value.p);
 }
 
-inline Lumen::Number Lumen::Object::GetNumber() const {
+inline Lumen::Number &Lumen::Object::GetNumber() {
+    return LumenCheckExp(IsNumber(), value.n);
+}
+
+inline const Lumen::Number &Lumen::Object::GetNumber() const {
     return LumenCheckExp(IsNumber(), value.n);
 }
 

@@ -87,7 +87,9 @@ namespace Lumen {
 
         void *GetLUData() const; // NOLINT
 
-        Lumen::Number GetNumber() const; // NOLINT
+        Lumen::Number &GetNumber();
+
+        const Lumen::Number &GetNumber() const; // NOLINT
 
         String *GetString() const; // NOLINT
 
