@@ -177,8 +177,7 @@ namespace Lumen {
      * RK(x) == if LumenOpCodeIsK(x) then Kst(IndexK(x)) else R(x)\n
      * grep "ORDER OP" if you change these enums
      */
-    typedef int OpCode;
-    enum {
+    typedef LUA_ENUM(unsigned int, OpCode) {
         /*----------------------------------------------------------------------
         name    args :=    description
         ------------------------------------------------------------------------*/

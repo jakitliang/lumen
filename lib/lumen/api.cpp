@@ -258,7 +258,7 @@ LUA_API int lua_type(lua_State *l, int idx) {
 LUA_API const char *lua_typename(lua_State *l, int t) {
     auto L = ToState(l);
     UNUSED(L);
-    return (t == LUA_TNONE) ? "no value" : Lumen::TM::TypeNames[t];
+    return (t == LUA_TNONE) ? "no value" : Lumen::MetaMethod::TypeNames[t];
 }
 
 
@@ -315,7 +315,7 @@ LUA_API void lua_arith(lua_State *l, int op) {
     if (o1->IsNumber() && o2->IsNumber()) {
         o1->SetNumber(Lumen::Arith(op, o1->GetNumber(), o2->GetNumber()));
     } else
-        Lumen::VM::ArithValue(L, o1, o1, o2, cast(Lumen::TM::Name, op - Lumen::ArithOpAdd + Lumen::TM::NameAdd));
+        Lumen::VM::ArithValue(L, o1, o1, o2, cast(Lumen::MetaMethod::Name, op - Lumen::ArithOpAdd + Lumen::MetaMethod::NameAdd));
     L->Top--;
     LumenUnlock(L);
 }

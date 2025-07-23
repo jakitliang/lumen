@@ -236,7 +236,7 @@ static Lumen::Value adjustVarargs(Lumen::State *L, Lumen::Proto *p, int actual) 
 
 
 static Lumen::Value tryFuncTM(Lumen::State *L, Lumen::Value func) {
-    const Lumen::Object *tm = Lumen::TM::GetByObject(L, func, Lumen::TM::NameCall);
+    const Lumen::Object *tm = Lumen::MetaMethod::GetByObject(L, func, Lumen::MetaMethod::NameCall);
     Lumen::Value p;
     Lumen::Integer funcR = LumenSaveStack(L, func);
     if (!tm->IsFunction())

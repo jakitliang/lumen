@@ -38,11 +38,11 @@ static inline bool InstanceOf(Lumen::State *L, const Lumen::Object *oChild, cons
             if (Lumen::RawEqualObject(oChild, oSuper)) {
                 return true;
             }
-            if ((oChild = LumenTMGetFast(L, h->Metatable, Lumen::TM::NameIndex)) == nullptr) { /* no TM? */
+            if ((oChild = LumenMetaMethodGetFast(L, h->Metatable, Lumen::MetaMethod::NameIndex)) == nullptr) { /* no TM? */
                 return false;
             }
             /* else will try the tag method */
-        } else if ((oChild = Lumen::TM::GetByObject(L, oChild, Lumen::TM::NameIndex))->IsNil()) {
+        } else if ((oChild = Lumen::MetaMethod::GetByObject(L, oChild, Lumen::MetaMethod::NameIndex))->IsNil()) {
             Lumen::Debug::TypeError(L, oChild, "index");
         }
         if (oChild->IsFunction()) {
@@ -263,7 +263,7 @@ Lumen::Type Lumen::IState::TypeId(int idx) {
 }
 
 const char *Lumen::IState::TypeOf(int tp) {
-    return (tp == Lumen::TypeNone) ? "no value" : Lumen::TM::TypeNames[tp];
+    return (tp == Lumen::TypeNone) ? "no value" : Lumen::MetaMethod::TypeNames[tp];
 }
 
 void Lumen::IState::Arith(Lumen::ArithOp op) {
@@ -283,7 +283,7 @@ void Lumen::IState::Arith(Lumen::ArithOp op) {
     if (o1->IsNumber() && o2->IsNumber()) {
         o1->SetNumber(Lumen::Arith(op, o1->GetNumber(), o2->GetNumber()));
     } else
-        Lumen::VM::ArithValue(L, o1, o1, o2, cast(Lumen::TM::Name, op - Lumen::ArithOpAdd + Lumen::TM::NameAdd));
+        Lumen::VM::ArithValue(L, o1, o1, o2, cast(Lumen::MetaMethod::Name, op - Lumen::ArithOpAdd + Lumen::MetaMethod::NameAdd));
     L->Top--;
     LumenUnlock(L);
 }
@@ -405,11 +405,11 @@ bool Lumen::IState::InstanceOf(int idxChild, int idxSuper) {
             if (Lumen::RawEqualObject(oChild, oSuper)) {
                 return true;
             }
-            if ((oChild = LumenTMGetFast(L, h->Metatable, Lumen::TM::NameIndex)) == nullptr) { /* no TM? */
+            if ((oChild = LumenMetaMethodGetFast(L, h->Metatable, Lumen::MetaMethod::NameIndex)) == nullptr) { /* no TM? */
                 return false;
             }
             /* else will try the tag method */
-        } else if ((oChild = Lumen::TM::GetByObject(L, oChild, Lumen::TM::NameIndex))->IsNil()) {
+        } else if ((oChild = Lumen::MetaMethod::GetByObject(L, oChild, Lumen::MetaMethod::NameIndex))->IsNil()) {
             Lumen::Debug::TypeError(L, oChild, "index");
         }
     }

@@ -18,25 +18,23 @@
 #include "lumen/string.h"
 #include "lumen/tm.h"
 
-
-const char *const Lumen::TM::TypeNames[] = {
-        "nil", "boolean", "userdata", "number",
-        "string", "table", "function", "userdata", "thread",
-        "proto", "upval"
+const char *const Lumen::MetaMethod::TypeNames[] = {
+    "nil", "boolean", "userdata", "number",
+    "string", "table", "function", "userdata", "thread",
+    "proto", "upval"
 };
 
-
-void Lumen::TM::Init(Lumen::State *L) {
-    static const char *const luaT_eventname[] = {  /* ORDER TM */
-            "__index", "__newindex",
-            "__gc", "__mode", "__eq",
-            "__add", "__sub", "__mul", "__div", "__mod",
-            "__pow", "__unm", "__len", "__lt", "__le",
-            "__concat", "__call"
+void Lumen::MetaMethod::Init(Lumen::State *L) {
+    static const char *const eventNames[] = {  /* ORDER TM */
+        "__index", "__newindex",
+        "__gc", "__mode", "__eq",
+        "__add", "__sub", "__mul", "__div", "__mod",
+        "__pow", "__unm", "__len", "__lt", "__le",
+        "__concat", "__call"
     };
     int i;
-    for (i = 0; i < Lumen::TM::NameN; i++) {
-        LumenGlobalState(L)->MetatableName[i] = Lumen::String::New(L, luaT_eventname[i]);
+    for (i = 0; i < Lumen::MetaMethod::NameN; i++) {
+        LumenGlobalState(L)->MetatableName[i] = Lumen::String::New(L, eventNames[i]);
         LumenStringFix(LumenGlobalState(L)->MetatableName[i]);  /* never collect these names */
     }
 }

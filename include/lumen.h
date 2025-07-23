@@ -126,6 +126,31 @@ namespace Lumen {
         CompareOpLE = 2
     };
 
+    namespace MetaMethod {
+        /**
+         * Names of meta method
+         */
+        typedef LUA_ENUM(int, Name) {
+            NameIndex,
+            NameNewIndex,
+            NameGC,
+            NameMode,
+            NameEQ,  /* last tag method with `fast' access */
+            NameAdd,
+            NameSub,
+            NameMul,
+            NameDiv,
+            NameMod,
+            NamePow,
+            NameUnm,
+            NameLen,
+            NameLT,
+            NameLE,
+            NameConcat,
+            NameCall,
+        };
+    }
+
     constexpr const char *RegKeyLoaded = "_LOADED";
     constexpr const char *RegKeyPreload = "_PRELOAD";
     constexpr const char *RegKeyGlobals = "_G";
@@ -197,6 +222,12 @@ namespace Lumen {
         inline bool IsThread() const { return Type == Lumen::TypeThread; } // NOLINT
 
         inline bool IsLUData() const { return Type == Lumen::TypeLightUserdata; } // NOLINT
+    };
+
+    // Utils
+
+    struct Hash {
+        static UInt32 UInt32(const Byte *key, Lumen::UInteger len, UInt32 seed);
     };
 
     // MARK: Lumen Native Interface

@@ -249,8 +249,8 @@
 ** CHANGE them if you want different prompts. (You can also change the
 ** prompts dynamically, assigning to globals _PROMPT/_PROMPT2.)
 */
-#define LUA_PROMPT		"> "
-#define LUA_PROMPT2		">> "
+#define LUA_PROMPT        "> "
+#define LUA_PROMPT2        ">> "
 
 
 /*
@@ -258,7 +258,7 @@
 ** CHANGE it if your stand-alone interpreter has a different name and
 ** your system is not able to detect that name automatically.
 */
-#define LUA_PROGRAM_NAME		"lumen"
+#define LUA_PROGRAM_NAME        "lumen"
 
 
 /*
@@ -266,7 +266,7 @@
 @* stand-alone interpreter.
 ** CHANGE it if you need longer lines.
 */
-#define LUA_MAX_INPUT	512
+#define LUA_MAX_INPUT    512
 
 #endif
 
@@ -706,6 +706,7 @@ struct luaL_Reg;
 #define LUMEN_VERSION_MAJOR_N      1
 #define LUMEN_VERSION_MINOR_N      3
 #define LUMEN_VERSION_RELEASE_N    2
+#define LUMEN_VERSION_NUM    (LUMEN_VERSION_MAJOR_N * 100 + LUMEN_VERSION_MINOR_N)
 
 #define LUMEN_RELEASE  "Lumen " \
 LUA_TO_STRING(LUMEN_VERSION_MAJOR_N) "." \

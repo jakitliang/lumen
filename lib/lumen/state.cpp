@@ -72,7 +72,7 @@ static void LuaStateOpenFile(Lumen::State *L, void *ud) {
     LumenGlobalTable(L)->SetTable(L, Lumen::Table::New(L, 0, 2));  /* table of globals */
     LumenRegistryTable(L)->SetTable(L, Lumen::Table::New(L, 0, 2));  /* LumenRegistryTable */
     Lumen::String::Resize(L, Lumen::MinStringTableSize);  /* initial size of string table */
-    Lumen::TM::Init(L);
+    Lumen::MetaMethod::Init(L);
     Lumen::LexState::Init(L);
     LumenStringFix(LumenStringNewLiteral(L, LUA_MEM_ERR_MSG));
     g->GCThreshold = 4 * g->TotalBytes;

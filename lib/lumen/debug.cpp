@@ -454,7 +454,7 @@ static int isInStack(Lumen::CallInfo *ci, const Lumen::Object *o) {
 
 void Lumen::Debug::TypeError(Lumen::State *L, const Lumen::Object *o, const char *op) {
     const char *name = nullptr;
-    const char *t = Lumen::TM::TypeNames[(o)->Type];
+    const char *t = Lumen::MetaMethod::TypeNames[(o)->Type];
     const char *kind = (isInStack(L->CallInfo, o)) ?
                        getObjName(L, L->CallInfo, cast_int(o - L->Base), &name) :
                        nullptr;
@@ -482,8 +482,8 @@ void Lumen::Debug::ArithError(Lumen::State *L, const Lumen::Object *p1, const Lu
 
 
 int Lumen::Debug::OrderError(Lumen::State *L, const Lumen::Object *p1, const Lumen::Object *p2) {
-    const char *t1 = Lumen::TM::TypeNames[p1->Type];
-    const char *t2 = Lumen::TM::TypeNames[p2->Type];
+    const char *t1 = Lumen::MetaMethod::TypeNames[p1->Type];
+    const char *t2 = Lumen::MetaMethod::TypeNames[p2->Type];
     if (t1[2] == t2[2])
         Lumen::Debug::RunError(L, "attempt to compare two %s values", t1);
     else

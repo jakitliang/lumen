@@ -47,7 +47,7 @@ namespace Lumen::VM {
     void Concat(Lumen::State *L, int total, int last);
 
     void ArithValue(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb,
-                    const Lumen::Object *rc, Lumen::TM::Name op);
+                    const Lumen::Object *rc, Lumen::MetaMethod::Name op);
 
     void ObjectLength(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb);
 
@@ -78,18 +78,6 @@ inline const Lumen::Object *Lumen::VM::ToNumber(const Lumen::Object *obj, Lumen:
         return n;
     } else
         return nullptr;
-}
-
-inline int Lumen::VM::ToString(Lumen::State *L, Lumen::Value obj) {
-    if (!obj->IsNumber())
-        return 0;
-    else {
-        char s[LUA_MAX_NUMBER2STR];
-        Lumen::Number n = obj->GetNumber();
-        LumenNum2Str(s, n);
-        LumenSetStringValue2S(L, obj, Lumen::String::New(L, s));
-        return 1;
-    }
 }
 
 #define LumenVMFastGetTable(L, t, k, slot, f) \

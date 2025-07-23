@@ -74,6 +74,10 @@ namespace Lumen {
     inline constexpr Lumen::UInteger TypeCount = LastType + 1;
 
     inline constexpr Lumen::UInteger UTF8BufferSize = 8;
+
+    namespace MetaMethod {
+        inline constexpr int NameN = NameCall + 1; // number of elements in the enum
+    }
 }
 
 #define LumenDo(block) do { block } while(0)

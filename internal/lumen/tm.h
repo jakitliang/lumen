@@ -1,5 +1,5 @@
 /*!
- * @brief Tagged methods
+ * @brief Meta Methods
  * @author Lua.org, PUC-Rio, Jakit (https://github.com/jakitliang/lumen)
  * @date 2025/5/13
  * @copyright
@@ -13,56 +13,29 @@
 
 #include "lumen/object.h"
 
-namespace Lumen::TM {
-    /**
-     * Tagged Method Name\n
-     * WARNING: if you change the order of this enumeration,
-     * grep "ORDER TM"
-     */
-    typedef int Name;
-    enum {
-        NameIndex,
-        NameNewIndex,
-        NameGC,
-        NameMode,
-        NameEQ,  /* last tag method with `fast' access */
-        NameAdd,
-        NameSub,
-        NameMul,
-        NameDiv,
-        NameMod,
-        NamePow,
-        NameUnm,
-        NameLen,
-        NameLT,
-        NameLE,
-        NameConcat,
-        NameCall,
-        NameN        /* number of elements in the enum */
-    };
-
-    const Lumen::Object *Get(Lumen::Table *events, Lumen::TM::Name event, Lumen::String *name);
+namespace Lumen::MetaMethod {
+    const Lumen::Object *Get(Lumen::Table *events, Lumen::MetaMethod::Name event, Lumen::String *name);
 
     const Lumen::Object *GetByObject(Lumen::State *L, const Lumen::Object *o,
-                                     Lumen::TM::Name event);
+                                     Lumen::MetaMethod::Name event);
 
     void Init(Lumen::State *L);
 
     LUAI_DATA const char *const TypeNames[];
 }
 
-#define LumenTMGetGlobalFast(g, et, e) ((et) == NULL ? NULL : \
-    ((et)->Flags & (1u<<(e))) ? NULL : Lumen::TM::Get(et, e, (g)->MetatableName[e]))
+#define LumenMetaMethodGetGlobalFast(g, et, e) ((et) == nullptr ? nullptr : \
+    ((et)->Flags & (1u<<(e))) ? nullptr : Lumen::MetaMethod::Get(et, e, (g)->MetatableName[e]))
 
-#define LumenTMGetFast(l, et, e)    LumenTMGetGlobalFast(LumenGlobalState(l), et, e)
+#define LumenMetaMethodGetFast(l, et, e)    LumenMetaMethodGetGlobalFast(LumenGlobalState(l), et, e)
 
 /*
-** function to be used with macro "LumenTMGetFast": optimized for absence of
+** function to be used with macro "LumenMetaMethodGetFast": optimized for absence of
 ** tag methods
 */
-inline const Lumen::Object *Lumen::TM::Get(Lumen::Table *events, Lumen::TM::Name event, Lumen::String *name) {
+inline const Lumen::Object *Lumen::MetaMethod::Get(Lumen::Table *events, Lumen::MetaMethod::Name event, Lumen::String *name) {
     const Lumen::Object *tm = Lumen::Table::GetString(events, name);
-    LumenAssert(event <= Lumen::TM::NameEQ);
+    LumenAssert(event <= Lumen::MetaMethod::NameEQ);
     if (tm->IsNil()) {  /* no tag method? */
         events->Flags |= cast_byte(1u << event);  /* cache this fact */
         return nullptr;

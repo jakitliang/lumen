@@ -187,7 +187,7 @@ namespace Lumen {
         Lumen::Node *Nodes;
         Lumen::Node *LastFreeNode;  /* any free position is before this position */
         Lumen::GCObject *GCList;
-        int ArrayCount;  /* size of `array` array */
+        Lumen::UInt32 ArrayCount;  /* size of `array` array */
 
         static const Lumen::Object *GetNum(Lumen::Table *t, int key);
 
@@ -402,7 +402,7 @@ LumenAssert(!(obj)->IsCollectable() || \
  * `module` operation for hashing (size is always a power of 2)
  */
 #define LumenLogMod(s, size) \
-    (LumenCheckExp((size & (size - 1)) == 0, (cast(int, (s) & (size - 1)))))
+    (LumenCheckExp((size & (size - 1)) == 0, (cast(unsigned int, (s) & (size - 1)))))
 
 #define LumenTableTwoTo(x)    (1 << (x))
 #define LumenTableNodeCount(t)    (LumenTableTwoTo((t)->NodeCount))

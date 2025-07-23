@@ -88,10 +88,10 @@ static Lumen::Node *hashNum(const Lumen::Table *t, Lumen::Number n) {
 
 
 /*
-** returns the `main' position of an element in a table (that is, the index
+** returns the `main` position of an element in a table (that is, the index
 ** of its hash value)
 */
-static Lumen::Node *mainPosition(const Lumen::Table *t, const Lumen::Object *key) {
+static inline Lumen::Node *mainPosition(const Lumen::Table *t, const Lumen::Object *key) {
     switch (key->Type) {
         case Lumen::TypeNumber:
             return hashNum(t, key->GetNumber());
@@ -106,6 +106,19 @@ static Lumen::Node *mainPosition(const Lumen::Table *t, const Lumen::Object *key
     }
 }
 
+static inline Lumen::Node *mainPositionWithoutString(Lumen::Type tp,
+                                                     const Lumen::Table *t, const Lumen::Object *key) {
+    switch (tp) {
+        case Lumen::TypeNumber:
+            return hashNum(t, key->GetNumber());
+        case Lumen::TypeBool:
+            return hashBoolean(t, key->GetBool());
+        case Lumen::TypeLightUserdata:
+            return hashPointer(t, key->GetLUData());
+        default:
+            return hashPointer(t, key->GetGCObject());
+    }
+}
 
 /*
 ** returns the index for `key' if `key' is an appropriate key to live in
@@ -144,8 +157,8 @@ static int findIndex(Lumen::State *L, Lumen::Table *t, Lumen::Value key) {
                 i = cast_int(n - LumenTableGetNode(t, 0));  /* key index in hash table */
                 /* hash elements are numbered after array ones */
                 return i + t->ArrayCount;
-            } else n = LumenTableGetNext(n);
-        } while (n);
+            }
+        } while ((n = LumenTableGetNext(n)) != nullptr);
         Lumen::Debug::RunError(L, "invalid key to " LUA_QL("next"));  /* key not found */
         return 0;  /* to avoid warnings */
     }
@@ -431,8 +444,7 @@ const Lumen::Object *Lumen::Table::GetNum(Lumen::Table *t, int key) {
         do {  /* check whether `key` is somewhere in the chain */
             if (LumenTableGetKey(n)->IsNumber() && LumenNumEQ(LumenTableGetKey(n)->GetNumber(), nk))
                 return LumenTableGetValue(n);  /* that's it */
-            else n = LumenTableGetNext(n);
-        } while (n);
+        } while ((n = LumenTableGetNext(n)) != nullptr);
         return Lumen::NilObject;
     }
 }
@@ -444,10 +456,10 @@ const Lumen::Object *Lumen::Table::GetNum(Lumen::Table *t, int key) {
 const Lumen::Object *Lumen::Table::GetString(Lumen::Table *t, Lumen::String *key) {
     Lumen::Node *n = hashString(t, key);
     do {  /* check whether `key` is somewhere in the chain */
-        if (LumenTableGetKey(n)->IsString() && LumenTableGetKey(n)->GetString() == key)
+        auto k = LumenTableGetKey(n);
+        if (k->IsString() && k->GetString() == key)
             return LumenTableGetValue(n);  /* that's it */
-        else n = LumenTableGetNext(n);
-    } while (n);
+    } while ((n = LumenTableGetNext(n)) != nullptr);
     return Lumen::NilObject;
 }
 
@@ -455,7 +467,8 @@ const Lumen::Object *Lumen::Table::GetString(Lumen::Table *t, Lumen::String *key
 ** main search function
 */
 const Lumen::Object *Lumen::Table::Get(Lumen::Table *t, const Lumen::Object *key) {
-    switch (key->Type) {
+    auto tp = key->Type;
+    switch (tp) {
         case Lumen::TypeNil:
             return Lumen::NilObject;
         case Lumen::TypeString:
@@ -469,12 +482,11 @@ const Lumen::Object *Lumen::Table::Get(Lumen::Table *t, const Lumen::Object *key
             /* else go through */
         }
         default: {
-            Lumen::Node *n = mainPosition(t, key);
+            Lumen::Node *n = mainPositionWithoutString(tp, t, key);
             do {  /* check whether `key` is somewhere in the chain */
                 if (Lumen::RawEqualObject(LumenTableKey2KeyValue(n), key))
                     return LumenTableGetValue(n);  /* that's it */
-                else n = LumenTableGetNext(n);
-            } while (n);
+            } while ((n = LumenTableGetNext(n)) != nullptr);
             return Lumen::NilObject;
         }
     }

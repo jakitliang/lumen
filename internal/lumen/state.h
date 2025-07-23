@@ -70,7 +70,7 @@ namespace Lumen {
         Lumen::State *MainThread;
         Lumen::UpValue UpValueHead;  /* head of double-linked list of all open upValues */
         Lumen::Table *Metatable[Lumen::TypeCount];  /* metatables for basic types */
-        Lumen::String *MetatableName[Lumen::TM::NameN];  /* array with tag-method names */
+        Lumen::String *MetatableName[Lumen::MetaMethod::NameN];  /* array with tag-method names */
 
         Lumen::Byte GetWhite() const; // NOLINT
 
@@ -108,8 +108,6 @@ namespace Lumen {
         Lumen::GCObject *GCList;
         Lumen::LongJump *ErrorJmp;  /* current error recover point */
         Lumen::Integer ErrFunc;  /* current error handling function (stack index) */
-
-
 
         Lumen::Object *ToObject(int idx);
 

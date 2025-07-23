@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <charconv>
 
 #define LUA_CORE
 
@@ -83,12 +84,12 @@ void Lumen::VM::GetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object 
             Lumen::Table *h = t->GetTable();
             const Lumen::Object *res = Lumen::Table::Get(h, key); /* do a primitive get */
             if (!res->IsNil() ||  /* result is no nil? */
-                (tm = LumenTMGetFast(L, h->Metatable, Lumen::TM::NameIndex)) == nullptr) { /* or no TM? */
+                (tm = LumenMetaMethodGetFast(L, h->Metatable, Lumen::MetaMethod::NameIndex)) == nullptr) { /* or no TM? */
                 LumenSetObject2S(L, val, res);
                 return;
             }
             /* else will try the tag method */
-        } else if ((tm = Lumen::TM::GetByObject(L, t, Lumen::TM::NameIndex))->IsNil())
+        } else if ((tm = Lumen::MetaMethod::GetByObject(L, t, Lumen::MetaMethod::NameIndex))->IsNil())
             Lumen::Debug::TypeError(L, t, "index");
         if (tm->IsFunction()) {
             callTMRes(L, val, tm, t, key);
@@ -115,12 +116,12 @@ void Lumen::VM::FinishGetTable(Lumen::State *L,
                 cachedSlot = nullptr;
             }
             if (!res->IsNil() ||  /* result is no nil? */
-                (tm = LumenTMGetFast(L, h->Metatable, Lumen::TM::NameIndex)) == nullptr) { /* or no TM? */
+                (tm = LumenMetaMethodGetFast(L, h->Metatable, Lumen::MetaMethod::NameIndex)) == nullptr) { /* or no TM? */
                 LumenSetObject2S(L, val, res);
                 return;
             }
             /* else will try the tag method */
-        } else if ((tm = Lumen::TM::GetByObject(L, t, Lumen::TM::NameIndex))->IsNil())
+        } else if ((tm = Lumen::MetaMethod::GetByObject(L, t, Lumen::MetaMethod::NameIndex))->IsNil())
             Lumen::Debug::TypeError(L, t, "index");
         if (tm->IsFunction()) {
             callTMRes(L, val, tm, t, key);
@@ -140,14 +141,14 @@ void Lumen::VM::SetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object 
             Lumen::Table *h = t->GetTable();
             Lumen::Object *oldVal = Lumen::Table::Set(L, h, key); /* do a primitive set */
             if (!oldVal->IsNil() ||  /* result is no nil? */
-                (tm = LumenTMGetFast(L, h->Metatable, Lumen::TM::NameNewIndex)) == nullptr) { /* or no TM? */
+                (tm = LumenMetaMethodGetFast(L, h->Metatable, Lumen::MetaMethod::NameNewIndex)) == nullptr) { /* or no TM? */
                 LumenSetObject2T(L, oldVal, val);
                 h->Flags = 0;
                 L->BarrierTable(h, val);
                 return;
             }
             /* else will try the tag method */
-        } else if ((tm = Lumen::TM::GetByObject(L, t, Lumen::TM::NameNewIndex))->IsNil())
+        } else if ((tm = Lumen::MetaMethod::GetByObject(L, t, Lumen::MetaMethod::NameNewIndex))->IsNil())
             Lumen::Debug::TypeError(L, t, "index");
         if (tm->IsFunction()) {
             callTM(L, tm, t, key, val);
@@ -177,14 +178,14 @@ void Lumen::VM::FinishSetTable(Lumen::State *L,
                 cachedSlot = nullptr;
             }
             if (!oldVal->IsNil() ||  /* result is no nil? */
-                (tm = LumenTMGetFast(L, h->Metatable, Lumen::TM::NameNewIndex)) == nullptr) { /* or no TM? */
+                (tm = LumenMetaMethodGetFast(L, h->Metatable, Lumen::MetaMethod::NameNewIndex)) == nullptr) { /* or no TM? */
                 LumenSetObject2T(L, oldVal, val);
                 h->Flags = 0;
                 L->BarrierTable(h, val);
                 return;
             }
             /* else will try the tag method */
-        } else if ((tm = Lumen::TM::GetByObject(L, t, Lumen::TM::NameNewIndex))->IsNil())
+        } else if ((tm = Lumen::MetaMethod::GetByObject(L, t, Lumen::MetaMethod::NameNewIndex))->IsNil())
             Lumen::Debug::TypeError(L, t, "index");
         if (tm->IsFunction()) {
             callTM(L, tm, t, key, val);
@@ -198,10 +199,10 @@ void Lumen::VM::FinishSetTable(Lumen::State *L,
 }
 
 static inline int call_binTM(Lumen::State *L, const Lumen::Object *p1, const Lumen::Object *p2,
-                             Lumen::Value res, Lumen::TM::Name event) {
-    const Lumen::Object *tm = Lumen::TM::GetByObject(L, p1, event);  /* try first operand */
+                             Lumen::Value res, Lumen::MetaMethod::Name event) {
+    const Lumen::Object *tm = Lumen::MetaMethod::GetByObject(L, p1, event);  /* try first operand */
     if (tm->IsNil())
-        tm = Lumen::TM::GetByObject(L, p2, event);  /* try second operand */
+        tm = Lumen::MetaMethod::GetByObject(L, p2, event);  /* try second operand */
     if (tm->IsNil()) return 0;
     callTMRes(L, res, tm, p1, p2);
     return 1;
@@ -209,12 +210,12 @@ static inline int call_binTM(Lumen::State *L, const Lumen::Object *p1, const Lum
 
 
 static inline const Lumen::Object *get_compTM(Lumen::State *L, Lumen::Table *mt1, Lumen::Table *mt2,
-                                              Lumen::TM::Name event) {
-    const Lumen::Object *tm1 = LumenTMGetFast(L, mt1, event);
+                                              Lumen::MetaMethod::Name event) {
+    const Lumen::Object *tm1 = LumenMetaMethodGetFast(L, mt1, event);
     const Lumen::Object *tm2;
     if (tm1 == nullptr) return nullptr;  /* no metamethod */
     if (mt1 == mt2) return tm1;  /* same metatables => same metamethods */
-    tm2 = LumenTMGetFast(L, mt2, event);
+    tm2 = LumenMetaMethodGetFast(L, mt2, event);
     if (tm2 == nullptr) return nullptr;  /* no metamethod */
     if (Lumen::RawEqualObject(tm1, tm2))  /* same metamethods? */
         return tm1;
@@ -223,11 +224,11 @@ static inline const Lumen::Object *get_compTM(Lumen::State *L, Lumen::Table *mt1
 
 
 static inline int callOrderTM(Lumen::State *L, const Lumen::Object *p1, const Lumen::Object *p2,
-                              Lumen::TM::Name event) {
-    const Lumen::Object *tm1 = Lumen::TM::GetByObject(L, p1, event);
+                              Lumen::MetaMethod::Name event) {
+    const Lumen::Object *tm1 = Lumen::MetaMethod::GetByObject(L, p1, event);
     const Lumen::Object *tm2;
     if (tm1->IsNil()) return -1;  /* no metamethod? */
-    tm2 = Lumen::TM::GetByObject(L, p2, event);
+    tm2 = Lumen::MetaMethod::GetByObject(L, p2, event);
     if (!Lumen::RawEqualObject(tm1, tm2))  /* different metamethods? */
         return -1;
     callTMRes(L, L->Top, tm1, p1, p2);
@@ -268,7 +269,7 @@ int Lumen::VM::LessThan(Lumen::State *L, const Lumen::Object *l, const Lumen::Ob
         return LumenNumLT(l->GetNumber(), r->GetNumber());
     else if (l->IsString())
         return luaStrCmp(l->GetString(), r->GetString()) < 0;
-    else if ((res = callOrderTM(L, l, r, Lumen::TM::NameLT)) != -1)
+    else if ((res = callOrderTM(L, l, r, Lumen::MetaMethod::NameLT)) != -1)
         return res;
     return Lumen::Debug::OrderError(L, l, r);
 }
@@ -282,9 +283,9 @@ int Lumen::VM::LessEqual(Lumen::State *L, const Lumen::Object *l, const Lumen::O
         return LumenNumLE(l->GetNumber(), r->GetNumber());
     else if (l->IsString())
         return luaStrCmp(l->GetString(), r->GetString()) <= 0;
-    else if ((res = callOrderTM(L, l, r, Lumen::TM::NameLE)) != -1)  /* first try `le' */
+    else if ((res = callOrderTM(L, l, r, Lumen::MetaMethod::NameLE)) != -1)  /* first try `le' */
         return res;
-    else if ((res = callOrderTM(L, r, l, Lumen::TM::NameLT)) != -1)  /* else try `lt' */
+    else if ((res = callOrderTM(L, r, l, Lumen::MetaMethod::NameLT)) != -1)  /* else try `lt' */
         return !res;
     return Lumen::Debug::OrderError(L, l, r);
 }
@@ -305,12 +306,12 @@ int Lumen::VM::EqualObject(Lumen::State *L, const Lumen::Object *t1, const Lumen
         case Lumen::TypeUserdata: {
             if (t1->GetUData() == t2->GetUData()) return 1;
             tm = get_compTM(L, t1->GetUData()->Metatable, t2->GetUData()->Metatable,
-                            Lumen::TM::NameEQ);
+                            Lumen::MetaMethod::NameEQ);
             break;  /* will try TM */
         }
         case Lumen::TypeTable: {
             if (t1->GetTable() == t2->GetTable()) return 1;
-            tm = get_compTM(L, t1->GetTable()->Metatable, t2->GetTable()->Metatable, Lumen::TM::NameEQ);
+            tm = get_compTM(L, t1->GetTable()->Metatable, t2->GetTable()->Metatable, Lumen::MetaMethod::NameEQ);
             break;  /* will try TM */
         }
         default:
@@ -333,7 +334,7 @@ void Lumen::VM::Concat(Lumen::State *L, int total, int last) {
         bool is_str2 = Lumen::VM::FastToString(L, top - 1);
 
         if (!(is_str1 || (top - 2)->IsNumber()) || !is_str2) {
-            if (!call_binTM(L, top - 2, top - 1, top - 2, Lumen::TM::NameConcat))
+            if (!call_binTM(L, top - 2, top - 1, top - 2, Lumen::MetaMethod::NameConcat))
                 Lumen::Debug::ConcatError(L, top - 2, top - 1);
         } else {
             s1 = (top - 2)->GetString();
@@ -367,12 +368,12 @@ void Lumen::VM::Concat(Lumen::State *L, int total, int last) {
 }
 
 void Lumen::VM::ArithValue(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb, const Lumen::Object *rc,
-                           Lumen::TM::Name op) {
+                           Lumen::MetaMethod::Name op) {
     Lumen::Object tempB, tempC; // NOLINT
     const Lumen::Object *b, *c;
     if ((b = ToNumber(rb, &tempB)) != nullptr &&
         (c = ToNumber(rc, &tempC)) != nullptr) {
-        Lumen::Number res = Lumen::Arith(op - Lumen::TM::NameAdd + Lumen::ArithOpAdd,
+        Lumen::Number res = Lumen::Arith(op - Lumen::MetaMethod::NameAdd + Lumen::ArithOpAdd,
                                          b->GetNumber(), c->GetNumber());
         ra->SetNumber(res);
     } else if (!call_binTM(L, rb, rc, ra, op))
@@ -390,39 +391,61 @@ void Lumen::VM::ObjectLength(Lumen::State *L, Lumen::Value ra, const Lumen::Obje
             break;
         }
         default: {  /* try metamethod */
-            if (!call_binTM(L, rb, Lumen::NilObject, ra, Lumen::TM::NameLen))
+            if (!call_binTM(L, rb, Lumen::NilObject, ra, Lumen::MetaMethod::NameLen))
                 Lumen::Debug::TypeError(L, rb, "get length of");
         }
     }
 }
 
+int Lumen::VM::ToString(Lumen::State *L, Lumen::Value obj) {
+    if (!obj->IsNumber())
+        return 0;
+    else {
+        char s[LUA_MAX_NUMBER2STR];
+        Lumen::Number n = obj->GetNumber();
+        LumenNum2Str(s, n);
+        auto [ptr, ec] = std::to_chars(
+            s,
+            s + sizeof(s),
+            n,
+            std::chars_format::general,
+            14 // %.14g
+        );
+        if (ec != std::errc()) {
+            return 0;
+        }
+        LumenSetStringValue2S(L, obj, Lumen::String::New(L, s));
+        return 1;
+    }
+}
+
 static void arith(Lumen::State *L, Lumen::Value ra, const Lumen::Object *rb,
-                  const Lumen::Object *rc, Lumen::TM::Name op) {
-    Lumen::Object tempB, tempC;
+                  const Lumen::Object *rc, Lumen::MetaMethod::Name op) {
+    Lumen::Object tempB, tempC; // NOLINT
     const Lumen::Object *b, *c;
     if ((b = Lumen::VM::ToNumber(rb, &tempB)) != nullptr &&
         (c = Lumen::VM::ToNumber(rc, &tempC)) != nullptr) {
         Lumen::Number nb = b->GetNumber(), nc = c->GetNumber();
         switch (op) {
-            case Lumen::TM::NameAdd:
+            case Lumen::MetaMethod::NameAdd:
                 ra->SetNumber(LumenNumAdd(nb, nc));
                 break;
-            case Lumen::TM::NameSub:
+            case Lumen::MetaMethod::NameSub:
                 ra->SetNumber(LumenNumSub(nb, nc));
                 break;
-            case Lumen::TM::NameMul:
+            case Lumen::MetaMethod::NameMul:
                 ra->SetNumber(LumenNumMul(nb, nc));
                 break;
-            case Lumen::TM::NameDiv:
+            case Lumen::MetaMethod::NameDiv:
                 ra->SetNumber(LumenNumDiv(nb, nc));
                 break;
-            case Lumen::TM::NameMod:
+            case Lumen::MetaMethod::NameMod:
                 ra->SetNumber(LumenNumMod(nb, nc));
                 break;
-            case Lumen::TM::NamePow:
+            case Lumen::MetaMethod::NamePow:
                 ra->SetNumber(LumenNumPow(nb, nc));
                 break;
-            case Lumen::TM::NameUnm:
+            case Lumen::MetaMethod::NameUnm:
                 ra->SetNumber(LumenNumUnm(nb));
                 break;
             default:
@@ -616,27 +639,27 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 continue;
             }
             case Lumen::OpCodeAdd: {
-                arith_op(LumenNumAdd, Lumen::TM::NameAdd);
+                arith_op(LumenNumAdd, Lumen::MetaMethod::NameAdd);
                 continue;
             }
             case Lumen::OpCodeSub: {
-                arith_op(LumenNumSub, Lumen::TM::NameSub);
+                arith_op(LumenNumSub, Lumen::MetaMethod::NameSub);
                 continue;
             }
             case Lumen::OpCodeMul: {
-                arith_op(LumenNumMul, Lumen::TM::NameMul);
+                arith_op(LumenNumMul, Lumen::MetaMethod::NameMul);
                 continue;
             }
             case Lumen::OpCodeDiv: {
-                arith_op(LumenNumDiv, Lumen::TM::NameDiv);
+                arith_op(LumenNumDiv, Lumen::MetaMethod::NameDiv);
                 continue;
             }
             case Lumen::OpCodeMod: {
-                arith_op(LumenNumMod, Lumen::TM::NameMod);
+                arith_op(LumenNumMod, Lumen::MetaMethod::NameMod);
                 continue;
             }
             case Lumen::OpCodePow: {
-                arith_op(LumenNumPow, Lumen::TM::NamePow);
+                arith_op(LumenNumPow, Lumen::MetaMethod::NamePow);
                 continue;
             }
             case Lumen::OpCodeUnm: {
@@ -645,7 +668,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                     Lumen::Number nb = rb->GetNumber();
                     ra->SetNumber(LumenNumUnm(nb));
                 } else {
-                    Protect(arith(L, ra, rb, rb, Lumen::TM::NameUnm));
+                    Protect(arith(L, ra, rb, rb, Lumen::MetaMethod::NameUnm));
                 }
                 continue;
             }
@@ -667,7 +690,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                     }
                     default: {  /* try metamethod */
                         Protect(
-                            if (!call_binTM(L, rb, Lumen::NilObject, ra, Lumen::TM::NameLen))
+                            if (!call_binTM(L, rb, Lumen::NilObject, ra, Lumen::MetaMethod::NameLen))
                                 Lumen::Debug::TypeError(L, rb, "get length of");
                         );
                     }
@@ -736,7 +759,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                         goto reentry;  /* restart Lumen::VM::Execute over new Lua function */
                     }
                     case Lumen::Do::PCRetC: {
-                        /* it was a C function (`precall' called it); adjust results */
+                        /* it was a C function (`precall` called it); adjust results */
                         if (nresults >= 0) L->Top = L->CallInfo->Top;
                         base = L->Base;
                         continue;
@@ -784,7 +807,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 if (L->OpenedUpValue) Lumen::UpValue::Close(L, base);
                 L->SavedPC = pc;
                 b = Lumen::Do::PosCall(L, ra);
-                if (--nExecCalls == 0)  /* was previous function running `here'? */
+                if (--nExecCalls == 0)  /* was previous function running `here`? */
                     return;  /* no: return */
                 else {  /* yes: continue its execution */
                     if (b) L->Top = L->CallInfo->Top;

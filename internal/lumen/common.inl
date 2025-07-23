@@ -340,7 +340,7 @@ inline void Lumen::State::BarrierGCObjectTable(Lumen::Table *t, void *o) {
         Lumen::GC::BarrierBack(this, t);
 }
 
-inline const Lumen::Object *Lumen::TM::GetByObject(Lumen::State *L, const Lumen::Object *o, Lumen::TM::Name event) {
+inline const Lumen::Object *Lumen::MetaMethod::GetByObject(Lumen::State *L, const Lumen::Object *o, Lumen::MetaMethod::Name event) {
     Lumen::Table *mt;
     switch (o->Type) {
         case Lumen::TypeTable:

@@ -141,7 +141,7 @@ Lumen::UInteger Lumen::GC::SeparateUserdata(Lumen::State *L, int all) {
     while ((curr = *p) != nullptr) {
         if (!(curr->IsWhite() || all) || isFinalized(curr->ToUserdata()))
             p = &curr->AsObject.GCNext;  /* don't bother with them */
-        else if (LumenTMGetFast(L, curr->ToUserdata()->Metatable, Lumen::TM::NameGC) == nullptr) {
+        else if (LumenMetaMethodGetFast(L, curr->ToUserdata()->Metatable, Lumen::MetaMethod::NameGC) == nullptr) {
             markFinalized(curr->ToUserdata());  /* don't need finalization */
             p = &curr->AsObject.GCNext;
         } else {  /* must call its gc method */
@@ -168,7 +168,7 @@ static int traverseTable(Lumen::GlobalState *g, Lumen::Table *h) {
     int weakValue = 0;
     const Lumen::Object *mode;
     if (h->Metatable) markObject(g, h->Metatable);
-    mode = LumenTMGetGlobalFast(g, h->Metatable, Lumen::TM::NameMode);
+    mode = LumenMetaMethodGetGlobalFast(g, h->Metatable, Lumen::MetaMethod::NameMode);
     if (mode && mode->IsString()) {  /* is there a weak mode? */
         weakKey = (strchr(mode->ToCString(), 'k') != nullptr);
         weakValue = (strchr(mode->ToCString(), 'v') != nullptr);
@@ -464,7 +464,7 @@ static void doGCMetatable(Lumen::State *L) {
     uData->GCNext = g->MainThread->GCNext;  /* return it to `root' list */
     g->MainThread->GCNext = o;
     makeWhite(g, o);
-    tm = LumenTMGetFast(L, uData->Metatable, Lumen::TM::NameGC);
+    tm = LumenMetaMethodGetFast(L, uData->Metatable, Lumen::MetaMethod::NameGC);
     if (tm != nullptr) {
         Lumen::Byte oldAH = L->AllowHook;
         Lumen::MemorySize oldTh = g->GCThreshold;
