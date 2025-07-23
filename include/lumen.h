@@ -227,7 +227,7 @@ namespace Lumen {
     // Utils
 
     struct Hash {
-        static UInt32 UInt32(const Byte *key, Lumen::UInteger len, UInt32 seed);
+        static UInt32 EncodeUInt32(const Byte *key, Lumen::UInteger len, UInt32 seed);
     };
 
     // MARK: Lumen Native Interface

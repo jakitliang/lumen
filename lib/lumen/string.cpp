@@ -26,13 +26,13 @@
 
 #ifdef LUA_USE_HP_HASH
 
-Lumen::UInt32 Lumen::Hash::UInt32(const Lumen::Byte *key, Lumen::UInteger len, Lumen::UInt32 seed) {
+Lumen::UInt32 Lumen::Hash::EncodeUInt32(const Lumen::Byte *key, Lumen::UInteger len, Lumen::UInt32 seed) {
     return XXH64(key, len, seed);
 }
 
 #else
 
-Lumen::UInt32 Lumen::Hash::UInt32(const Lumen::Byte *key, Lumen::UInteger len, Lumen::UInt32 seed) {
+Lumen::UInt32 Lumen::Hash::EncodeUInt32(const Lumen::Byte *key, Lumen::UInteger len, Lumen::UInt32 seed) {
     uint32_t h = cast(uint32_t, len);
     size_t step = (len >> 5) + 1;
     size_t l1;
