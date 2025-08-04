@@ -149,6 +149,8 @@ namespace Lumen {
             NameConcat,
             NameCall,
         };
+
+
     }
 
     constexpr const char *RegKeyLoaded = "_LOADED";

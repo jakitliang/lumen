@@ -603,15 +603,36 @@ void Lumen::IState::PushObject(const Lumen::IObject *o) {
 Lumen::Type Lumen::IState::GetTable(int idx) {
     auto L = ToState(this);
     Lumen::Value t;
-    const Lumen::Object *key;
+    Lumen::Object *key;
     const Lumen::Object *slot;
     LumenLock(L);
     t = L->ToObject(idx);
     key = L->Top - 1;
     LumenApiCheckValidIndex(L, t);
-    if (key->IsNumber()
-        ? LumenVMFastGetTable(L, t, key->GetNumber(), slot, Lumen::Table::GetNum)
-        : LumenVMFastGetTable(L, t, key, slot, Lumen::Table::Get)) {
+    if (!t->IsTable()) {
+        const Lumen::Object *tm = Lumen::MetaMethod::GetByObject(L, t, Lumen::MetaMethod::NameIndex);
+        switch (tm->Type) {
+            case Lumen::TypeNil:
+                Lumen::Debug::TypeError(L, t, "index");
+                break;
+            case Lumen::TypeFunction:
+                Lumen::VM::CallTMRes(L, L->Top - 1, tm, t, key);
+                break;
+            case Lumen::TypeTable:
+                if (key->IsNumber()
+                    ? LumenVMFastFetchTable(L, tm, key->GetNumber(), slot, Lumen::Table::GetNum)
+                    : LumenVMFastFetchTable(L, tm, key, slot, Lumen::Table::Get)) {
+                    LumenSetObject2S(L, (L->Top - 1), slot);
+                } else {
+                    Lumen::VM::FinishGetTable(L, tm, key, L->Top - 1, slot);
+                }
+                break;
+            default:
+                Lumen::VM::FinishGetTable(L, tm, key, L->Top - 1, nullptr);
+        }
+    } else if (key->IsNumber()
+        ? LumenVMFastFetchTable(L, t, key->GetNumber(), slot, Lumen::Table::GetNum)
+        : LumenVMFastFetchTable(L, t, key, slot, Lumen::Table::Get)) {
         LumenSetObject2S(L, (L->Top - 1), slot);
     } else {
         Lumen::VM::FinishGetTable(L, t, L->Top - 1, L->Top - 1, slot);
@@ -629,7 +650,26 @@ Lumen::Type Lumen::IState::GetField(int idx, const char *k) {
     t = L->ToObject(idx);
     LumenApiCheckValidIndex(L, t);
     key.SetString(L, Lumen::String::New(L, k));
-    if (LumenVMFastGetTable(L, t, (&key), slot, Lumen::Table::Get)) {
+    if (!t->IsTable()) {
+        const Lumen::Object *tm = Lumen::MetaMethod::GetByObject(L, t, Lumen::MetaMethod::NameIndex);
+        switch (tm->Type) {
+            case Lumen::TypeNil:
+                Lumen::Debug::TypeError(L, t, "index");
+                break;
+            case Lumen::TypeFunction:
+                Lumen::VM::CallTMRes(L, L->Top, tm, t, &key);
+                break;
+            case Lumen::TypeTable:
+                if (LumenVMFastFetchTable(L, tm, (&key), slot, Lumen::Table::Get)) {
+                    LumenSetObject2S(L, L->Top, slot);
+                } else {
+                    Lumen::VM::FinishGetTable(L, tm, &key, L->Top, slot);
+                }
+                break;
+            default:
+                Lumen::VM::FinishGetTable(L, tm, &key, L->Top, nullptr);
+        }
+    } else if (LumenVMFastFetchTable(L, t, (&key), slot, Lumen::Table::Get)) {
         LumenSetObject2S(L, L->Top, slot);
     } else {
         Lumen::VM::FinishGetTable(L, t, &key, L->Top, slot);
@@ -755,16 +795,37 @@ void Lumen::IState::GetFEnv(int idx) {
 void Lumen::IState::SetTable(int idx) {
     auto L = ToState(this);
     Lumen::Value t;
-    const Lumen::Object *key;
+    Lumen::Object *key;
     const Lumen::Object *slot;
     LumenLock(L);
     LumenApiCheckElementCount(L, 2);
     t = L->ToObject(idx);
     key = L->Top - 2;
     LumenApiCheckValidIndex(L, t);
-    if (key->IsNumber()
-        ? LumenVMFastGetTable(L, t, key->GetNumber(), slot, Lumen::Table::GetNum)
-        : LumenVMFastGetTable(L, t, key, slot, Lumen::Table::Get)) {
+    if (!t->IsTable()) {
+        const Lumen::Object *tm = Lumen::MetaMethod::GetByObject(L, t, Lumen::MetaMethod::NameNewIndex);
+        switch (tm->Type) {
+            case Lumen::TypeNil:
+                Lumen::Debug::TypeError(L, t, "index");
+                break;
+            case Lumen::TypeFunction:
+                Lumen::VM::CallTM(L, tm, t, key, L->Top - 1);
+                break;
+            case Lumen::TypeTable:
+                if (key->IsNumber()
+                    ? LumenVMFastFetchTable(L, tm, (int) key->GetNumber(), slot, Lumen::Table::GetNum)
+                    : LumenVMFastFetchTable(L, tm, key, slot, Lumen::Table::Get)) {
+                    LumenVMFastSetTable(L, tm->GetTable(), slot, L->Top - 1);
+                } else {
+                    Lumen::VM::FinishSetTable(L, tm, key, L->Top - 1, slot);
+                }
+                break;
+            default:
+                Lumen::VM::FinishSetTable(L, tm, key, L->Top - 1, nullptr);
+        }
+    } else if (key->IsNumber()
+        ? LumenVMFastFetchTable(L, t, key->GetNumber(), slot, Lumen::Table::GetNum)
+        : LumenVMFastFetchTable(L, t, key, slot, Lumen::Table::Get)) {
         LumenVMFastSetTable(L, t->GetTable(), slot, L->Top - 1);
     } else {
         Lumen::VM::FinishSetTable(L, t, L->Top - 2, L->Top - 1, slot);
@@ -783,7 +844,28 @@ void Lumen::IState::SetField(int idx, const char *k) {
     t = L->ToObject(idx);
     LumenApiCheckValidIndex(L, t);
     key.SetString(L, Lumen::String::New(L, k));
-    if (LumenVMFastGetTable(L, t, (&key), slot, Lumen::Table::Get)) {
+    if (!t->IsTable()) {
+        const Lumen::Object *tm = Lumen::MetaMethod::GetByObject(L, t, Lumen::MetaMethod::NameNewIndex);
+        switch (tm->Type) {
+            case Lumen::TypeNil:
+                Lumen::Debug::TypeError(L, t, "index");
+                break;
+            case Lumen::TypeFunction:
+                Lumen::VM::CallTM(L, tm, t, (&key), L->Top - 1);
+                break;
+            case Lumen::TypeTable:
+                if ((&key)->IsNumber()
+                    ? LumenVMFastFetchTable(L, tm, (int) (&key)->GetNumber(), slot, Lumen::Table::GetNum)
+                    : LumenVMFastFetchTable(L, tm, (&key), slot, Lumen::Table::Get)) {
+                    LumenVMFastSetTable(L, tm->GetTable(), slot, L->Top - 1);
+                } else {
+                    Lumen::VM::FinishSetTable(L, tm, (&key), L->Top - 1, slot);
+                }
+                break;
+            default:
+                Lumen::VM::FinishSetTable(L, tm, (&key), L->Top - 1, nullptr);
+        }
+    } else if (LumenVMFastGetTable(L, t, (&key), slot, Lumen::Table::Get)) {
         LumenVMFastSetTable(L, t->GetTable(), slot, L->Top - 1);
     } else {
         Lumen::VM::FinishSetTable(L, t, &key, L->Top - 1, slot);

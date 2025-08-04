@@ -49,8 +49,8 @@ static void traceExec(Lumen::State *L, const Lumen::Instruction *pc) {
 }
 
 
-static inline void callTMRes(Lumen::State *L, Lumen::Value res, const Lumen::Object *f,
-                             const Lumen::Object *p1, const Lumen::Object *p2) {
+void Lumen::VM::CallTMRes(Lumen::State *L, Lumen::Value res, const Lumen::Object *f,
+                          const Lumen::Object *p1, const Lumen::Object *p2) {
     Lumen::Integer result = LumenSaveStack(L, res);
     LumenSetObject2S(L, L->Top, f);  /* push function */
     LumenSetObject2S(L, L->Top + 1, p1);  /* 1st argument */
@@ -64,8 +64,8 @@ static inline void callTMRes(Lumen::State *L, Lumen::Value res, const Lumen::Obj
 }
 
 
-static inline void callTM(Lumen::State *L, const Lumen::Object *f, const Lumen::Object *p1,
-                          const Lumen::Object *p2, const Lumen::Object *p3) {
+void Lumen::VM::CallTM(Lumen::State *L, const Lumen::Object *f, const Lumen::Object *p1,
+                       const Lumen::Object *p2, const Lumen::Object *p3) {
     LumenSetObject2S(L, L->Top, f);  /* push function */
     LumenSetObject2S(L, L->Top + 1, p1);  /* 1st argument */
     LumenSetObject2S(L, L->Top + 2, p2);  /* 2nd argument */
@@ -84,7 +84,8 @@ void Lumen::VM::GetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object 
             Lumen::Table *h = t->GetTable();
             const Lumen::Object *res = Lumen::Table::Get(h, key); /* do a primitive get */
             if (!res->IsNil() ||  /* result is no nil? */
-                (tm = LumenMetaMethodGetFast(L, h->Metatable, Lumen::MetaMethod::NameIndex)) == nullptr) { /* or no TM? */
+                (tm = LumenMetaMethodGetFast(L, h->Metatable, Lumen::MetaMethod::NameIndex)) ==
+                nullptr) { /* or no TM? */
                 LumenSetObject2S(L, val, res);
                 return;
             }
@@ -92,7 +93,7 @@ void Lumen::VM::GetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object 
         } else if ((tm = Lumen::MetaMethod::GetByObject(L, t, Lumen::MetaMethod::NameIndex))->IsNil())
             Lumen::Debug::TypeError(L, t, "index");
         if (tm->IsFunction()) {
-            callTMRes(L, val, tm, t, key);
+            CallTMRes(L, val, tm, t, key);
             return;
         }
         t = tm;  /* else repeat with `tm` */
@@ -116,7 +117,8 @@ void Lumen::VM::FinishGetTable(Lumen::State *L,
                 cachedSlot = nullptr;
             }
             if (!res->IsNil() ||  /* result is no nil? */
-                (tm = LumenMetaMethodGetFast(L, h->Metatable, Lumen::MetaMethod::NameIndex)) == nullptr) { /* or no TM? */
+                (tm = LumenMetaMethodGetFast(L, h->Metatable, Lumen::MetaMethod::NameIndex)) ==
+                nullptr) { /* or no TM? */
                 LumenSetObject2S(L, val, res);
                 return;
             }
@@ -124,7 +126,7 @@ void Lumen::VM::FinishGetTable(Lumen::State *L,
         } else if ((tm = Lumen::MetaMethod::GetByObject(L, t, Lumen::MetaMethod::NameIndex))->IsNil())
             Lumen::Debug::TypeError(L, t, "index");
         if (tm->IsFunction()) {
-            callTMRes(L, val, tm, t, key);
+            CallTMRes(L, val, tm, t, key);
             return;
         }
         t = tm;  /* else repeat with `tm` */
@@ -141,7 +143,8 @@ void Lumen::VM::SetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object 
             Lumen::Table *h = t->GetTable();
             Lumen::Object *oldVal = Lumen::Table::Set(L, h, key); /* do a primitive set */
             if (!oldVal->IsNil() ||  /* result is no nil? */
-                (tm = LumenMetaMethodGetFast(L, h->Metatable, Lumen::MetaMethod::NameNewIndex)) == nullptr) { /* or no TM? */
+                (tm = LumenMetaMethodGetFast(L, h->Metatable, Lumen::MetaMethod::NameNewIndex)) ==
+                nullptr) { /* or no TM? */
                 LumenSetObject2T(L, oldVal, val);
                 h->Flags = 0;
                 L->BarrierTable(h, val);
@@ -151,7 +154,7 @@ void Lumen::VM::SetTable(Lumen::State *L, const Lumen::Object *t, Lumen::Object 
         } else if ((tm = Lumen::MetaMethod::GetByObject(L, t, Lumen::MetaMethod::NameNewIndex))->IsNil())
             Lumen::Debug::TypeError(L, t, "index");
         if (tm->IsFunction()) {
-            callTM(L, tm, t, key, val);
+            Lumen::VM::CallTM(L, tm, t, key, val);
             return;
         }
         /* else repeat with `tm` */
@@ -178,7 +181,8 @@ void Lumen::VM::FinishSetTable(Lumen::State *L,
                 cachedSlot = nullptr;
             }
             if (!oldVal->IsNil() ||  /* result is no nil? */
-                (tm = LumenMetaMethodGetFast(L, h->Metatable, Lumen::MetaMethod::NameNewIndex)) == nullptr) { /* or no TM? */
+                (tm = LumenMetaMethodGetFast(L, h->Metatable, Lumen::MetaMethod::NameNewIndex)) ==
+                nullptr) { /* or no TM? */
                 LumenSetObject2T(L, oldVal, val);
                 h->Flags = 0;
                 L->BarrierTable(h, val);
@@ -188,7 +192,7 @@ void Lumen::VM::FinishSetTable(Lumen::State *L,
         } else if ((tm = Lumen::MetaMethod::GetByObject(L, t, Lumen::MetaMethod::NameNewIndex))->IsNil())
             Lumen::Debug::TypeError(L, t, "index");
         if (tm->IsFunction()) {
-            callTM(L, tm, t, key, val);
+            Lumen::VM::CallTM(L, tm, t, key, val);
             return;
         }
         /* else repeat with `tm` */
@@ -204,7 +208,7 @@ static inline int call_binTM(Lumen::State *L, const Lumen::Object *p1, const Lum
     if (tm->IsNil())
         tm = Lumen::MetaMethod::GetByObject(L, p2, event);  /* try second operand */
     if (tm->IsNil()) return 0;
-    callTMRes(L, res, tm, p1, p2);
+    Lumen::VM::CallTMRes(L, res, tm, p1, p2);
     return 1;
 }
 
@@ -231,7 +235,7 @@ static inline int callOrderTM(Lumen::State *L, const Lumen::Object *p1, const Lu
     tm2 = Lumen::MetaMethod::GetByObject(L, p2, event);
     if (!Lumen::RawEqualObject(tm1, tm2))  /* different metamethods? */
         return -1;
-    callTMRes(L, L->Top, tm1, p1, p2);
+    Lumen::VM::CallTMRes(L, L->Top, tm1, p1, p2);
     return !(L->Top)->IsFalse();
 }
 
@@ -318,7 +322,7 @@ int Lumen::VM::EqualObject(Lumen::State *L, const Lumen::Object *t1, const Lumen
             return t1->GetGCObject() == t2->GetGCObject();
     }
     if (tm == nullptr) return 0;  /* no TM? */
-    callTMRes(L, L->Top, tm, t1, t2);  /* call TM */
+    CallTMRes(L, L->Top, tm, t1, t2);  /* call TM */
     return !L->Top->IsFalse();
 }
 
@@ -576,9 +580,30 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 const Lumen::Object *slot;
                 auto rb = RB(i);
                 auto rc = RKC(i);
-                if (rc->IsNumber()
-                    ? LumenVMFastGetTable(L, rb, (int) rc->GetNumber(), slot, Lumen::Table::GetNum)
-                    : LumenVMFastGetTable(L, rb, rc, slot, Lumen::Table::Get)) {
+                if (!rb->IsTable()) {
+                    const Lumen::Object *tm = Lumen::MetaMethod::GetByObject(L, rb, Lumen::MetaMethod::NameIndex);
+                    switch (tm->Type) {
+                        case Lumen::TypeNil:
+                            Protect(Lumen::Debug::TypeError(L, rb, "index"));
+                            break;
+                        case Lumen::TypeFunction:
+                            Protect(Lumen::VM::CallTMRes(L, ra, tm, rb, rc));
+                            break;
+                        case Lumen::TypeTable:
+                            if (rc->IsNumber()
+                                ? LumenVMFastFetchTable(L, tm, (int) rc->GetNumber(), slot, Lumen::Table::GetNum)
+                                : LumenVMFastFetchTable(L, tm, rc, slot, Lumen::Table::Get)) {
+                                LumenSetObject2S(L, ra, slot);
+                            } else {
+                                Protect(Lumen::VM::FinishGetTable(L, tm, rc, ra, slot));
+                            }
+                            break;
+                        default:
+                            Protect(Lumen::VM::FinishGetTable(L, tm, rc, ra, nullptr));
+                    }
+                } else if (rc->IsNumber()
+                           ? LumenVMFastFetchTable(L, rb, (int) rc->GetNumber(), slot, Lumen::Table::GetNum)
+                           : LumenVMFastFetchTable(L, rb, rc, slot, Lumen::Table::Get)) {
                     LumenSetObject2S(L, ra, slot);
                 } else {
                     Protect(Lumen::VM::FinishGetTable(L, rb, rc, ra, slot));
@@ -610,9 +635,30 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 const Lumen::Object *slot;
                 auto rb = RKB(i);
                 auto rc = RKC(i);
-                if (rb->IsNumber()
-                    ? LumenVMFastGetTable(L, ra, (int) rb->GetNumber(), slot, Lumen::Table::GetNum)
-                    : LumenVMFastGetTable(L, ra, rb, slot, Lumen::Table::Get)) {
+                if (!ra->IsTable()) {
+                    const Lumen::Object *tm = Lumen::MetaMethod::GetByObject(L, ra, Lumen::MetaMethod::NameNewIndex);
+                    switch (tm->Type) {
+                        case Lumen::TypeNil:
+                            Protect(Lumen::Debug::TypeError(L, ra, "index"));
+                            break;
+                        case Lumen::TypeFunction:
+                            Protect(Lumen::VM::CallTM(L, tm, ra, rb, rc));
+                            break;
+                        case Lumen::TypeTable:
+                            if (rb->IsNumber()
+                                ? LumenVMFastFetchTable(L, tm, (int) rb->GetNumber(), slot, Lumen::Table::GetNum)
+                                : LumenVMFastFetchTable(L, tm, rb, slot, Lumen::Table::Get)) {
+                                LumenVMFastSetTable(L, tm->GetTable(), slot, rc);
+                            } else {
+                                Protect(Lumen::VM::FinishSetTable(L, tm, rb, rc, slot));
+                            }
+                            break;
+                        default:
+                            Protect(Lumen::VM::FinishSetTable(L, tm, rb, rc, nullptr));
+                    }
+                } else if (rb->IsNumber()
+                           ? LumenVMFastFetchTable(L, ra, (int) rb->GetNumber(), slot, Lumen::Table::GetNum)
+                           : LumenVMFastFetchTable(L, ra, rb, slot, Lumen::Table::Get)) {
                     LumenVMFastSetTable(L, ra->GetTable(), slot, rc);
                 } else {
                     Protect(Lumen::VM::FinishSetTable(L, ra, rb, rc, slot));
@@ -631,7 +677,28 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 Lumen::Value rb = RB(i);
                 auto rc = RKC(i);
                 LumenSetObjectS2S(L, ra + 1, rb);
-                if (LumenVMFastGetTable(L, rb, rc, slot, Lumen::Table::Get)) {
+                if (!rb->IsTable()) {
+                    const Lumen::Object *tm = Lumen::MetaMethod::GetByObject(L, rb, Lumen::MetaMethod::NameIndex);
+                    switch (tm->Type) {
+                        case Lumen::TypeNil:
+                            Protect(Lumen::Debug::TypeError(L, rb, "index"));
+                            break;
+                        case Lumen::TypeFunction:
+                            Protect(Lumen::VM::CallTMRes(L, ra, tm, rb, rc));
+                            break;
+                        case Lumen::TypeTable:
+                            if (rc->IsNumber()
+                                ? LumenVMFastFetchTable(L, tm, (int) rc->GetNumber(), slot, Lumen::Table::GetNum)
+                                : LumenVMFastFetchTable(L, tm, rc, slot, Lumen::Table::Get)) {
+                                LumenSetObject2S(L, ra, slot);
+                            } else {
+                                Protect(Lumen::VM::FinishGetTable(L, tm, rc, ra, slot));
+                            }
+                            break;
+                        default:
+                            Protect(Lumen::VM::FinishGetTable(L, tm, rc, ra, nullptr));
+                    }
+                } else if (LumenVMFastFetchTable(L, rb, rc, slot, Lumen::Table::Get)) {
                     LumenSetObject2S(L, ra, slot);
                 } else {
                     Protect(Lumen::VM::FinishGetTable(L, rb, rc, ra, slot));

@@ -56,6 +56,12 @@ namespace Lumen::VM {
     bool FastToNumber(const Lumen::Object *&obj, Lumen::Object *n);
 
     bool FastEqualObject(Lumen::State *L, const Lumen::Object *o1, const Lumen::Object *o2);
+
+    void CallTMRes(Lumen::State *L, Lumen::Value res, const Lumen::Object *f,
+                   const Lumen::Object *p1, const Lumen::Object *p2);
+
+    void CallTM(Lumen::State *L, const Lumen::Object *f, const Lumen::Object *p1,
+                const Lumen::Object *p2, const Lumen::Object *p3);
 }
 
 inline bool Lumen::VM::FastToString(Lumen::State *L, Lumen::Value obj) {
@@ -82,9 +88,13 @@ inline const Lumen::Object *Lumen::VM::ToNumber(const Lumen::Object *obj, Lumen:
 
 #define LumenVMFastGetTable(L, t, k, slot, f) \
     (!t->IsTable()                            \
-    ? (slot = nullptr, 0)  /* not a table; 'slot' is NULL and result is 0 */ \
+    ? (slot = nullptr, 0)  /* not a table; 'slot' is NULL and result is false */ \
     : (slot = f(t->GetTable(), k),  /* else, do raw access */                \
     !slot->IsNil()))  /* result not empty? */
+
+#define LumenVMFastFetchTable(L, t, k, slot, f) \
+    (slot = f(t->GetTable(), k),  /* else, do raw access */                \
+    !slot->IsNil())  /* result not empty? */
 
 #define LumenVMFastSetTable(L, t, slot, v) \
 LumenDo(                                   \
