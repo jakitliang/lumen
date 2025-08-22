@@ -404,7 +404,7 @@ LumenAssert(!(obj)->IsCollectable() || \
 #define LumenLogMod(s, size) \
     (LumenCheckExp((size & (size - 1)) == 0, (cast(unsigned int, (s) & (size - 1)))))
 
-#define LumenTableTwoTo(x)    (1 << (x))
+#define LumenTableTwoTo(x)    (1ULL << (x))
 #define LumenTableNodeCount(t)    (LumenTableTwoTo((t)->NodeCount))
 
 #define LumenTableCeilLog2(x)    (Lumen::Log2((x) - 1) + 1)

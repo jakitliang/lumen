@@ -620,7 +620,7 @@ Lumen::Type Lumen::IState::GetTable(int idx) {
                 break;
             case Lumen::TypeTable:
                 if (key->IsNumber()
-                    ? LumenVMFastFetchTable(L, tm, key->GetNumber(), slot, Lumen::Table::GetNum)
+                    ? LumenVMFastFetchTable(L, tm, cast_int(key->GetNumber()), slot, Lumen::Table::GetNum)
                     : LumenVMFastFetchTable(L, tm, key, slot, Lumen::Table::Get)) {
                     LumenSetObject2S(L, (L->Top - 1), slot);
                 } else {
@@ -631,7 +631,7 @@ Lumen::Type Lumen::IState::GetTable(int idx) {
                 Lumen::VM::FinishGetTable(L, tm, key, L->Top - 1, nullptr);
         }
     } else if (key->IsNumber()
-        ? LumenVMFastFetchTable(L, t, key->GetNumber(), slot, Lumen::Table::GetNum)
+        ? LumenVMFastFetchTable(L, t, cast_int(key->GetNumber()), slot, Lumen::Table::GetNum)
         : LumenVMFastFetchTable(L, t, key, slot, Lumen::Table::Get)) {
         LumenSetObject2S(L, (L->Top - 1), slot);
     } else {
@@ -824,7 +824,7 @@ void Lumen::IState::SetTable(int idx) {
                 Lumen::VM::FinishSetTable(L, tm, key, L->Top - 1, nullptr);
         }
     } else if (key->IsNumber()
-        ? LumenVMFastFetchTable(L, t, key->GetNumber(), slot, Lumen::Table::GetNum)
+        ? LumenVMFastFetchTable(L, t, cast_int(key->GetNumber()), slot, Lumen::Table::GetNum)
         : LumenVMFastFetchTable(L, t, key, slot, Lumen::Table::Get)) {
         LumenVMFastSetTable(L, t->GetTable(), slot, L->Top - 1);
     } else {

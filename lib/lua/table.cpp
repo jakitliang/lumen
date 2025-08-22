@@ -159,13 +159,13 @@ static int tmove(lua_State *L) {
                       "destination wrap around");
         if (t > e || t <= f || (tt != 1 && !lua_compare(L, 1, tt, LUA_OPEQ))) {
             for (i = 0; i < n; i++) {
-                lua_rawgeti(L, 1, f + i);
-                lua_rawseti(L, tt, t + i);
+                lua_rawgeti(L, 1, cast_int(f + i));
+                lua_rawseti(L, tt, cast_int(t + i));
             }
         } else {
             for (i = n - 1; i >= 0; i--) {
-                lua_rawgeti(L, 1, f + i);
-                lua_rawseti(L, tt, t + i);
+                lua_rawgeti(L, 1, cast_int(f + i));
+                lua_rawseti(L, tt, cast_int(t + i));
             }
         }
     }

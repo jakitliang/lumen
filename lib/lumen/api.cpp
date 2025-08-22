@@ -628,7 +628,7 @@ LUA_API int lua_gettable(lua_State *l, int idx) {
     key = L->Top - 1;
     LumenApiCheckValidIndex(L, t);
     if (key->IsNumber()
-        ? LumenVMFastGetTable(L, t, key->GetNumber(), slot, Lumen::Table::GetNum)
+        ? LumenVMFastGetTable(L, t, cast_int(key->GetNumber()), slot, Lumen::Table::GetNum)
         : LumenVMFastGetTable(L, t, key, slot, Lumen::Table::Get)) {
         LumenSetObject2S(L, (L->Top - 1), slot);
     } else {
@@ -778,7 +778,7 @@ LUA_API void lua_settable(lua_State *l, int idx) {
     key = L->Top - 2;
     LumenApiCheckValidIndex(L, t);
     if (key->IsNumber()
-        ? LumenVMFastGetTable(L, t, key->GetNumber(), slot, Lumen::Table::GetNum)
+        ? LumenVMFastGetTable(L, t, cast_int(key->GetNumber()), slot, Lumen::Table::GetNum)
         : LumenVMFastGetTable(L, t, key, slot, Lumen::Table::Get)) {
         LumenVMFastSetTable(L, t->GetTable(), slot, L->Top - 1);
     } else {

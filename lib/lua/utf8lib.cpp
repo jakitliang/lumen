@@ -23,7 +23,9 @@
 #include "lumen.h"
 
 #ifdef _WIN32
+
 #include <Windows.h>
+
 #endif
 
 #define MAX_UNICODE    0x10FFFFu
@@ -289,7 +291,7 @@ static int utfSub(lua_State *L) {
 
     const char *p = s;
 
-    while (current_char_count < posI - 1 && current_byte_pos < len) {
+    while (current_char_count < posI - 1 && ((size_t) (current_byte_pos)) < len) {
         const char *next_p = utf8_decode(p, nullptr, !lax);
         if (next_p == nullptr) {
             luaL_error(L, MSGInvalid);
@@ -303,7 +305,7 @@ static int utfSub(lua_State *L) {
     p = s + start_byte_offset;
     current_char_count = posI - 1;
 
-    while (current_char_count < pose && current_byte_pos < len) {
+    while (current_char_count < pose && ((size_t) (current_byte_pos)) < len) {
         const char *next_p = utf8_decode(p, nullptr, !lax);
         if (next_p == nullptr) {
             luaL_error(L, MSGInvalid);

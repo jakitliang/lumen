@@ -145,7 +145,7 @@ static int findIndex(Lumen::State *L, Lumen::Table *t, Lumen::Value key) {
     int i;
     if (key->IsNil()) return -1;  /* first iteration */
     i = arrayIndex(key);
-    if (0 < i && i <= t->ArrayCount)  /* is `key` inside array part? */
+    if (0 < i && cast_uint(i) <= t->ArrayCount)  /* is `key` inside array part? */
         return i - 1;  /* yes; that's the index (corrected to C) */
     else {
         Lumen::Node *n = mainPosition(t, key);
@@ -167,7 +167,7 @@ static int findIndex(Lumen::State *L, Lumen::Table *t, Lumen::Value key) {
 
 int Lumen::Table::Next(Lumen::State *L, Lumen::Table *t, Lumen::Value key) {
     int i = findIndex(L, t, key);  /* find original element */
-    for (i++; i < t->ArrayCount; i++) {  /* try first array part */
+    for (i++; cast_uint(i) < t->ArrayCount; i++) {  /* try first array part */
         if (!(&t->Array[i])->IsNil()) {  /* a non-nil value? */
             key->SetNumber(cast_num(i + 1));
             LumenSetObject2S(L, key + 1, &t->Array[i]);
@@ -232,7 +232,7 @@ static int numUseArray(const Lumen::Table *t, int *nums) {
     for (lg = 0, twoToLog = 1; lg <= LUA_MAX_BITS; lg++, twoToLog *= 2) {  /* for each slice */
         int lc = 0;  /* counter */
         int lim = twoToLog;
-        if (lim > t->ArrayCount) {
+        if (cast_uint(lim) > t->ArrayCount) {
             lim = t->ArrayCount;  /* adjust upper limit */
             if (i > lim)
                 break;  /* no more elements to count */

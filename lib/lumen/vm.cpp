@@ -939,7 +939,7 @@ void Lumen::VM::Execute(Lumen::State *L, int nExecCalls) {
                 runtime_check(L, ra->IsTable());
                 h = ra->GetTable();
                 last = ((c - 1) * LUA_FIELDS_PER_FLUSH) + n;
-                if (last > h->ArrayCount)  /* needs more space? */
+                if (cast_uint(last) > h->ArrayCount)  /* needs more space? */
                     Lumen::Table::ResizeArray(L, h, last);  /* pre-alloc it at once */
                 for (; n > 0; n--) {
                     Lumen::Object *val = ra + n;

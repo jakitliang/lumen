@@ -108,11 +108,11 @@ namespace Lumen {
 #define cast(t, exp)    ((t)(exp))
 #endif
 
-#define cast_byte(i)    cast(Lumen::Byte, (i))
-#define cast_num(i)     cast(Lumen::Number, (i))
-#define cast_int(i)     cast(int, (i))
-#define cast_char(i)    cast(char, (i))
-
+#define cast_byte(i)       cast(Lumen::Byte, (i))
+#define cast_num(i)        cast(Lumen::Number, (i))
+#define cast_int(i)        cast(int, (i))
+#define cast_uint(i)       cast(unsigned int, (i))
+#define cast_char(i)       cast(char, (i))
 
 #ifndef lua_lock
 #define LumenLock(L)    ((void) 0)
